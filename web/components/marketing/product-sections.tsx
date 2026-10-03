@@ -219,7 +219,7 @@ export function ProductSections() {
 
                 <a
                   href="#download"
-                  className="mt-9 inline-flex items-center gap-2 rounded-[10px] bg-white px-5 py-3.5 text-sm font-black text-[#1877F2]">
+                  className="mt-9 inline-flex items-center gap-2 rounded-[6px] bg-white px-4 py-2.5 text-[13px] font-bold text-[#1877F2]">
                   Become a driver <ArrowRight size={16} />
                 </a>
               </div>
@@ -298,7 +298,7 @@ export function ProductSections() {
             </div>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <div className="min-w-[190px] bg-[#0B1220] px-5 py-4 text-white">
+              <div className="min-w-[180px] bg-[#0B1220] px-4 py-3.5 text-white">
                 <div className="text-[9px] font-bold uppercase tracking-[.12em] text-white/48">Coming soon on</div>
                 <div className="mt-1 text-sm font-black">Google Play</div>
               </div>
@@ -317,46 +317,46 @@ export function ProductSections() {
             <div className="text-xs font-black uppercase tracking-[.16em] text-white/65">Ready when you are</div>
             <h2 className="mt-2 text-3xl font-black tracking-[-.04em] text-white">Plan the trip before travel day.</h2>
           </div>
-          <a href="#download" className="inline-flex items-center justify-center gap-2 bg-white px-6 py-4 text-sm font-black text-[#1877F2]">
+          <a href="#download" className="inline-flex items-center justify-center gap-2 rounded-[6px] bg-white px-4 py-2.5 text-[13px] font-bold text-[#1877F2]">
             Get Vaya <ArrowRight size={16} />
           </a>
         </div>
       </section>
 
       <footer className="bg-[#0B1220] text-white">
-        <div className="mx-auto max-w-[1280px] px-5 py-12 sm:px-8 lg:px-10">
-          <div className="grid gap-10 border-b border-white/10 pb-10 md:grid-cols-[1.3fr_.7fr_.7fr]">
+        <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
+          <div className="grid gap-10 py-12 md:grid-cols-[1.4fr_.8fr_.8fr]">
             <div>
-              <Link href="/" className="flex items-center gap-2.5">
-                <span className="grid h-9 w-9 place-items-center bg-[#1877F2] font-black text-white">V</span>
-                <span className="text-xl font-black tracking-[-1px]">vaya</span>
+              <Link href="/" className="inline-flex items-baseline">
+                <span className="text-[22px] font-extrabold tracking-[-1px] text-white">vaya</span>
+                <span className="ml-0.5 text-[22px] font-black text-[#1877F2]">.</span>
               </Link>
-              <p className="mt-5 max-w-sm text-sm leading-6 text-white/45">
-                A better way to organise long-distance shared travel between the places people already move.
+              <p className="mt-4 max-w-sm text-[13px] leading-6 text-white/48">
+                A structured way to find and publish shared long-distance trips across South Africa.
               </p>
             </div>
 
             <div>
-              <div className="text-xs font-black uppercase tracking-[.14em] text-white/35">Platform</div>
-              <div className="mt-4 grid gap-3 text-sm font-semibold text-white/58">
-                <a href="#how-it-works" className="hover:text-white">How it works</a>
-                <a href="#riders" className="hover:text-white">For riders</a>
-                <a href="#drivers" className="hover:text-white">For drivers</a>
+              <div className="text-[11px] font-bold uppercase tracking-[.14em] text-white/34">Explore</div>
+              <div className="mt-4 grid gap-3 text-[13px] font-medium text-white/58">
+                <a href="#how-it-works" className="transition hover:text-white">How it works</a>
+                <a href="#riders" className="transition hover:text-white">For riders</a>
+                <a href="#drivers" className="transition hover:text-white">For drivers</a>
               </div>
             </div>
 
             <div>
-              <div className="text-xs font-black uppercase tracking-[.14em] text-white/35">Trust</div>
-              <div className="mt-4 grid gap-3 text-sm font-semibold text-white/58">
-                <a href="#safety" className="hover:text-white">Safety</a>
-                <a href="#download" className="hover:text-white">Download app</a>
+              <div className="text-[11px] font-bold uppercase tracking-[.14em] text-white/34">Product</div>
+              <div className="mt-4 grid gap-3 text-[13px] font-medium text-white/58">
+                <a href="#safety" className="transition hover:text-white">Safety</a>
+                <a href="#download" className="transition hover:text-white">Mobile app</a>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 pt-6 text-xs text-white/30 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-white/10 py-6 text-[11px] text-white/28 sm:flex-row sm:items-center sm:justify-between">
             <span>© 2026 Vaya. All rights reserved.</span>
-            <span>Travel further, together.</span>
+            <span>Built for shared journeys.</span>
           </div>
         </div>
       </footer>
