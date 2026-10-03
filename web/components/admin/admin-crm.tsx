@@ -1,0 +1,1086 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Bell,
+  CalendarCheck2,
+  CarFront,
+  ChevronRight,
+  CircleCheck,
+  CreditCard,
+  Download,
+  LayoutDashboard,
+  MapPin,
+  Menu,
+  MoreHorizontal,
+  Plus,
+  RefreshCw,
+  Route,
+  Search,
+  ShieldAlert,
+  SlidersHorizontal,
+  UserCheck,
+  Users,
+  WalletCards,
+  X,
+} from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+type ModuleKey =
+  | "overview"
+  | "drivers"
+  | "trips"
+  | "bookings"
+  | "passengers"
+  | "payments"
+  | "safety";
+
+const modules: Array<{
+  key: ModuleKey;
+  label: string;
+  icon: typeof LayoutDashboard;
+  count?: number;
+}> = [
+  { key: "overview", label: "Overview", icon: LayoutDashboard },
+  { key: "drivers", label: "Driver verification", icon: BadgeCheck, count: 12 },
+  { key: "trips", label: "Trips", icon: Route },
+  { key: "bookings", label: "Bookings", icon: WalletCards },
+  { key: "passengers", label: "Passengers", icon: Users },
+  { key: "payments", label: "Payments", icon: CreditCard },
+  { key: "safety", label: "Safety & disputes", icon: ShieldAlert, count: 3 },
+];
+
+const stats = [
+  {
+    label: "Pending driver reviews",
+    value: "12",
+    note: "5 ready for approval",
+    change: "Needs action",
+    tone: "warning" as const,
+    icon: UserCheck,
+  },
+  {
+    label: "Trips today",
+    value: "43",
+    note: "Across 7 provinces",
+    change: "38 on schedule",
+    tone: "success" as const,
+    icon: Route,
+  },
+  {
+    label: "Booked seats",
+    value: "118",
+    note: "76% average occupancy",
+    change: "+14 today",
+    tone: "default" as const,
+    icon: Users,
+  },
+  {
+    label: "Open safety cases",
+    value: "3",
+    note: "1 high priority",
+    change: "Review now",
+    tone: "destructive" as const,
+    icon: ShieldAlert,
+  },
+];
+
+const drivers = [
+  {
+    initials: "TM",
+    name: "Thabo Mokoena",
+    location: "Polokwane, Limpopo",
+    vehicle: "Toyota Corolla · 2022",
+    checks: "Licence + vehicle",
+    submitted: "18 min ago",
+    status: "Review",
+  },
+  {
+    initials: "LN",
+    name: "Lerato Ndlovu",
+    location: "Midrand, Gauteng",
+    vehicle: "VW Polo · 2021",
+    checks: "Vehicle disc missing",
+    submitted: "42 min ago",
+    status: "Needs info",
+  },
+  {
+    initials: "RM",
+    name: "Rendani Mulaudzi",
+    location: "Thohoyandou, Limpopo",
+    vehicle: "Ford Everest · 2023",
+    checks: "All checks complete",
+    submitted: "1 hr ago",
+    status: "Ready",
+  },
+  {
+    initials: "SK",
+    name: "Sibusiso Khumalo",
+    location: "Durban, KwaZulu-Natal",
+    vehicle: "Toyota Quest · 2020",
+    checks: "Identity review",
+    submitted: "2 hrs ago",
+    status: "Review",
+  },
+];
+
+const trips = [
+  {
+    id: "VY-1048",
+    route: "Johannesburg → Durban",
+    driver: "Lebo Mokoena",
+    departure: "06:30",
+    date: "09 Oct",
+    occupancy: "3 / 4",
+    fare: "R280",
+    status: "On schedule",
+  },
+  {
+    id: "VY-1051",
+    route: "Cape Town → Gqeberha",
+    driver: "Anele Dlamini",
+    departure: "07:00",
+    date: "09 Oct",
+    occupancy: "4 / 4",
+    fare: "R320",
+    status: "Full",
+  },
+  {
+    id: "VY-1053",
+    route: "Polokwane → Pretoria",
+    driver: "Rendani Mulaudzi",
+    departure: "08:30",
+    date: "09 Oct",
+    occupancy: "2 / 4",
+    fare: "R180",
+    status: "On schedule",
+  },
+  {
+    id: "VY-1055",
+    route: "Mbombela → Pretoria",
+    driver: "Karabo Maseko",
+    departure: "09:15",
+    date: "09 Oct",
+    occupancy: "1 / 3",
+    fare: "R190",
+    status: "Boarding",
+  },
+];
+
+const bookings = [
+  {
+    id: "BK-20491",
+    passenger: "Thato Maseko",
+    trip: "Johannesburg → Durban",
+    seat: "1 seat",
+    amount: "R280",
+    payment: "Paid",
+    status: "Confirmed",
+  },
+  {
+    id: "BK-20492",
+    passenger: "Nokuthula Dube",
+    trip: "Cape Town → Gqeberha",
+    seat: "2 seats",
+    amount: "R640",
+    payment: "Paid",
+    status: "Confirmed",
+  },
+  {
+    id: "BK-20493",
+    passenger: "Kagiso Seabi",
+    trip: "Polokwane → Pretoria",
+    seat: "1 seat",
+    amount: "R180",
+    payment: "Pending",
+    status: "Awaiting payment",
+  },
+  {
+    id: "BK-20494",
+    passenger: "Mpho Baloyi",
+    trip: "Mbombela → Pretoria",
+    seat: "1 seat",
+    amount: "R190",
+    payment: "Paid",
+    status: "Confirmed",
+  },
+];
+
+const passengers = [
+  {
+    name: "Thato Maseko",
+    contact: "thato.maseko@example.com",
+    city: "Johannesburg",
+    trips: "11",
+    joined: "Aug 2026",
+    status: "Active",
+  },
+  {
+    name: "Nokuthula Dube",
+    contact: "nokuthula@example.com",
+    city: "Cape Town",
+    trips: "7",
+    joined: "Sep 2026",
+    status: "Active",
+  },
+  {
+    name: "Kagiso Seabi",
+    contact: "kagiso@example.com",
+    city: "Polokwane",
+    trips: "4",
+    joined: "Sep 2026",
+    status: "Active",
+  },
+  {
+    name: "Mpho Baloyi",
+    contact: "mpho@example.com",
+    city: "Mbombela",
+    trips: "2",
+    joined: "Oct 2026",
+    status: "Review",
+  },
+];
+
+const payments = [
+  {
+    ref: "PAY-88431",
+    booking: "BK-20491",
+    customer: "Thato Maseko",
+    amount: "R280.00",
+    method: "Card",
+    date: "09 Oct · 05:48",
+    status: "Settled",
+  },
+  {
+    ref: "PAY-88432",
+    booking: "BK-20492",
+    customer: "Nokuthula Dube",
+    amount: "R640.00",
+    method: "Instant EFT",
+    date: "09 Oct · 06:02",
+    status: "Settled",
+  },
+  {
+    ref: "PAY-88433",
+    booking: "BK-20493",
+    customer: "Kagiso Seabi",
+    amount: "R180.00",
+    method: "Card",
+    date: "09 Oct · 06:21",
+    status: "Pending",
+  },
+  {
+    ref: "PAY-88434",
+    booking: "BK-20494",
+    customer: "Mpho Baloyi",
+    amount: "R190.00",
+    method: "Card",
+    date: "09 Oct · 06:35",
+    status: "Settled",
+  },
+];
+
+const safetyCases = [
+  {
+    id: "SAFE-031",
+    subject: "Passenger reported unsafe driving",
+    trip: "VY-1041 · Pretoria → Polokwane",
+    priority: "High",
+    owner: "Unassigned",
+    created: "22 min ago",
+    status: "Open",
+  },
+  {
+    id: "SAFE-030",
+    subject: "Dispute about pickup location",
+    trip: "VY-1039 · Johannesburg → Durban",
+    priority: "Medium",
+    owner: "P. Molefe",
+    created: "1 hr ago",
+    status: "Investigating",
+  },
+  {
+    id: "SAFE-029",
+    subject: "Refund requested after cancellation",
+    trip: "VY-1036 · Cape Town → Worcester",
+    priority: "Low",
+    owner: "T. Jacobs",
+    created: "3 hrs ago",
+    status: "Waiting",
+  },
+];
+
+function statusVariant(value: string) {
+  const lower = value.toLowerCase();
+  if (
+    lower.includes("ready") ||
+    lower.includes("active") ||
+    lower.includes("confirmed") ||
+    lower.includes("settled") ||
+    lower.includes("schedule")
+  ) {
+    return "success" as const;
+  }
+  if (
+    lower.includes("pending") ||
+    lower.includes("waiting") ||
+    lower.includes("boarding") ||
+    lower.includes("review")
+  ) {
+    return "warning" as const;
+  }
+  if (lower.includes("high") || lower.includes("open") || lower.includes("needs")) {
+    return "destructive" as const;
+  }
+  return "secondary" as const;
+}
+
+function TableActions() {
+  return (
+    <Button variant="ghost" size="icon-sm" aria-label="Open row actions">
+      <MoreHorizontal />
+    </Button>
+  );
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-[240px] flex-col items-center justify-center px-6 text-center">
+      <Search className="size-6 text-[#98A2B3]" />
+      <p className="mt-3 text-sm font-semibold text-[#344054]">No {label} found</p>
+      <p className="mt-1 text-xs text-[#98A2B3]">Try another search term or clear your filters.</p>
+    </div>
+  );
+}
+
+export function AdminCrm() {
+  const [active, setActive] = useState<ModuleKey>("overview");
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const current = modules.find((item) => item.key === active) ?? modules[0];
+
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const filteredDrivers = useMemo(
+    () =>
+      drivers.filter((driver) =>
+        [driver.name, driver.location, driver.vehicle, driver.status]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery)
+      ),
+    [normalizedQuery]
+  );
+
+  const filteredTrips = useMemo(
+    () =>
+      trips.filter((trip) =>
+        [trip.id, trip.route, trip.driver, trip.status]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery)
+      ),
+    [normalizedQuery]
+  );
+
+  const filteredBookings = useMemo(
+    () =>
+      bookings.filter((booking) =>
+        [booking.id, booking.passenger, booking.trip, booking.status]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery)
+      ),
+    [normalizedQuery]
+  );
+
+  const filteredPassengers = useMemo(
+    () =>
+      passengers.filter((passenger) =>
+        [passenger.name, passenger.contact, passenger.city, passenger.status]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery)
+      ),
+    [normalizedQuery]
+  );
+
+  const filteredPayments = useMemo(
+    () =>
+      payments.filter((payment) =>
+        [payment.ref, payment.booking, payment.customer, payment.status]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery)
+      ),
+    [normalizedQuery]
+  );
+
+  const filteredSafety = useMemo(
+    () =>
+      safetyCases.filter((item) =>
+        [item.id, item.subject, item.trip, item.priority, item.status]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery)
+      ),
+    [normalizedQuery]
+  );
+
+  const setModule = (key: ModuleKey) => {
+    setActive(key);
+    setMobileOpen(false);
+    setQuery("");
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F7F8FA] text-[#101828] lg:grid lg:grid-cols-[252px_minmax(0,1fr)]">
+      {mobileOpen ? (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-[#101828]/30 backdrop-blur-[1px] lg:hidden"
+        />
+      ) : null}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-[#E4E7EC] bg-white transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:w-auto lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex h-16 items-center justify-between border-b border-[#EAECF0] px-5">
+          <Link href="/" className="inline-flex items-baseline" aria-label="Vaya home">
+            <span className="text-[22px] font-extrabold tracking-[-1.1px]">vaya</span>
+            <span className="ml-0.5 text-[22px] font-black text-[#1877F2]">.</span>
+            <span className="ml-2 rounded-md bg-[#F2F4F7] px-2 py-1 text-[9px] font-bold uppercase tracking-[.08em] text-[#667085]">
+              Admin
+            </span>
+          </Link>
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close menu">
+            <X />
+          </Button>
+        </div>
+
+        <div className="px-3 py-4">
+          <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[.12em] text-[#98A2B3]">
+            Workspace
+          </div>
+          <nav className="space-y-1" aria-label="Admin modules">
+            {modules.map((item) => {
+              const Icon = item.icon;
+              const selected = active === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setModule(item.key)}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13px] font-semibold transition ${selected ? "bg-[#E7F3FF] text-[#1877F2]" : "text-[#475467] hover:bg-[#F5F7FA] hover:text-[#101828]"}`}>
+                  <Icon className="size-4" />
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  {item.count ? (
+                    <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${selected ? "bg-white text-[#1877F2]" : "bg-[#F2F4F7] text-[#667085]"}`}>
+                      {item.count}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        <Separator className="mx-5 w-auto" />
+
+        <div className="mt-auto p-4">
+          <Card className="border-[#D1E9FF] bg-[#F5F9FF] shadow-none">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#344054]">
+                <span className="h-2 w-2 rounded-full bg-[#12B76A]" />
+                Platform operational
+              </div>
+              <p className="mt-2 text-[11px] leading-5 text-[#667085]">
+                Core booking, trip and verification services are available.
+              </p>
+            </CardContent>
+          </Card>
+
+          <div className="mt-4 flex items-center gap-3 rounded-lg p-2">
+            <div className="grid h-9 w-9 place-items-center rounded-full bg-[#101828] text-[11px] font-bold text-white">
+              VA
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-semibold text-[#101828]">Vaya Administrator</div>
+              <div className="truncate text-[10px] text-[#98A2B3]">Operations team</div>
+            </div>
+            <MoreHorizontal className="size-4 text-[#98A2B3]" />
+          </div>
+        </div>
+      </aside>
+
+      <main className="min-w-0">
+        <header className="sticky top-0 z-30 border-b border-[#E4E7EC] bg-white/95 backdrop-blur-xl">
+          <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
+            <Button
+              variant="outline"
+              size="icon"
+              className="lg:hidden"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open navigation">
+              <Menu />
+            </Button>
+
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[10px] font-semibold uppercase tracking-[.1em] text-[#98A2B3]">Vaya CRM</div>
+              <div className="truncate text-sm font-semibold text-[#101828]">{current.label}</div>
+            </div>
+
+            <div className="hidden w-full max-w-[360px] md:block">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#98A2B3]" />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={active === "overview" ? "Search CRM..." : `Search ${current.label.toLowerCase()}...`}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <Button variant="outline" size="icon" aria-label="Refresh">
+              <RefreshCw />
+            </Button>
+            <Button variant="outline" size="icon" className="relative" aria-label="Notifications">
+              <Bell />
+              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border-2 border-white bg-[#F04438]" />
+            </Button>
+          </div>
+
+          <div className="border-t border-[#F2F4F7] px-4 py-3 md:hidden sm:px-6">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#98A2B3]" />
+              <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search current module..." className="pl-9" />
+            </div>
+          </div>
+        </header>
+
+        <div className="p-4 sm:p-6 lg:p-8">
+          {active === "overview" ? (
+            <Overview onOpenDrivers={() => setModule("drivers")} onOpenSafety={() => setModule("safety")} />
+          ) : null}
+          {active === "drivers" ? <DriversView rows={filteredDrivers} /> : null}
+          {active === "trips" ? <TripsView rows={filteredTrips} /> : null}
+          {active === "bookings" ? <BookingsView rows={filteredBookings} /> : null}
+          {active === "passengers" ? <PassengersView rows={filteredPassengers} /> : null}
+          {active === "payments" ? <PaymentsView rows={filteredPayments} /> : null}
+          {active === "safety" ? <SafetyView rows={filteredSafety} /> : null}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function PageHeading({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <div className="text-[10px] font-semibold uppercase tracking-[.12em] text-[#1877F2]">{eyebrow}</div>
+        <h1 className="mt-2 text-2xl font-bold tracking-[-.035em] text-[#101828] sm:text-[28px]">{title}</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#667085]">{description}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function Overview({
+  onOpenDrivers,
+  onOpenSafety,
+}: {
+  onOpenDrivers: () => void;
+  onOpenSafety: () => void;
+}) {
+  return (
+    <>
+      <PageHeading
+        eyebrow="Operations overview"
+        title="Today’s network"
+        description="Monitor driver readiness, active trips, bookings and safety issues from one operational view."
+        action={
+          <Button onClick={onOpenDrivers} className="h-9 bg-[#1877F2] px-4 hover:bg-[#166FE5]">
+            Review drivers
+            <ChevronRight />
+          </Button>
+        }
+      />
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={stat.label} className="shadow-none">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="grid h-9 w-9 place-items-center rounded-lg bg-[#F2F4F7] text-[#475467]">
+                    <Icon className="size-4" />
+                  </div>
+                  <Badge variant={stat.tone}>{stat.change}</Badge>
+                </div>
+                <div className="mt-5 text-[11px] font-semibold text-[#667085]">{stat.label}</div>
+                <div className="mt-1 text-3xl font-bold tracking-[-.04em] text-[#101828]">{stat.value}</div>
+                <div className="mt-2 text-[11px] text-[#98A2B3]">{stat.note}</div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </section>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.45fr_.85fr]">
+        <Card className="overflow-hidden shadow-none">
+          <CardHeader className="flex-row items-start justify-between gap-4 border-b border-[#EAECF0]">
+            <div>
+              <CardTitle>Driver verification queue</CardTitle>
+              <CardDescription>Applications requiring operational review.</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onOpenDrivers}>View all</Button>
+          </CardHeader>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Driver</TableHead>
+                <TableHead>Checks</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {drivers.slice(0, 3).map((driver) => (
+                <TableRow key={driver.name}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-9 w-9 place-items-center rounded-full bg-[#E7F3FF] text-[10px] font-bold text-[#1877F2]">{driver.initials}</div>
+                      <div>
+                        <div className="font-semibold text-[#101828]">{driver.name}</div>
+                        <div className="mt-0.5 text-[11px] text-[#98A2B3]">{driver.vehicle}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{driver.checks}</TableCell>
+                  <TableCell><Badge variant={statusVariant(driver.status)}>{driver.status}</Badge></TableCell>
+                  <TableCell className="text-right"><TableActions /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+
+        <Card className="shadow-none">
+          <CardHeader className="border-b border-[#EAECF0]">
+            <CardTitle>Operations attention</CardTitle>
+            <CardDescription>Items that should be handled first.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-5">
+            <button type="button" onClick={onOpenSafety} className="flex w-full items-start gap-3 rounded-lg border border-[#FECACA] bg-[#FFF8F7] p-4 text-left transition hover:bg-[#FFF3F1]">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#FEE4E2] text-[#D92D20]">
+                <AlertTriangle className="size-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold text-[#101828]">1 high-priority safety case</div>
+                <div className="mt-1 text-[11px] leading-5 text-[#667085]">Unsafe driving report waiting for assignment.</div>
+              </div>
+              <ChevronRight className="mt-1 size-4 text-[#98A2B3]" />
+            </button>
+
+            <button type="button" onClick={onOpenDrivers} className="flex w-full items-start gap-3 rounded-lg border border-[#FEDF89] bg-[#FFFCF5] p-4 text-left transition hover:bg-[#FFFAEB]">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#FEF0C7] text-[#B54708]">
+                <UserCheck className="size-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold text-[#101828]">5 drivers ready to approve</div>
+                <div className="mt-1 text-[11px] leading-5 text-[#667085]">All required checks are complete.</div>
+              </div>
+              <ChevronRight className="mt-1 size-4 text-[#98A2B3]" />
+            </button>
+
+            <div className="flex items-start gap-3 rounded-lg border border-[#D1E9FF] bg-[#F5F9FF] p-4">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#E7F3FF] text-[#1877F2]">
+                <CircleCheck className="size-4" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-[#101828]">38 trips on schedule</div>
+                <div className="mt-1 text-[11px] leading-5 text-[#667085]">No network-level trip disruption detected.</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="mt-6 overflow-hidden shadow-none">
+        <CardHeader className="flex-row items-start justify-between gap-4 border-b border-[#EAECF0]">
+          <div>
+            <CardTitle>Active trip board</CardTitle>
+            <CardDescription>Current and upcoming departures across the network.</CardDescription>
+          </div>
+          <Badge variant="success">Live</Badge>
+        </CardHeader>
+        <TripsTable rows={trips} />
+      </Card>
+    </>
+  );
+}
+
+function DriversView({ rows }: { rows: typeof drivers }) {
+  return (
+    <>
+      <PageHeading
+        eyebrow="Driver operations"
+        title="Driver verification"
+        description="Review identity, licence and vehicle documentation before drivers can publish trips."
+        action={
+          <div className="flex gap-2">
+            <Button variant="outline" className="h-9"><Download /> Export</Button>
+            <Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]"><Plus /> Invite driver</Button>
+          </div>
+        }
+      />
+      <Card className="overflow-hidden shadow-none">
+        <CardHeader className="flex-row items-center justify-between border-b border-[#EAECF0]">
+          <div>
+            <CardTitle>Verification queue</CardTitle>
+            <CardDescription>{rows.length} driver applications shown</CardDescription>
+          </div>
+          <Button variant="outline" size="sm"><SlidersHorizontal /> Filters</Button>
+        </CardHeader>
+        {rows.length ? (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Driver</TableHead>
+                <TableHead>Vehicle</TableHead>
+                <TableHead>Checks</TableHead>
+                <TableHead>Submitted</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((driver) => (
+                <TableRow key={driver.name}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-9 w-9 place-items-center rounded-full bg-[#E7F3FF] text-[10px] font-bold text-[#1877F2]">{driver.initials}</div>
+                      <div>
+                        <div className="font-semibold text-[#101828]">{driver.name}</div>
+                        <div className="mt-0.5 text-[11px] text-[#98A2B3]">{driver.location}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{driver.vehicle}</TableCell>
+                  <TableCell>{driver.checks}</TableCell>
+                  <TableCell>{driver.submitted}</TableCell>
+                  <TableCell><Badge variant={statusVariant(driver.status)}>{driver.status}</Badge></TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm">Review</Button>
+                      <TableActions />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : <EmptyState label="drivers" />}
+      </Card>
+    </>
+  );
+}
+
+function TripsView({ rows }: { rows: typeof trips }) {
+  return (
+    <>
+      <PageHeading
+        eyebrow="Network operations"
+        title="Trips"
+        description="Manage scheduled journeys, occupancy, departure readiness and route status."
+        action={<Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]"><Plus /> Create trip</Button>}
+      />
+      <Card className="overflow-hidden shadow-none">
+        <CardHeader className="flex-row items-center justify-between border-b border-[#EAECF0]">
+          <div>
+            <CardTitle>Trip board</CardTitle>
+            <CardDescription>{rows.length} trips shown</CardDescription>
+          </div>
+          <Button variant="outline" size="sm"><SlidersHorizontal /> Filters</Button>
+        </CardHeader>
+        {rows.length ? <TripsTable rows={rows} /> : <EmptyState label="trips" />}
+      </Card>
+    </>
+  );
+}
+
+function TripsTable({ rows }: { rows: typeof trips }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow className="hover:bg-transparent">
+          <TableHead>Trip</TableHead>
+          <TableHead>Driver</TableHead>
+          <TableHead>Departure</TableHead>
+          <TableHead>Occupancy</TableHead>
+          <TableHead>Fare</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((trip) => (
+          <TableRow key={trip.id}>
+            <TableCell>
+              <div className="font-semibold text-[#101828]">{trip.route}</div>
+              <div className="mt-0.5 text-[11px] text-[#98A2B3]">{trip.id}</div>
+            </TableCell>
+            <TableCell>{trip.driver}</TableCell>
+            <TableCell>{trip.date} · {trip.departure}</TableCell>
+            <TableCell>{trip.occupancy}</TableCell>
+            <TableCell className="font-semibold text-[#101828]">{trip.fare}</TableCell>
+            <TableCell><Badge variant={statusVariant(trip.status)}>{trip.status}</Badge></TableCell>
+            <TableCell className="text-right"><TableActions /></TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function BookingsView({ rows }: { rows: typeof bookings }) {
+  return (
+    <>
+      <PageHeading
+        eyebrow="Customer operations"
+        title="Bookings"
+        description="Track seat reservations, passenger payment state and booking fulfilment."
+        action={<Button variant="outline" className="h-9"><Download /> Export bookings</Button>}
+      />
+      <Card className="overflow-hidden shadow-none">
+        <CardHeader className="border-b border-[#EAECF0]">
+          <CardTitle>Booking ledger</CardTitle>
+          <CardDescription>{rows.length} bookings shown</CardDescription>
+        </CardHeader>
+        {rows.length ? (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Booking</TableHead>
+                <TableHead>Passenger</TableHead>
+                <TableHead>Trip</TableHead>
+                <TableHead>Seats</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Payment</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((booking) => (
+                <TableRow key={booking.id}>
+                  <TableCell className="font-semibold text-[#101828]">{booking.id}</TableCell>
+                  <TableCell>{booking.passenger}</TableCell>
+                  <TableCell>{booking.trip}</TableCell>
+                  <TableCell>{booking.seat}</TableCell>
+                  <TableCell className="font-semibold text-[#101828]">{booking.amount}</TableCell>
+                  <TableCell><Badge variant={statusVariant(booking.payment)}>{booking.payment}</Badge></TableCell>
+                  <TableCell><Badge variant={statusVariant(booking.status)}>{booking.status}</Badge></TableCell>
+                  <TableCell className="text-right"><TableActions /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : <EmptyState label="bookings" />}
+      </Card>
+    </>
+  );
+}
+
+function PassengersView({ rows }: { rows: typeof passengers }) {
+  return (
+    <>
+      <PageHeading
+        eyebrow="Customer records"
+        title="Passengers"
+        description="View passenger accounts, travel activity and account status."
+        action={<Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]"><Plus /> Add passenger</Button>}
+      />
+      <Card className="overflow-hidden shadow-none">
+        <CardHeader className="border-b border-[#EAECF0]">
+          <CardTitle>Passenger directory</CardTitle>
+          <CardDescription>{rows.length} passenger records shown</CardDescription>
+        </CardHeader>
+        {rows.length ? (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Passenger</TableHead>
+                <TableHead>Home city</TableHead>
+                <TableHead>Trips</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((passenger) => (
+                <TableRow key={passenger.contact}>
+                  <TableCell>
+                    <div className="font-semibold text-[#101828]">{passenger.name}</div>
+                    <div className="mt-0.5 text-[11px] text-[#98A2B3]">{passenger.contact}</div>
+                  </TableCell>
+                  <TableCell>{passenger.city}</TableCell>
+                  <TableCell>{passenger.trips}</TableCell>
+                  <TableCell>{passenger.joined}</TableCell>
+                  <TableCell><Badge variant={statusVariant(passenger.status)}>{passenger.status}</Badge></TableCell>
+                  <TableCell className="text-right"><TableActions /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : <EmptyState label="passengers" />}
+      </Card>
+    </>
+  );
+}
+
+function PaymentsView({ rows }: { rows: typeof payments }) {
+  return (
+    <>
+      <PageHeading
+        eyebrow="Finance operations"
+        title="Payments"
+        description="Monitor booking collections, settlement status and payment references."
+        action={<Button variant="outline" className="h-9"><Download /> Export payments</Button>}
+      />
+      <section className="mb-6 grid gap-4 sm:grid-cols-3">
+        <Card className="shadow-none"><CardContent className="p-5"><div className="text-[11px] font-semibold text-[#667085]">Collected today</div><div className="mt-2 text-2xl font-bold tracking-[-.03em]">R24,860</div><Badge variant="success" className="mt-3">Settled</Badge></CardContent></Card>
+        <Card className="shadow-none"><CardContent className="p-5"><div className="text-[11px] font-semibold text-[#667085]">Pending</div><div className="mt-2 text-2xl font-bold tracking-[-.03em]">R1,460</div><Badge variant="warning" className="mt-3">6 payments</Badge></CardContent></Card>
+        <Card className="shadow-none"><CardContent className="p-5"><div className="text-[11px] font-semibold text-[#667085]">Refund requests</div><div className="mt-2 text-2xl font-bold tracking-[-.03em]">R640</div><Badge variant="secondary" className="mt-3">2 requests</Badge></CardContent></Card>
+      </section>
+      <Card className="overflow-hidden shadow-none">
+        <CardHeader className="border-b border-[#EAECF0]">
+          <CardTitle>Payment ledger</CardTitle>
+          <CardDescription>{rows.length} payments shown</CardDescription>
+        </CardHeader>
+        {rows.length ? (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Reference</TableHead>
+                <TableHead>Booking</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Method</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((payment) => (
+                <TableRow key={payment.ref}>
+                  <TableCell className="font-semibold text-[#101828]">{payment.ref}</TableCell>
+                  <TableCell>{payment.booking}</TableCell>
+                  <TableCell>{payment.customer}</TableCell>
+                  <TableCell className="font-semibold text-[#101828]">{payment.amount}</TableCell>
+                  <TableCell>{payment.method}</TableCell>
+                  <TableCell>{payment.date}</TableCell>
+                  <TableCell><Badge variant={statusVariant(payment.status)}>{payment.status}</Badge></TableCell>
+                  <TableCell className="text-right"><TableActions /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : <EmptyState label="payments" />}
+      </Card>
+    </>
+  );
+}
+
+function SafetyView({ rows }: { rows: typeof safetyCases }) {
+  return (
+    <>
+      <PageHeading
+        eyebrow="Trust & safety"
+        title="Safety & disputes"
+        description="Investigate safety reports, booking disputes and refund-related incidents."
+        action={<Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]"><Plus /> Create case</Button>}
+      />
+      <Card className="overflow-hidden shadow-none">
+        <CardHeader className="flex-row items-center justify-between border-b border-[#EAECF0]">
+          <div>
+            <CardTitle>Case queue</CardTitle>
+            <CardDescription>{rows.length} cases shown</CardDescription>
+          </div>
+          <Button variant="outline" size="sm"><SlidersHorizontal /> Filters</Button>
+        </CardHeader>
+        {rows.length ? (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Case</TableHead>
+                <TableHead>Related trip</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Owner</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <div className="font-semibold text-[#101828]">{item.subject}</div>
+                    <div className="mt-0.5 text-[11px] text-[#98A2B3]">{item.id}</div>
+                  </TableCell>
+                  <TableCell>{item.trip}</TableCell>
+                  <TableCell><Badge variant={statusVariant(item.priority)}>{item.priority}</Badge></TableCell>
+                  <TableCell>{item.owner}</TableCell>
+                  <TableCell>{item.created}</TableCell>
+                  <TableCell><Badge variant={statusVariant(item.status)}>{item.status}</Badge></TableCell>
+                  <TableCell className="text-right"><TableActions /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : <EmptyState label="cases" />}
+      </Card>
+    </>
+  );
+}
