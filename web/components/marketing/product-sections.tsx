@@ -115,7 +115,7 @@ export function ProductSections() {
             </div>
 
             <div className="relative">
-              <div data-reveal="scale" className="interactive-card rounded-[22px] border border-[#DDE3EA] bg-white p-4 shadow-[0_24px_70px_rgba(16,24,40,.11)] sm:p-6">
+              <div data-reveal="scale" className="pointer-events-none select-none rounded-[22px] border border-[#DDE3EA] bg-white p-4 shadow-[0_24px_70px_rgba(16,24,40,.11)] sm:p-6">
                 <div className="mb-3 text-right text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative trip results</div>
                 <div className="flex items-center justify-between border-b border-[#EAECF0] pb-5">
                   <div>
@@ -292,7 +292,7 @@ export function ProductSections() {
               </a>
             </div>
 
-            <div data-reveal="scale" className="interactive-card rounded-[22px] border border-[#DDE3EA] bg-[#F7F9FC] p-4 shadow-[0_24px_70px_rgba(16,24,40,.1)] sm:p-6">
+            <div data-reveal="scale" className="pointer-events-none select-none rounded-[22px] border border-[#DDE3EA] bg-[#F7F9FC] p-4 shadow-[0_24px_70px_rgba(16,24,40,.1)] sm:p-6">
               <div className="mb-3 text-right text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative driver preview</div>
               <div className="rounded-[16px] border border-[#E4E7EC] bg-white p-5">
                 <div className="flex items-center justify-between">
@@ -340,10 +340,10 @@ export function ProductSections() {
                   </div>
                 </div>
 
-                <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] py-3 text-[11px] font-bold text-white">
+                <div className="mt-4 flex w-full items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] py-3 text-[11px] font-bold text-white">
                   Publish trip
                   <ArrowRight size={14} />
-                </button>
+                </div>
               </div>
             </div>
           </div>
@@ -391,7 +391,7 @@ export function ProductSections() {
 
       <section id="download" className="bg-white py-24 sm:py-28">
         <div data-reveal="soft" className="mx-auto grid max-w-[1280px] gap-14 px-5 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:items-center lg:px-10">
-          <div data-reveal="scale" className="relative mx-auto min-h-[510px] w-full max-w-[600px]" aria-label="Illustrative Vaya mobile app previews">
+          <div data-reveal="scale" className="pointer-events-none relative mx-auto min-h-[510px] w-full max-w-[600px] select-none" role="img" aria-label="Illustrative Vaya mobile app previews">
             <div className="absolute left-1/2 top-0 z-20 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative app previews</div>
             <div className="interactive-card absolute left-[4%] top-[4%] w-[56%] rotate-[-4deg] rounded-[28px] border border-[#DDE3EA] bg-[#F7F9FC] p-2.5 shadow-[0_28px_70px_rgba(16,24,40,.14)]">
               <div className="overflow-hidden rounded-[21px] border border-[#E4E7EC] bg-white">
