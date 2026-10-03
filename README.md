@@ -5,8 +5,9 @@ Vaya is a South African mobility platform focused first on scheduled long-distan
 ## Current architecture
 
 - `mobile/` — Expo + React Native app with passenger and driver modes
-- `web/` — Next.js admin operations and driver-verification dashboard
-- Backend/API — next implementation phase after the core product flows are locked
+- `web/` — Next.js landing page, Admin CRM, and REST API routes
+- Database — Neon Postgres with Drizzle ORM migrations
+- Backend/API — Next.js Route Handlers backed by Neon for CRM reads and mutations
 
 ## Design direction
 
@@ -38,6 +39,8 @@ npm run dev:web
 The root development dependency on `expo-router` lets Expo's hoisted route-generation tooling resolve the router when generating mobile route types. Keep its version aligned with `mobile/package.json` when upgrading the Expo SDK.
 
 The long-distance marketplace is the primary launch scope. Local ride dispatch comes after the scheduled-trip flow is production-ready.
+
+> Security: the Admin CRM API routes require an authentication/authorization layer before public production exposure. Database persistence is implemented separately from admin identity and access control.
 
 ## Neon backend
 
