@@ -29,7 +29,7 @@ export function Hero() {
             Long-distance travel, properly organised
           </div>
 
-          <h1 className="max-w-[760px] text-[3.5rem] font-black leading-[.96] tracking-[-.06em] sm:text-[4.75rem] lg:text-[5.65rem]">
+          <h1 className="max-w-[760px] text-[3.5rem] font-extrabold leading-[.98] tracking-[-.06em] sm:text-[4.75rem] lg:text-[5.65rem]">
             Your route.
             <span className="block text-[#5EA5FF]">Your ride.</span>
             <span className="block">Your choice.</span>
@@ -74,10 +74,10 @@ export function Hero() {
         <div className="border border-[#DADDE1] bg-white text-[#050505] shadow-[0_28px_70px_rgba(0,0,0,.18)]">
           <div className="flex flex-col border-b border-[#E4E6EB] md:flex-row md:items-center md:justify-between">
             <div className="flex">
-              <button className="border-b-2 border-[#1877F2] px-6 py-4 text-sm font-black text-[#1877F2]">
+              <button className="border-b-2 border-[#1877F2] px-5 py-3 text-[13px] font-bold text-[#1877F2]">
                 Long distance
               </button>
-              <button className="px-6 py-4 text-sm font-bold text-[#65676B]">
+              <button className="px-5 py-3 text-[13px] font-semibold text-[#65676B]">
                 Local ride
                 <span className="ml-2 text-[9px] font-black uppercase tracking-wide text-[#8A8D91]">Coming soon</span>
               </button>
@@ -88,43 +88,43 @@ export function Hero() {
           </div>
 
           <div className="grid divide-y divide-[#E4E6EB] lg:grid-cols-[1.2fr_1.2fr_.9fr_.8fr_auto] lg:divide-x lg:divide-y-0">
-            <button className="flex min-h-[82px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+            <button className="flex min-h-[72px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
               <span className="grid h-10 w-10 place-items-center rounded-[8px] bg-[#F0F2F5] text-[#65676B]">
                 <MapPin size={17} />
               </span>
               <span>
                 <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">From</span>
-                <span className="mt-1 block text-sm font-black">Choose pickup area</span>
+                <span className="mt-1 block text-[13px] font-bold">Choose pickup area</span>
               </span>
             </button>
 
-            <button className="flex min-h-[82px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+            <button className="flex min-h-[72px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
               <span className="grid h-10 w-10 place-items-center rounded-[8px] bg-[#E7F3FF] text-[#1877F2]">
                 <MapPin size={17} />
               </span>
               <span>
                 <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">To</span>
-                <span className="mt-1 block text-sm font-black">Choose destination</span>
+                <span className="mt-1 block text-[13px] font-bold">Choose destination</span>
               </span>
             </button>
 
-            <button className="flex min-h-[82px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+            <button className="flex min-h-[72px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
               <CalendarDays size={18} className="text-[#1877F2]" />
               <span>
                 <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">Date</span>
-                <span className="mt-1 block text-sm font-black">Travel date</span>
+                <span className="mt-1 block text-[13px] font-bold">Travel date</span>
               </span>
             </button>
 
-            <button className="flex min-h-[82px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+            <button className="flex min-h-[72px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
               <Users size={18} className="text-[#1877F2]" />
               <span>
                 <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">Seats</span>
-                <span className="mt-1 block text-sm font-black">1 passenger</span>
+                <span className="mt-1 block text-[13px] font-bold">1 passenger</span>
               </span>
             </button>
 
-            <button className="m-3 flex min-h-[58px] items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] px-6 text-[13px] font-black text-white transition hover:bg-[#166FE5]">
+            <button className="m-3 flex min-h-[50px] items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] px-6 text-[13px] font-black text-white transition hover:bg-[#166FE5]">
               Find ride <ArrowRight size={16} />
             </button>
           </div>
