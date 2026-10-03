@@ -11,10 +11,10 @@ export function SiteHeader() {
 
         <nav className="hidden items-center gap-8 text-[13px] font-semibold text-[#667085] lg:flex">
           <a href="#how-it-works" className="transition hover:text-[#101828]">How it works</a>
-          <a href="#riders" className="transition hover:text-[#101828]">Riders</a>
+          <a href="#riders" className="transition hover:text-[#101828]">Why Vaya</a>
+          <a href="#routes" className="transition hover:text-[#101828]">Routes</a>
           <a href="#drivers" className="transition hover:text-[#101828]">Drivers</a>
           <a href="#safety" className="transition hover:text-[#101828]">Safety</a>
-          <a href="#download" className="transition hover:text-[#101828]">Download</a>
         </nav>
 
         <div className="flex items-center gap-4">
