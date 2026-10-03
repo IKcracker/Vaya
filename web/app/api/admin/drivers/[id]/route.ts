@@ -2,6 +2,7 @@ import {
   getDriverDetails,
   removeDriver,
   updateDriver,
+  updateDriverStatus,
 } from "@/lib/db/crm";
 import { isDatabaseConfigured } from "@/lib/db";
 
@@ -102,7 +103,10 @@ export async function PATCH(
   }
 
   try {
-    const driver = await updateDriver(id, update);
+    const driver =
+      Object.keys(update).length === 1 && update.status
+        ? await updateDriverStatus(id, String(update.status))
+        : await updateDriver(id, update);
     if (!driver) {
       return Response.json({ error: "Driver not found" }, { status: 404 });
     }
