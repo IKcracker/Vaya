@@ -711,16 +711,27 @@ export function AdminCrm() {
 
         <div className="p-4 sm:p-6 lg:p-8">
           {active === "overview" ? (
-            <Overview onOpenDrivers={() => setModule("drivers")} onOpenSafety={() => setModule("safety")} />
+            <Overview driverRows={driverRecords} tripRows={tripRecords} safetyRows={safetyRecords} activityLog={activityLog} onOpenDrivers={() => setModule("drivers")} onOpenSafety={() => setModule("safety")} onReviewDriver={openDriverReview} onViewTrip={(trip) => openDetails(trip.id, trip.route, [["Driver", trip.driver], ["Departure", `${trip.date} · ${trip.departure}`], ["Occupancy", trip.occupancy], ["Fare", trip.fare], ["Status", trip.status]])} />
           ) : null}
-          {active === "drivers" ? <DriversView rows={filteredDrivers} /> : null}
-          {active === "trips" ? <TripsView rows={filteredTrips} /> : null}
-          {active === "bookings" ? <BookingsView rows={filteredBookings} /> : null}
-          {active === "passengers" ? <PassengersView rows={filteredPassengers} /> : null}
-          {active === "payments" ? <PaymentsView rows={filteredPayments} /> : null}
-          {active === "safety" ? <SafetyView rows={filteredSafety} /> : null}
+          {active === "drivers" ? <DriversView rows={filteredDrivers} onReview={openDriverReview} /> : null}
+          {active === "trips" ? <TripsView rows={filteredTrips} onCreate={() => setCreateTripOpen(true)} onView={(trip) => openDetails(trip.id, trip.route, [["Driver", trip.driver], ["Departure", `${trip.date} · ${trip.departure}`], ["Occupancy", trip.occupancy], ["Fare", trip.fare], ["Status", trip.status]])} /> : null}
+          {active === "bookings" ? <BookingsView rows={filteredBookings} onView={(booking) => openDetails(booking.id, booking.passenger, [["Trip", booking.trip], ["Seats", booking.seat], ["Amount", booking.amount], ["Payment", booking.payment], ["Status", booking.status]])} /> : null}
+          {active === "passengers" ? <PassengersView rows={filteredPassengers} onAdd={() => setAddPassengerOpen(true)} onView={(passenger) => openDetails(passenger.name, passenger.contact, [["Home city", passenger.city], ["Trips", passenger.trips], ["Joined", passenger.joined], ["Status", passenger.status]])} /> : null}
+          {active === "payments" ? <PaymentsView rows={filteredPayments} onView={(payment) => openDetails(payment.ref, payment.customer, [["Booking", payment.booking], ["Amount", payment.amount], ["Method", payment.method], ["Date", payment.date], ["Status", payment.status]])} /> : null}
+          {active === "safety" ? <SafetyView rows={filteredSafety} onCreate={() => setCreateSafetyOpen(true)} onView={(item) => openDetails(item.id, item.subject, [["Trip", item.trip], ["Priority", item.priority], ["Owner", item.owner], ["Created", item.created], ["Status", item.status]])} /> : null}
         </div>
       </main>
+
+      <DriverReviewDialog
+        open={driverDialogOpen}
+        driver={selectedDriver}
+        onOpenChange={setDriverDialogOpen}
+        onUpdateStatus={updateDriverStatus}
+      />
+      <CreateTripDialog open={createTripOpen} onOpenChange={setCreateTripOpen} onSubmit={createTrip} />
+      <AddPassengerDialog open={addPassengerOpen} onOpenChange={setAddPassengerOpen} onSubmit={addPassenger} />
+      <CreateSafetyDialog open={createSafetyOpen} onOpenChange={setCreateSafetyOpen} onSubmit={createSafetyCase} />
+      <RecordDetailsDialog detail={recordDetail} onOpenChange={(open) => !open && setRecordDetail(null)} />
     </div>
   );
 }
