@@ -3,7 +3,7 @@ import Link from "next/link";
 export function SiteHeader() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-[#E4E6EB] bg-white/95 backdrop-blur-xl">
-      <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-12">
+      <div className="mx-auto flex h-[72px] max-w-[1280px] items-center justify-between px-5 sm:px-8 lg:px-10">
         <Link href="/" className="flex items-center gap-3" aria-label="Vaya home">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-[#1877F2] text-lg font-black text-white shadow-[0_8px_24px_rgba(24,119,242,.20)]">
             V
