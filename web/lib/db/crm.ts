@@ -290,6 +290,14 @@ export async function updateDriver(
 export async function removeDriver(id: string) {
   const db = getDb();
 
+  const [existing] = await db
+    .select()
+    .from(drivers)
+    .where(eq(drivers.id, id))
+    .limit(1);
+
+  if (!existing) return null;
+
   const [driver] = await db
     .update(drivers)
     .set({ status: "Removed", updatedAt: new Date() })
@@ -302,7 +310,7 @@ export async function removeDriver(id: string) {
     eventType: "driver_removed",
     title: "Driver removed from active CRM",
     detail: driver.name,
-    metadata: { driverId: driver.id, previousStatus: driver.status },
+    metadata: { driverId: driver.id, previousStatus: existing.status },
   });
 
   return driver;
