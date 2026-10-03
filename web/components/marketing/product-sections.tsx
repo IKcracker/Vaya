@@ -16,7 +16,7 @@ export function ProductSections() {
   return (
     <>
       <section id="how-it-works" className="border-y border-[#E4E6EB] bg-[#F7F8FA] py-24">
-        <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
+        <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
           <div className="max-w-2xl">
             <p className="text-xs font-black uppercase tracking-[.16em] text-[#1877F2]">How Vaya works</p>
             <h2 className="mt-4 text-4xl font-black tracking-[-.045em] text-[#050505] sm:text-5xl">
@@ -52,7 +52,7 @@ export function ProductSections() {
       </section>
 
       <section id="riders" className="bg-white py-24">
-        <div className="mx-auto grid max-w-[1240px] gap-14 px-5 sm:px-8 lg:grid-cols-[.92fr_1.08fr] lg:items-center">
+        <div className="mx-auto grid max-w-[1280px] gap-14 px-5 sm:px-8 lg:px-10 lg:grid-cols-[.92fr_1.08fr] lg:items-center">
           <div>
             <p className="text-xs font-black uppercase tracking-[.16em] text-[#1877F2]">For riders</p>
             <h2 className="mt-4 text-4xl font-black tracking-[-.045em] text-[#050505] sm:text-5xl">
@@ -132,7 +132,7 @@ export function ProductSections() {
       </section>
 
       <section id="drivers" className="bg-[#F7F8FA] py-24">
-        <div className="mx-auto grid max-w-[1240px] gap-14 px-5 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+        <div className="mx-auto grid max-w-[1280px] gap-14 px-5 sm:px-8 lg:px-10 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
           <div className="order-2 lg:order-1">
             <div className="rounded-[30px] border border-[#E4E6EB] bg-white p-6 sm:p-8">
               <div className="flex items-start justify-between gap-4">
@@ -192,7 +192,7 @@ export function ProductSections() {
       </section>
 
       <section id="safety" className="bg-white py-24">
-        <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
+        <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
           <div className="grid gap-10 rounded-[32px] border border-[#D8E8FF] bg-[#F7FAFF] p-8 sm:p-12 lg:grid-cols-[1fr_.9fr] lg:items-center">
             <div>
               <span className="grid h-12 w-12 place-items-center rounded-full bg-[#1877F2] text-white">
@@ -230,7 +230,7 @@ export function ProductSections() {
       </section>
 
       <section id="download" className="border-t border-[#E4E6EB] bg-[#F7F8FA] py-24">
-        <div className="mx-auto max-w-[1100px] px-5 text-center sm:px-8">
+        <div className="mx-auto max-w-[1280px] px-5 text-center sm:px-8 lg:px-10">
           <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#E7F3FF] text-[#1877F2]">
             <Smartphone size={24} />
           </span>
@@ -256,7 +256,7 @@ export function ProductSections() {
       </section>
 
       <footer className="bg-white">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-5 py-8 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
+        <div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-5 py-8 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-10">
           <Link href="/" className="flex items-center gap-2.5">
             <span className="grid h-9 w-9 place-items-center rounded-full bg-[#1877F2] font-black text-white">V</span>
             <span className="text-xl font-black tracking-[-1px] text-[#050505]">vaya</span>
