@@ -1,33 +1,72 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const siteUrl = getSiteUrl();
+const shouldIndex = process.env.VERCEL_ENV !== "preview";
+
+const siteDescription =
+  "Vaya connects passengers with verified drivers travelling between cities, towns and provinces across South Africa.";
 
 export const metadata: Metadata = {
+  metadataBase: siteUrl,
   title: {
-    default: "Vaya | Travel further, together",
+    default: "Vaya | Shared trips across South Africa",
     template: "%s | Vaya",
   },
-  description:
-    "Vaya connects passengers with verified drivers for scheduled long-distance shared trips, with local ride mode coming next.",
+  description: siteDescription,
+  applicationName: "Vaya",
+  keywords: [
+    "Vaya",
+    "shared trips South Africa",
+    "intercity travel South Africa",
+    "interprovincial rides",
+    "ride sharing South Africa",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_ZA",
+    siteName: "Vaya",
+    title: "Vaya | Shared trips across South Africa",
+    description: siteDescription,
+  },
+  twitter: {
+    card: "summary",
+    title: "Vaya | Shared trips across South Africa",
+    description: siteDescription,
+  },
+  robots: {
+    index: shouldIndex,
+    follow: shouldIndex,
+    googleBot: {
+      index: shouldIndex,
+      follow: shouldIndex,
+    },
+  },
+  category: "travel",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#FFFFFF",
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en-ZA" className={`${jakarta.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }
