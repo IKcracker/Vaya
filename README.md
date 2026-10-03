@@ -38,3 +38,52 @@ npm run dev:web
 The root development dependency on `expo-router` lets Expo's hoisted route-generation tooling resolve the router when generating mobile route types. Keep its version aligned with `mobile/package.json` when upgrading the Expo SDK.
 
 The long-distance marketplace is the primary launch scope. Local ride dispatch comes after the scheduled-trip flow is production-ready.
+
+## Neon backend
+
+The Vaya Admin CRM uses Neon Postgres with Drizzle ORM.
+
+### Environment
+
+Copy `web/.env.example` to `web/.env.local` and set:
+
+```bash
+DATABASE_URL="postgresql://user:password@your-neon-pooler-host/neondb?sslmode=require"
+NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+```
+
+Use the pooled Neon connection string for the application.
+
+### Database commands
+
+Run these from `web/`:
+
+```bash
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+npm run db:studio
+```
+
+- `db:generate` creates SQL migrations from `web/lib/db/schema.ts`.
+- `db:migrate` applies committed migrations to the configured Neon database.
+- `db:seed` is idempotent and loads development/demo CRM records.
+- `db:studio` opens Drizzle Studio.
+
+### Admin API
+
+The CRM currently uses:
+
+- `GET /api/admin/dashboard` — load drivers, trips, bookings, passengers, payments, safety cases, and activity.
+- `PATCH /api/admin/drivers/:id` — update driver verification status.
+- `POST /api/admin/trips` — create a trip.
+- `POST /api/admin/passengers` — create a passenger.
+- `POST /api/admin/safety-cases` — create a safety/dispute case.
+- `GET /api/health` — report application/database configuration health.
+
+When `DATABASE_URL` is absent, the Admin CRM explicitly falls back to preview mode and does not claim changes are persisted.
+
+### Deployment
+
+Set `DATABASE_URL` in the deployment environment before enabling production CRM use. Apply migrations and seed only the environments that need seed data. Database credentials must never use a `NEXT_PUBLIC_` prefix.
+
