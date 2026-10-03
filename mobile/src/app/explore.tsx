@@ -4,11 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenReveal } from '@/components/screen-reveal';
 
 const BLUE = '#1877F2';
-const BG = '#F0F2F5';
+const NAVY = '#0B1730';
+const BG = '#F5F7FA';
 const SURFACE = '#FFFFFF';
-const TEXT = '#050505';
-const MUTED = '#65676B';
-const LINE = '#E4E6EB';
+const TEXT = '#101828';
+const MUTED = '#667085';
+const LINE = '#E4E7EC';
 
 export default function DriverScreen() {
   return (
@@ -17,9 +18,9 @@ export default function DriverScreen() {
         <ScreenReveal>
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.eyebrow}>DRIVER MODE</Text>
-              <Text style={styles.title}>Good evening, Thabo</Text>
-              <Text style={styles.muted}>Ready for your next journey?</Text>
+              <Text style={styles.eyebrow}>DRIVER</Text>
+              <Text style={styles.title}>Your trips</Text>
+              <Text style={styles.muted}>Publish, manage and complete your journeys.</Text>
             </View>
             <View style={styles.status}><View style={styles.dot} /><Text style={styles.statusText}>Approved</Text></View>
           </View>
@@ -32,62 +33,61 @@ export default function DriverScreen() {
           </Pressable>
         </ScreenReveal>
 
-        <ScreenReveal delay={140}>
-          <View style={styles.card}>
-            <View style={styles.cardAccent} />
-            <View style={styles.cardHead}>
+        <ScreenReveal delay={130}>
+          <Text style={styles.sectionTitle}>Next departure</Text>
+          <View style={styles.tripCard}>
+            <View style={styles.tripTop}>
               <View>
-                <Text style={styles.smallBlue}>UPCOMING TRIP</Text>
-                <Text style={styles.tripTitle}>Polokwane → Pretoria</Text>
-                <Text style={styles.muted}>Tomorrow • 06:00</Text>
+                <Text style={styles.tripTime}>Tomorrow • 06:00</Text>
+                <Text style={styles.tripRoute}>Polokwane → Pretoria</Text>
               </View>
-              <View style={styles.seatBadge}><Text style={styles.seatText}>3 / 4 seats</Text></View>
+              <View style={styles.seatBadge}><Text style={styles.seatText}>3/4 booked</Text></View>
             </View>
 
-            <View style={styles.divider} />
-            <View style={styles.metricRow}>
+            <View style={styles.tripDivider} />
+
+            <View style={styles.tripMetrics}>
+              <View><Text style={styles.metricLabel}>Fare</Text><Text style={styles.metricValue}>R300</Text></View>
               <View><Text style={styles.metricLabel}>Expected</Text><Text style={styles.metricValue}>R900</Text></View>
-              <View><Text style={styles.metricLabel}>Passengers</Text><Text style={styles.metricValue}>3</Text></View>
               <View><Text style={styles.metricLabel}>Luggage</Text><Text style={styles.metricValue}>4 bags</Text></View>
             </View>
 
             <Pressable style={({ pressed }) => [styles.secondary, pressed && styles.secondaryPressed]}>
-              <Text style={styles.secondaryText}>Manage trip</Text>
+              <Text style={styles.secondaryText}>Open trip</Text>
               <Text style={styles.secondaryArrow}>→</Text>
             </Pressable>
           </View>
         </ScreenReveal>
 
-        <ScreenReveal delay={210}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Driver readiness</Text>
-            <Text style={styles.complete}>3 of 3 complete</Text>
+        <ScreenReveal delay={200}>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>Before you leave</Text>
+            <Text style={styles.readyText}>Ready</Text>
           </View>
+
+          {[
+            ['Passenger list', '3 confirmed passengers'],
+            ['Pickup plan', 'Mall of the North • 05:45'],
+            ['Vehicle', 'Toyota Corolla • White'],
+          ].map(([title, note]) => (
+            <Pressable key={title} style={({ pressed }) => [styles.actionRow, pressed && styles.rowPressed]}>
+              <View>
+                <Text style={styles.actionTitle}>{title}</Text>
+                <Text style={styles.actionNote}>{note}</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          ))}
         </ScreenReveal>
 
-        {[
-          ['Profile verified', 'Identity and contact details approved'],
-          ['Vehicle approved', '2021 Toyota Corolla • White'],
-          ['Payout details', 'Bank account connected'],
-        ].map(([title, note], index) => (
-          <ScreenReveal key={title} delay={260 + index * 55}>
-            <View style={styles.checkRow}>
-              <View style={styles.check}><Text style={styles.checkText}>✓</Text></View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.checkTitle}>{title}</Text>
-                <Text style={styles.checkNote}>{note}</Text>
-              </View>
-              <Text style={styles.rowArrow}>›</Text>
+        <ScreenReveal delay={290}>
+          <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 10 }]}>Driver account</Text>
+          <View style={styles.accountStrip}>
+            <View style={styles.accountDot}><Text style={styles.accountDotText}>✓</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.accountTitle}>Verification complete</Text>
+              <Text style={styles.accountNote}>Identity, licence and vehicle approved.</Text>
             </View>
-          </ScreenReveal>
-        ))}
-
-        <ScreenReveal delay={440}>
-          <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 11 }]}>This month</Text>
-          <View style={styles.stats}>
-            <View style={styles.stat}><Text style={styles.statValue}>12</Text><Text style={styles.statLabel}>Trips</Text></View>
-            <View style={styles.stat}><Text style={styles.statValue}>4.9</Text><Text style={styles.statLabel}>Rating</Text></View>
-            <View style={styles.stat}><Text style={styles.statValue}>R6,480</Text><Text style={styles.statLabel}>Earned</Text></View>
           </View>
         </ScreenReveal>
       </ScrollView>
@@ -98,43 +98,47 @@ export default function DriverScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   page: { padding: 18, paddingBottom: 120 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, gap: 8 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 18 },
   eyebrow: { color: BLUE, fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
-  title: { color: TEXT, fontSize: 25, fontWeight: '900', marginTop: 6, letterSpacing: -0.6 },
-  muted: { color: MUTED, fontSize: 12, marginTop: 4 },
-  status: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E7F3FF', paddingVertical: 7, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: '#D4E7FF' },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#31A24C', marginRight: 6 },
-  statusText: { color: BLUE, fontSize: 10, fontWeight: '900' },
-  primary: { height: 56, borderRadius: 15, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center', marginBottom: 16, flexDirection: 'row', gap: 5, shadowColor: BLUE, shadowOpacity: 0.28, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 4 },
-  primaryPressed: { opacity: 0.86, transform: [{ scale: 0.985 }] },
-  plus: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '900' },
-  card: { position: 'relative', overflow: 'hidden', backgroundColor: SURFACE, borderRadius: 22, padding: 18, marginBottom: 25, borderWidth: 1, borderColor: '#EDF0F3', shadowColor: '#345', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 2 },
-  cardAccent: { position: 'absolute', right: -30, top: -40, width: 125, height: 125, borderRadius: 63, backgroundColor: '#E7F3FF' },
-  cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  smallBlue: { color: BLUE, fontSize: 10, fontWeight: '900', letterSpacing: 0.7 },
-  tripTitle: { color: TEXT, fontSize: 19, fontWeight: '900', marginTop: 5, letterSpacing: -0.25 },
-  seatBadge: { backgroundColor: '#E7F3FF', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: '#D6E8FF' },
+  title: { color: TEXT, fontSize: 26, fontWeight: '900', marginTop: 4, letterSpacing: -0.5 },
+  muted: { color: MUTED, fontSize: 12, marginTop: 3 },
+  status: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EAF7EF', paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#12B76A', marginRight: 6 },
+  statusText: { color: '#027A48', fontSize: 10, fontWeight: '900' },
+
+  primary: { height: 54, borderRadius: 14, backgroundColor: NAVY, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 24 },
+  primaryPressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
+  plus: { color: '#FFFFFF', fontSize: 21, fontWeight: '700' },
+  primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
+
+  sectionTitle: { color: TEXT, fontSize: 18, fontWeight: '900', letterSpacing: -0.25, marginBottom: 10 },
+  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  readyText: { color: '#027A48', fontSize: 10, fontWeight: '900' },
+
+  tripCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 18, padding: 16, marginBottom: 24 },
+  tripTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
+  tripTime: { color: BLUE, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  tripRoute: { color: TEXT, fontSize: 18, fontWeight: '900', marginTop: 5 },
+  seatBadge: { backgroundColor: '#E7F3FF', paddingHorizontal: 9, paddingVertical: 7, borderRadius: 999 },
   seatText: { color: BLUE, fontSize: 10, fontWeight: '900' },
-  divider: { height: 1, backgroundColor: LINE, marginVertical: 17 },
-  metricRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  metricLabel: { color: MUTED, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
-  metricValue: { color: TEXT, fontSize: 17, fontWeight: '900', marginTop: 5 },
-  secondary: { marginTop: 17, height: 47, borderRadius: 12, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
-  secondaryPressed: { backgroundColor: '#DDEEFF', transform: [{ scale: 0.99 }] },
-  secondaryText: { color: BLUE, fontWeight: '900' },
-  secondaryArrow: { color: BLUE, fontSize: 18, fontWeight: '800' },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 11 },
-  sectionTitle: { color: TEXT, fontSize: 19, fontWeight: '900', letterSpacing: -0.3 },
-  complete: { color: '#31A24C', fontSize: 10, fontWeight: '900' },
-  checkRow: { backgroundColor: SURFACE, padding: 14, borderRadius: 16, marginBottom: 9, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#EDF0F3' },
-  check: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center', marginRight: 11 },
-  checkText: { color: BLUE, fontWeight: '900' },
-  checkTitle: { color: TEXT, fontWeight: '900', fontSize: 13 },
-  checkNote: { color: MUTED, fontSize: 11, marginTop: 3 },
-  rowArrow: { color: '#A3ABB5', fontSize: 22, marginLeft: 6 },
-  stats: { flexDirection: 'row', gap: 10 },
-  stat: { flex: 1, backgroundColor: SURFACE, borderRadius: 16, paddingVertical: 18, alignItems: 'center', borderWidth: 1, borderColor: '#EDF0F3' },
-  statValue: { color: TEXT, fontSize: 17, fontWeight: '900' },
-  statLabel: { color: MUTED, fontSize: 10, marginTop: 4, fontWeight: '700' },
+  tripDivider: { height: 1, backgroundColor: LINE, marginVertical: 16 },
+  tripMetrics: { flexDirection: 'row', justifyContent: 'space-between' },
+  metricLabel: { color: MUTED, fontSize: 10, fontWeight: '700' },
+  metricValue: { color: TEXT, fontSize: 15, fontWeight: '900', marginTop: 4 },
+  secondary: { height: 44, borderRadius: 11, backgroundColor: '#EEF5FF', marginTop: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
+  secondaryPressed: { opacity: 0.75 },
+  secondaryText: { color: BLUE, fontSize: 12, fontWeight: '900' },
+  secondaryArrow: { color: BLUE, fontSize: 16, fontWeight: '900' },
+
+  actionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: SURFACE, borderBottomWidth: 1, borderBottomColor: LINE, paddingVertical: 14 },
+  rowPressed: { opacity: 0.7 },
+  actionTitle: { color: TEXT, fontSize: 13, fontWeight: '900' },
+  actionNote: { color: MUTED, fontSize: 11, marginTop: 4 },
+  chevron: { color: '#98A2B3', fontSize: 22 },
+
+  accountStrip: { flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: '#EDF7F2', borderRadius: 15, padding: 14 },
+  accountDot: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#12B76A', alignItems: 'center', justifyContent: 'center' },
+  accountDotText: { color: '#FFFFFF', fontWeight: '900' },
+  accountTitle: { color: TEXT, fontSize: 12, fontWeight: '900' },
+  accountNote: { color: MUTED, fontSize: 11, marginTop: 3 },
 });
