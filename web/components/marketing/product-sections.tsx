@@ -13,16 +13,31 @@ import {
 } from "lucide-react";
 
 const passengerImage =
-  "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&fm=jpg&q=86&w=1800";
+  "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&fm=jpg&q=86&w=1800";
 
 const driverImage =
   "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&fm=jpg&q=86&w=2200";
 
 const routes = [
-  { from: "Pretoria", to: "Polokwane", type: "Direct corridor" },
-  { from: "Johannesburg", to: "Thohoyandou", type: "Long distance" },
-  { from: "Pretoria", to: "Giyani", type: "Long distance" },
-  { from: "Polokwane", to: "Midrand", type: "Route segment" },
+  { from: "Johannesburg", to: "Durban", type: "Gauteng → KwaZulu-Natal" },
+  { from: "Cape Town", to: "Gqeberha", type: "Western Cape → Eastern Cape" },
+  { from: "Bloemfontein", to: "Johannesburg", type: "Free State → Gauteng" },
+  { from: "Mbombela", to: "Pretoria", type: "Mpumalanga → Gauteng" },
+  { from: "Rustenburg", to: "Johannesburg", type: "North West → Gauteng" },
+  { from: "Kimberley", to: "Bloemfontein", type: "Northern Cape → Free State" },
+  { from: "Polokwane", to: "Pretoria", type: "Limpopo → Gauteng" },
+];
+
+const provinces = [
+  "Gauteng",
+  "KwaZulu-Natal",
+  "Western Cape",
+  "Eastern Cape",
+  "Free State",
+  "Mpumalanga",
+  "North West",
+  "Northern Cape",
+  "Limpopo",
 ];
 
 export function ProductSections() {
@@ -42,7 +57,7 @@ export function ProductSections() {
             </div>
 
             <p className="max-w-2xl text-lg leading-8 text-[#65676B]">
-              The biggest problem with informal long-distance ride sharing is uncertainty. Vaya makes the important details visible before anyone commits: who is driving, where the trip goes, when it leaves, how much it costs and whether your luggage fits.
+              Vaya is built for the everyday trips South Africans already make between provinces, cities and home towns. It brings the driver, route, departure time, fare, pickup point and luggage details into one place before anyone commits.
             </p>
           </div>
 
@@ -57,6 +72,37 @@ export function ProductSections() {
                 <div className="text-xs font-black tracking-[.14em] text-[#1877F2]">{step}</div>
                 <h3 className="mt-5 text-xl font-black tracking-[-.025em] text-[#050505]">{title}</h3>
                 <p className="mt-3 text-sm leading-7 text-[#65676B]">{copy}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#F7F8FA] py-20">
+        <div className="mx-auto grid max-w-[1280px] gap-12 px-5 sm:px-8 lg:grid-cols-[.72fr_1.28fr] lg:px-10">
+          <div>
+            <div className="flex items-center gap-3 text-xs font-black uppercase tracking-[.18em] text-[#1877F2]">
+              <span className="h-px w-8 bg-[#1877F2]" />
+              Everyday trips
+            </div>
+            <h2 className="mt-5 text-4xl font-extrabold tracking-[-.045em] text-[#050505]">
+              Built for the journeys people actually make.
+            </h2>
+            <p className="mt-5 text-base leading-7 text-[#65676B]">
+              Vaya is not a tourist-transfer service. It is for people moving between home, campus, work and family across South Africa.
+            </p>
+          </div>
+
+          <div className="border-t border-[#DADDE1]">
+            {[
+              ["Going home", "Weekend trips, holidays and month-end travel back to family or your home town."],
+              ["Campus closing", "Students leaving university or college with luggage when residences close."],
+              ["Work travel", "Regular intercity travel between where you live and where you work."],
+              ["Family visits", "Planned trips for events, visits and responsibilities in another province."],
+            ].map(([title, copy]) => (
+              <div key={title} className="grid gap-3 border-b border-[#DADDE1] py-6 sm:grid-cols-[150px_1fr]">
+                <div className="text-sm font-bold text-[#101828]">{title}</div>
+                <div className="text-sm leading-6 text-[#65676B]">{copy}</div>
               </div>
             ))}
           </div>
@@ -82,7 +128,7 @@ export function ProductSections() {
               </h2>
 
               <p className="mt-6 text-lg leading-8 text-[#65676B]">
-                Instead of asking the same questions in a WhatsApp group, see the practical details in one place and choose the journey that actually works for you.
+                Whether you are going from Johannesburg to Durban, Cape Town to Gqeberha, Mbombela to Pretoria or anywhere in between, Vaya gives you the practical details before you choose a ride.
               </p>
 
               <div className="mt-8 space-y-5">
@@ -107,7 +153,7 @@ export function ProductSections() {
         </div>
       </section>
 
-      <section className="bg-white py-24">
+      <section id="routes" className="bg-white py-24">
         <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
           <div className="grid gap-12 lg:grid-cols-[.72fr_1.28fr] lg:items-start">
             <div>
@@ -119,11 +165,17 @@ export function ProductSections() {
                 Not every passenger starts where the driver starts.
               </h2>
               <p className="mt-5 text-base leading-7 text-[#65676B]">
-                Vaya is designed around the route, not only the exact origin and destination. A passenger can match with a useful segment when pickup and drop-off points align.
+                Vaya is designed around the route, not only an exact start and end point. Passengers can match useful segments along interprovincial journeys when pickup and drop-off points align.
               </p>
             </div>
 
-            <div className="border-t border-[#E4E6EB]">
+            <div>
+              <div className="mb-7 flex flex-wrap gap-x-5 gap-y-3 border-b border-[#E4E6EB] pb-6">
+                {provinces.map((province) => (
+                  <span key={province} className="text-xs font-semibold text-[#667085]">{province}</span>
+                ))}
+              </div>
+              <div className="border-t border-[#E4E6EB]">
               {routes.map((route, index) => (
                 <div
                   key={route.from + route.to}
@@ -143,6 +195,7 @@ export function ProductSections() {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           </div>
         </div>
