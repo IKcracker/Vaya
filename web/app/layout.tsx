@@ -10,6 +10,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 const siteUrl = getSiteUrl();
+const shouldIndex = process.env.VERCEL_ENV !== "preview";
 
 const siteDescription =
   "Vaya connects passengers with verified drivers travelling between cities, towns and provinces across South Africa.";
@@ -29,6 +30,9 @@ export const metadata: Metadata = {
     "interprovincial rides",
     "ride sharing South Africa",
   ],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     type: "website",
     locale: "en_ZA",
@@ -37,13 +41,17 @@ export const metadata: Metadata = {
     description: siteDescription,
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "Vaya | Shared trips across South Africa",
     description: siteDescription,
   },
   robots: {
-    index: true,
-    follow: true,
+    index: shouldIndex,
+    follow: shouldIndex,
+    googleBot: {
+      index: shouldIndex,
+      follow: shouldIndex,
+    },
   },
   category: "travel",
 };
