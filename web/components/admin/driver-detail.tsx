@@ -8,13 +8,11 @@ import {
   BadgeCheck,
   Ban,
   CarFront,
-  CircleCheck,
   Clock3,
   Mail,
   MapPin,
   Pencil,
   Phone,
-  Route,
   ShieldCheck,
   Trash2,
   UserCheck,
@@ -241,6 +239,7 @@ export function DriverDetail({
 
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => void updateStatus("Needs info")} disabled={saving}>Request info</Button>
+            <Button variant="destructive" onClick={() => void updateStatus("Rejected")} disabled={saving}>Reject</Button>
             <Button variant="outline" onClick={() => void updateStatus("Suspended")} disabled={saving}>
               <Ban />
               Suspend
