@@ -12,7 +12,6 @@ import {
   Route,
   ShieldCheck,
   Smartphone,
-  Sparkles,
   Users,
 } from "lucide-react";
 
