@@ -33,4 +33,8 @@ npm run dev:mobile
 npm run dev:web
 ```
 
+`npm run mobile` is an alias for `npm run dev:mobile`. Run installs from the repository root and use the root `package-lock.json` for both workspaces.
+
+The root development dependency on `expo-router` lets Expo's hoisted route-generation tooling resolve the router when generating mobile route types. Keep its version aligned with `mobile/package.json` when upgrading the Expo SDK.
+
 The long-distance marketplace is the primary launch scope. Local ride dispatch comes after the scheduled-trip flow is production-ready.

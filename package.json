@@ -2,15 +2,21 @@
   "name": "vaya",
   "private": true,
   "packageManager": "npm@11.6.0",
-  "workspaces": ["mobile", "web"],
+  "workspaces": [
+    "mobile",
+    "web"
+  ],
   "scripts": {
     "dev": "turbo dev",
-    "dev:mobile": "npm run start --workspace mobile",
+    "mobile": "npm run start --workspace mobile --",
+    "dev:mobile": "npm run start --workspace mobile --",
     "dev:web": "npm run dev --workspace web",
     "build": "turbo build",
     "lint": "turbo lint"
   },
   "devDependencies": {
+    "eslint": "^9.0.0",
+    "expo-router": "~57.0.24",
     "turbo": "^2.5.0"
   }
 }
