@@ -24,7 +24,43 @@
 }
 
 * { box-sizing: border-box; border-color: var(--border); }
-html { font-family: Arial, Helvetica, sans-serif; background: var(--background); }
+html { scroll-behavior: smooth; font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif; background: var(--background); }
 body { margin: 0; background: var(--background); color: var(--foreground); }
 button, input { font: inherit; }
 button { cursor: pointer; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(1deg); }
+  50% { transform: translateY(9px) rotate(-1deg); }
+}
+
+.animate-fade-up {
+  animation: fade-up .7s cubic-bezier(.2,.7,.2,1) both;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 5.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
