@@ -13,14 +13,14 @@ const heroImage =
 
 export function Hero() {
   return (
-    <section className="relative bg-[#0B1220] pt-[72px] text-white">
+    <section className="relative bg-[#0B1220] pt-16 text-white">
       <div
-        className="absolute inset-x-0 top-[72px] h-[690px] bg-cover bg-center"
+        className="absolute inset-x-0 top-16 h-[690px] bg-cover bg-center"
         style={{
           backgroundImage: `linear-gradient(90deg, rgba(4,10,22,.96) 0%, rgba(4,10,22,.78) 42%, rgba(4,10,22,.34) 72%, rgba(4,10,22,.18) 100%), url("${heroImage}")`,
         }}
       />
-      <div className="absolute inset-x-0 top-[72px] h-[690px] bg-[linear-gradient(180deg,transparent_58%,#0B1220_100%)]" />
+      <div className="absolute inset-x-0 top-16 h-[690px] bg-[linear-gradient(180deg,transparent_58%,#0B1220_100%)]" />
 
       <div className="relative mx-auto min-h-[690px] max-w-[1280px] px-5 sm:px-8 lg:px-10">
         <div className="flex min-h-[690px] max-w-[760px] flex-col justify-center pb-24 pt-14">
@@ -42,13 +42,13 @@ export function Hero() {
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <a
               href="#download"
-              className="group inline-flex items-center justify-center gap-2 rounded-[12px] bg-[#1877F2] px-6 py-4 text-sm font-black text-white shadow-[0_16px_40px_rgba(24,119,242,.30)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#2D86F7]">
+              className="group inline-flex items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] px-5 py-3 text-[13px] font-black text-white shadow-[0_16px_40px_rgba(24,119,242,.30)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#2D86F7]">
               Get Vaya
               <ArrowRight size={17} className="transition group-hover:translate-x-1" />
             </a>
             <a
               href="#how-it-works"
-              className="inline-flex items-center justify-center rounded-[12px] border border-white/20 bg-white/8 px-6 py-4 text-sm font-black text-white backdrop-blur transition hover:bg-white/12">
+              className="inline-flex items-center justify-center rounded-[8px] border border-white/20 bg-white/8 px-5 py-3 text-[13px] font-black text-white backdrop-blur transition hover:bg-white/12">
               See how it works
             </a>
           </div>
@@ -88,8 +88,8 @@ export function Hero() {
           </div>
 
           <div className="grid divide-y divide-[#E4E6EB] lg:grid-cols-[1.2fr_1.2fr_.9fr_.8fr_auto] lg:divide-x lg:divide-y-0">
-            <button className="flex min-h-[92px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-[#F0F2F5] text-[#65676B]">
+            <button className="flex min-h-[82px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+              <span className="grid h-10 w-10 place-items-center rounded-[8px] bg-[#F0F2F5] text-[#65676B]">
                 <MapPin size={17} />
               </span>
               <span>
@@ -98,8 +98,8 @@ export function Hero() {
               </span>
             </button>
 
-            <button className="flex min-h-[92px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-[#E7F3FF] text-[#1877F2]">
+            <button className="flex min-h-[82px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+              <span className="grid h-10 w-10 place-items-center rounded-[8px] bg-[#E7F3FF] text-[#1877F2]">
                 <MapPin size={17} />
               </span>
               <span>
@@ -108,7 +108,7 @@ export function Hero() {
               </span>
             </button>
 
-            <button className="flex min-h-[92px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+            <button className="flex min-h-[82px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
               <CalendarDays size={18} className="text-[#1877F2]" />
               <span>
                 <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">Date</span>
@@ -116,7 +116,7 @@ export function Hero() {
               </span>
             </button>
 
-            <button className="flex min-h-[92px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+            <button className="flex min-h-[82px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
               <Users size={18} className="text-[#1877F2]" />
               <span>
                 <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">Seats</span>
@@ -124,7 +124,7 @@ export function Hero() {
               </span>
             </button>
 
-            <button className="m-3 flex min-h-[68px] items-center justify-center gap-2 rounded-[10px] bg-[#1877F2] px-7 text-sm font-black text-white transition hover:bg-[#166FE5]">
+            <button className="m-3 flex min-h-[58px] items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] px-6 text-[13px] font-black text-white transition hover:bg-[#166FE5]">
               Find ride <ArrowRight size={16} />
             </button>
           </div>
