@@ -346,7 +346,8 @@ function statusVariant(value: string) {
     lower.includes("active") ||
     lower.includes("confirmed") ||
     lower.includes("settled") ||
-    lower.includes("schedule")
+    lower.includes("schedule") ||
+    lower.includes("approved")
   ) {
     return "success" as const;
   }
@@ -358,7 +359,7 @@ function statusVariant(value: string) {
   ) {
     return "warning" as const;
   }
-  if (lower.includes("high") || lower.includes("open") || lower.includes("needs")) {
+  if (lower.includes("high") || lower.includes("open") || lower.includes("needs") || lower.includes("reject")) {
     return "destructive" as const;
   }
   return "secondary" as const;
@@ -1259,3 +1260,286 @@ function SafetyView({ rows, onCreate, onView }: { rows: typeof safetyCases; onCr
     </>
   );
 }
+
+function FormField({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function DriverReviewDialog({
+  open,
+  driver,
+  onOpenChange,
+  onUpdateStatus,
+}: {
+  open: boolean;
+  driver: (typeof drivers)[number] | null;
+  onOpenChange: (open: boolean) => void;
+  onUpdateStatus: (status: string) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Driver verification review</DialogTitle>
+          <DialogDescription>
+            Review the submitted profile and decide whether this driver can publish trips.
+          </DialogDescription>
+        </DialogHeader>
+
+        {driver ? (
+          <div className="space-y-5 p-5">
+            <div className="flex items-center gap-4">
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-[#E7F3FF] text-sm font-bold text-[#1877F2]">
+                {driver.initials}
+              </div>
+              <div className="min-w-0">
+                <div className="font-semibold text-[#101828]">{driver.name}</div>
+                <div className="mt-1 text-xs text-[#667085]">{driver.location}</div>
+              </div>
+              <Badge variant={statusVariant(driver.status)} className="ml-auto">{driver.status}</Badge>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                ["Vehicle", driver.vehicle],
+                ["Verification checks", driver.checks],
+                ["Submitted", driver.submitted],
+                ["Current decision", driver.status],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-lg border border-[#EAECF0] bg-[#F9FAFB] p-4">
+                  <div className="text-[10px] font-semibold uppercase tracking-[.08em] text-[#98A2B3]">{label}</div>
+                  <div className="mt-2 text-sm font-semibold text-[#344054]">{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-lg border border-[#D1E9FF] bg-[#F5F9FF] p-4">
+              <div className="text-xs font-semibold text-[#101828]">Verification checklist</div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {["Identity", "Driver licence", "Vehicle details"].map((item) => (
+                  <div key={item} className="flex items-center gap-2 text-xs text-[#475467]">
+                    <CircleCheck className="size-4 text-[#12B76A]" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="button" variant="destructive" onClick={() => onUpdateStatus("Rejected")}>Reject</Button>
+          <Button type="button" variant="outline" onClick={() => onUpdateStatus("Needs info")}>Request info</Button>
+          <Button type="button" className="bg-[#1877F2] hover:bg-[#166FE5]" onClick={() => onUpdateStatus("Approved")}>
+            Approve driver
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CreateTripDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (formData: FormData) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Create trip</DialogTitle>
+          <DialogDescription>Create an operational trip record for a scheduled driver journey.</DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit(new FormData(event.currentTarget));
+          }}>
+          <div className="grid gap-4 p-5 sm:grid-cols-2">
+            <FormField label="Starting point" htmlFor="trip-from">
+              <Input id="trip-from" name="from" placeholder="Johannesburg" required />
+            </FormField>
+            <FormField label="Destination" htmlFor="trip-to">
+              <Input id="trip-to" name="to" placeholder="Durban" required />
+            </FormField>
+            <FormField label="Driver" htmlFor="trip-driver">
+              <Input id="trip-driver" name="driver" placeholder="Driver name" required />
+            </FormField>
+            <FormField label="Date" htmlFor="trip-date">
+              <Input id="trip-date" name="date" placeholder="10 Oct" required />
+            </FormField>
+            <FormField label="Departure time" htmlFor="trip-departure">
+              <Input id="trip-departure" name="departure" type="time" required />
+            </FormField>
+            <FormField label="Available seats" htmlFor="trip-seats">
+              <Input id="trip-seats" name="seats" type="number" min="1" max="8" defaultValue="4" required />
+            </FormField>
+            <div className="sm:col-span-2">
+              <FormField label="Fare per seat" htmlFor="trip-fare">
+                <Input id="trip-fare" name="fare" inputMode="numeric" placeholder="280" required />
+              </FormField>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" className="bg-[#1877F2] hover:bg-[#166FE5]">Create trip</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddPassengerDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (formData: FormData) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add passenger</DialogTitle>
+          <DialogDescription>Create a passenger CRM record for support and operational management.</DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit(new FormData(event.currentTarget));
+          }}>
+          <div className="space-y-4 p-5">
+            <FormField label="Full name" htmlFor="passenger-name">
+              <Input id="passenger-name" name="name" placeholder="Full name" required />
+            </FormField>
+            <FormField label="Email" htmlFor="passenger-contact">
+              <Input id="passenger-contact" name="contact" type="email" placeholder="name@example.com" required />
+            </FormField>
+            <FormField label="Home city" htmlFor="passenger-city">
+              <Input id="passenger-city" name="city" placeholder="Johannesburg" required />
+            </FormField>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" className="bg-[#1877F2] hover:bg-[#166FE5]">Add passenger</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CreateSafetyDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (formData: FormData) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Create safety case</DialogTitle>
+          <DialogDescription>Record an incident or dispute and route it for investigation.</DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit(new FormData(event.currentTarget));
+          }}>
+          <div className="grid gap-4 p-5 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <FormField label="Case subject" htmlFor="case-subject">
+                <Input id="case-subject" name="subject" placeholder="Describe the issue briefly" required />
+              </FormField>
+            </div>
+            <FormField label="Related trip" htmlFor="case-trip">
+              <Input id="case-trip" name="trip" placeholder="VY-1055 · Mbombela → Pretoria" required />
+            </FormField>
+            <FormField label="Owner" htmlFor="case-owner">
+              <Input id="case-owner" name="owner" placeholder="Unassigned" />
+            </FormField>
+            <FormField label="Priority" htmlFor="case-priority">
+              <select
+                id="case-priority"
+                name="priority"
+                defaultValue="Medium"
+                className="h-9 w-full rounded-lg border border-[#D0D5DD] bg-white px-3 text-sm text-[#101828] outline-none transition focus:border-[#84ADFF] focus:ring-3 focus:ring-[#D1E9FF]">
+                <option>Low</option>
+                <option>Medium</option>
+                <option>High</option>
+              </select>
+            </FormField>
+            <div className="sm:col-span-2">
+              <FormField label="Internal note" htmlFor="case-note">
+                <Textarea id="case-note" name="note" placeholder="Add context for the investigation team..." />
+              </FormField>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" className="bg-[#1877F2] hover:bg-[#166FE5]">Create case</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RecordDetailsDialog({
+  detail,
+  onOpenChange,
+}: {
+  detail: { title: string; subtitle?: string; fields: Array<[string, string]> } | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Dialog open={Boolean(detail)} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{detail?.title ?? "Record details"}</DialogTitle>
+          {detail?.subtitle ? <DialogDescription>{detail.subtitle}</DialogDescription> : null}
+        </DialogHeader>
+        <div className="p-5">
+          <div className="divide-y divide-[#EAECF0] rounded-lg border border-[#EAECF0]">
+            {detail?.fields.map(([label, value]) => (
+              <div key={label} className="grid gap-1 px-4 py-3 sm:grid-cols-[130px_1fr] sm:gap-4">
+                <div className="text-[11px] font-semibold text-[#667085]">{label}</div>
+                <div className="text-sm font-medium text-[#101828]">{value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button type="button" onClick={() => onOpenChange(false)} className="bg-[#1877F2] hover:bg-[#166FE5]">Done</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
