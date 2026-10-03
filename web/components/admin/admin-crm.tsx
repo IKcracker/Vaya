@@ -754,6 +754,12 @@ export function AdminCrm() {
             {modules.map((item) => {
               const Icon = item.icon;
               const selected = active === item.key;
+              const liveCount =
+                item.key === "drivers"
+                  ? driverRecords.filter((driver) => !["Approved", "Rejected"].includes(driver.status)).length
+                  : item.key === "safety"
+                    ? safetyRecords.filter((caseItem) => caseItem.status !== "Closed").length
+                    : item.count;
               return (
                 <button
                   key={item.key}
@@ -762,9 +768,9 @@ export function AdminCrm() {
                   className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13px] font-semibold transition ${selected ? "bg-[#E7F3FF] text-[#1877F2]" : "text-[#475467] hover:bg-[#F5F7FA] hover:text-[#101828]"}`}>
                   <Icon className="size-4" />
                   <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                  {item.count ? (
+                  {liveCount ? (
                     <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${selected ? "bg-white text-[#1877F2]" : "bg-[#F2F4F7] text-[#667085]"}`}>
-                      {item.count}
+                      {liveCount}
                     </span>
                   ) : null}
                 </button>
@@ -980,7 +986,7 @@ function Overview({
             </TableHeader>
             <TableBody>
               {driverRows.slice(0, 3).map((driver) => (
-                <TableRow key={driver.name}>
+                <TableRow key={driver.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="grid h-9 w-9 place-items-center rounded-full bg-[#E7F3FF] text-[10px] font-bold text-[#1877F2]">{driver.initials}</div>
@@ -1074,6 +1080,8 @@ function Overview({
 }
 
 function DriversView({ rows, onReview }: { rows: typeof drivers; onReview: (driver: (typeof drivers)[number]) => void }) {
+  const nextReview = rows.find((driver) => !["Approved", "Rejected"].includes(driver.status));
+
   return (
     <>
       <PageHeading
@@ -1083,7 +1091,7 @@ function DriversView({ rows, onReview }: { rows: typeof drivers; onReview: (driv
         action={
           <div className="flex gap-2">
             <Button variant="outline" className="h-9"><Download /> Export</Button>
-            <Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]" disabled={!rows.length} onClick={() => rows[0] && onReview(rows[0])}><UserCheck /> Review next</Button>
+            <Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]" disabled={!nextReview} onClick={() => nextReview && onReview(nextReview)}><UserCheck /> Review next</Button>
           </div>
         }
       />
@@ -1109,7 +1117,7 @@ function DriversView({ rows, onReview }: { rows: typeof drivers; onReview: (driv
             </TableHeader>
             <TableBody>
               {rows.map((driver) => (
-                <TableRow key={driver.name}>
+                <TableRow key={driver.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="grid h-9 w-9 place-items-center rounded-full bg-[#E7F3FF] text-[10px] font-bold text-[#1877F2]">{driver.initials}</div>
