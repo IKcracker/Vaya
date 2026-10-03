@@ -8,6 +8,7 @@ on:
       - "web/package.json"
       - "web/lib/db/schema.ts"
       - "web/drizzle.config.ts"
+      - ".github/workflows/backend-lockfiles.yml"
 
 permissions:
   contents: write
