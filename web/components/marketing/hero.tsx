@@ -2,8 +2,6 @@ import {
   ArrowRight,
   BadgeCheck,
   CalendarDays,
-  CarFront,
-  Clock3,
   Luggage,
   MapPin,
   ShieldCheck,
@@ -11,124 +9,124 @@ import {
 } from "lucide-react";
 
 const heroImage =
-  "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&fm=jpg&q=88&w=2200";
+  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&fm=jpg&q=88&w=2400";
 
 export function Hero() {
   return (
-    <section className="bg-white pt-[72px]">
-      <div className="mx-auto max-w-[1280px] px-5 pt-5 sm:px-8 lg:px-10">
-        <div
-          className="relative min-h-[610px] overflow-hidden rounded-[28px] bg-cover bg-center shadow-[0_24px_70px_rgba(25,39,67,.14)]"
-          style={{
-            backgroundImage: `linear-gradient(90deg, rgba(7,16,32,.94) 0%, rgba(7,16,32,.78) 40%, rgba(7,16,32,.28) 70%, rgba(7,16,32,.10) 100%), url("${heroImage}")`,
-          }}>
-          <div className="relative z-10 flex min-h-[610px] max-w-[700px] flex-col justify-center px-6 py-16 text-white sm:px-10 lg:px-14">
-            <div className="mb-6 flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-xs font-black backdrop-blur">
-              <CarFront size={14} className="text-[#74AEFF]" />
-              LONG-DISTANCE TRAVEL, REIMAGINED
-            </div>
+    <section className="relative bg-[#0B1220] pt-[72px] text-white">
+      <div
+        className="absolute inset-x-0 top-[72px] h-[690px] bg-cover bg-center"
+        style={{
+          backgroundImage: `linear-gradient(90deg, rgba(4,10,22,.96) 0%, rgba(4,10,22,.78) 42%, rgba(4,10,22,.34) 72%, rgba(4,10,22,.18) 100%), url("${heroImage}")`,
+        }}
+      />
+      <div className="absolute inset-x-0 top-[72px] h-[690px] bg-[linear-gradient(180deg,transparent_58%,#0B1220_100%)]" />
 
-            <h1 className="text-[3.25rem] font-black leading-[.98] tracking-[-.06em] sm:text-[4.25rem] lg:text-[5rem]">
-              Travel farther.
-              <span className="block text-[#63A4FF]">Travel better.</span>
-            </h1>
-
-            <p className="mt-6 max-w-xl text-base leading-7 text-white/80 sm:text-lg">
-              Find verified drivers already travelling your route, compare the details that matter and reserve your seat before travel day.
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a
-                href="#download"
-                className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#1877F2] px-6 py-4 text-sm font-black text-white shadow-[0_14px_30px_rgba(24,119,242,.28)] transition hover:-translate-y-0.5 hover:bg-[#2D86F7]">
-                Get Vaya
-                <ArrowRight size={17} className="transition group-hover:translate-x-1" />
-              </a>
-              <a
-                href="#how-it-works"
-                className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-6 py-4 text-sm font-black text-white backdrop-blur transition hover:bg-white/15">
-                How it works
-              </a>
-            </div>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-white/78">
-                <BadgeCheck size={17} className="text-[#63A4FF]" />
-                Verified drivers
-              </div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-white/78">
-                <Luggage size={17} className="text-[#63A4FF]" />
-                Luggage planning
-              </div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-white/78">
-                <ShieldCheck size={17} className="text-[#63A4FF]" />
-                Safer bookings
-              </div>
-            </div>
+      <div className="relative mx-auto min-h-[690px] max-w-[1280px] px-5 sm:px-8 lg:px-10">
+        <div className="flex min-h-[690px] max-w-[760px] flex-col justify-center pb-24 pt-14">
+          <div className="mb-7 flex w-fit items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-[#7DB7FF]">
+            <span className="h-px w-8 bg-[#1877F2]" />
+            Long-distance travel, properly organised
           </div>
 
-          <div className="absolute bottom-7 right-7 hidden rounded-2xl border border-white/20 bg-black/25 px-4 py-3 text-white backdrop-blur-md lg:block">
-            <div className="text-[10px] font-black uppercase tracking-[.14em] text-white/55">Example route</div>
-            <div className="mt-1 text-sm font-black">Polokwane → Pretoria</div>
+          <h1 className="max-w-[760px] text-[3.5rem] font-black leading-[.96] tracking-[-.06em] sm:text-[4.75rem] lg:text-[5.65rem]">
+            Your route.
+            <span className="block text-[#5EA5FF]">Your ride.</span>
+            <span className="block">Your choice.</span>
+          </h1>
+
+          <p className="mt-7 max-w-2xl text-lg leading-8 text-white/72 sm:text-xl">
+            Find verified drivers already travelling your direction, compare fares and departure times, check luggage capacity and reserve a seat before travel day.
+          </p>
+
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <a
+              href="#download"
+              className="group inline-flex items-center justify-center gap-2 rounded-[12px] bg-[#1877F2] px-6 py-4 text-sm font-black text-white shadow-[0_16px_40px_rgba(24,119,242,.30)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#2D86F7]">
+              Get Vaya
+              <ArrowRight size={17} className="transition group-hover:translate-x-1" />
+            </a>
+            <a
+              href="#how-it-works"
+              className="inline-flex items-center justify-center rounded-[12px] border border-white/20 bg-white/8 px-6 py-4 text-sm font-black text-white backdrop-blur transition hover:bg-white/12">
+              See how it works
+            </a>
+          </div>
+
+          <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm font-semibold text-white/68">
+            <span className="flex items-center gap-2">
+              <BadgeCheck size={17} className="text-[#63A4FF]" />
+              Verified drivers
+            </span>
+            <span className="flex items-center gap-2">
+              <Luggage size={17} className="text-[#63A4FF]" />
+              Luggage-aware trips
+            </span>
+            <span className="flex items-center gap-2">
+              <ShieldCheck size={17} className="text-[#63A4FF]" />
+              Recorded journeys
+            </span>
           </div>
         </div>
+      </div>
 
-        <div className="relative z-20 mx-auto -mt-16 max-w-[1120px] rounded-[24px] border border-[#E4E6EB] bg-white p-3 shadow-[0_22px_55px_rgba(24,50,90,.14)] sm:p-4">
-          <div className="grid gap-2 border-b border-[#E4E6EB] pb-3 sm:grid-cols-2">
-            <button className="rounded-xl bg-[#E7F3FF] px-4 py-3 text-sm font-black text-[#1877F2]">
-              Long distance
-            </button>
-            <button className="rounded-xl px-4 py-3 text-sm font-bold text-[#65676B] transition hover:bg-[#F0F2F5]">
-              Local ride <span className="ml-1 text-[10px] font-black text-[#8A8D91]">COMING SOON</span>
-            </button>
+      <div className="relative mx-auto -mb-24 max-w-[1280px] px-5 sm:px-8 lg:px-10">
+        <div className="border border-[#DADDE1] bg-white text-[#050505] shadow-[0_28px_70px_rgba(0,0,0,.18)]">
+          <div className="flex flex-col border-b border-[#E4E6EB] md:flex-row md:items-center md:justify-between">
+            <div className="flex">
+              <button className="border-b-2 border-[#1877F2] px-6 py-4 text-sm font-black text-[#1877F2]">
+                Long distance
+              </button>
+              <button className="px-6 py-4 text-sm font-bold text-[#65676B]">
+                Local ride
+                <span className="ml-2 text-[9px] font-black uppercase tracking-wide text-[#8A8D91]">Coming soon</span>
+              </button>
+            </div>
+            <div className="px-6 pb-4 text-xs font-semibold text-[#8A8D91] md:pb-0">
+              Search planned trips
+            </div>
           </div>
 
-          <div className="mt-3 grid gap-2 lg:grid-cols-[1.15fr_1.15fr_.85fr_.75fr_auto]">
-            <div className="flex min-h-16 items-center gap-3 rounded-xl border border-[#E4E6EB] px-4">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-[#F0F2F5] text-[#65676B]">
-                <MapPin size={16} />
+          <div className="grid divide-y divide-[#E4E6EB] lg:grid-cols-[1.2fr_1.2fr_.9fr_.8fr_auto] lg:divide-x lg:divide-y-0">
+            <button className="flex min-h-[92px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-[#F0F2F5] text-[#65676B]">
+                <MapPin size={17} />
               </span>
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wide text-[#8A8D91]">From</div>
-                <div className="mt-1 text-sm font-black text-[#050505]">Pickup area</div>
-              </div>
-            </div>
-
-            <div className="flex min-h-16 items-center gap-3 rounded-xl border border-[#E4E6EB] px-4">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-[#E7F3FF] text-[#1877F2]">
-                <MapPin size={16} />
+              <span>
+                <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">From</span>
+                <span className="mt-1 block text-sm font-black">Choose pickup area</span>
               </span>
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wide text-[#8A8D91]">To</div>
-                <div className="mt-1 text-sm font-black text-[#050505]">Destination</div>
-              </div>
-            </div>
+            </button>
 
-            <div className="flex min-h-16 items-center gap-3 rounded-xl border border-[#E4E6EB] px-4">
-              <CalendarDays size={17} className="text-[#1877F2]" />
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wide text-[#8A8D91]">Date</div>
-                <div className="mt-1 text-sm font-black text-[#050505]">Choose date</div>
-              </div>
-            </div>
+            <button className="flex min-h-[92px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-[#E7F3FF] text-[#1877F2]">
+                <MapPin size={17} />
+              </span>
+              <span>
+                <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">To</span>
+                <span className="mt-1 block text-sm font-black">Choose destination</span>
+              </span>
+            </button>
 
-            <div className="flex min-h-16 items-center gap-3 rounded-xl border border-[#E4E6EB] px-4">
-              <Users size={17} className="text-[#1877F2]" />
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wide text-[#8A8D91]">Seats</div>
-                <div className="mt-1 text-sm font-black text-[#050505]">1 passenger</div>
-              </div>
-            </div>
+            <button className="flex min-h-[92px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+              <CalendarDays size={18} className="text-[#1877F2]" />
+              <span>
+                <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">Date</span>
+                <span className="mt-1 block text-sm font-black">Travel date</span>
+              </span>
+            </button>
 
-            <button className="flex min-h-16 items-center justify-center gap-2 rounded-xl bg-[#1877F2] px-6 text-sm font-black text-white transition hover:bg-[#166FE5]">
+            <button className="flex min-h-[92px] items-center gap-4 px-5 text-left transition hover:bg-[#F7F8FA]">
+              <Users size={18} className="text-[#1877F2]" />
+              <span>
+                <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">Seats</span>
+                <span className="mt-1 block text-sm font-black">1 passenger</span>
+              </span>
+            </button>
+
+            <button className="m-3 flex min-h-[68px] items-center justify-center gap-2 rounded-[10px] bg-[#1877F2] px-7 text-sm font-black text-white transition hover:bg-[#166FE5]">
               Find ride <ArrowRight size={16} />
             </button>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 px-1 text-xs font-semibold text-[#65676B]">
-            <span className="flex items-center gap-2"><Clock3 size={14} className="text-[#1877F2]" /> Planned departures</span>
-            <span className="flex items-center gap-2"><BadgeCheck size={14} className="text-[#1877F2]" /> Driver verification</span>
-            <span className="flex items-center gap-2"><Luggage size={14} className="text-[#1877F2]" /> Luggage capacity shown</span>
           </div>
         </div>
       </div>
