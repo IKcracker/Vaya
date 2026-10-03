@@ -96,7 +96,7 @@ export async function getAdminDashboard() {
 
   return {
     configured: true,
-    drivers: driverRows.map((driver) => ({
+    drivers: driverRows.filter((driver) => driver.status !== "Removed").map((driver) => ({
       id: driver.id,
       initials: driver.initials,
       name: driver.name,
@@ -177,6 +177,132 @@ export async function updateDriverStatus(id: string, status: string) {
     title: `Driver ${status.toLowerCase()}`,
     detail: driver.name,
     metadata: { driverId: driver.id, status },
+  });
+
+  return driver;
+}
+
+
+export async function getDriverDetails(id: string) {
+  const db = getDb();
+
+  const [driver] = await db
+    .select()
+    .from(drivers)
+    .where(eq(drivers.id, id))
+    .limit(1);
+
+  if (!driver) return null;
+
+  const [driverTrips, activity] = await Promise.all([
+    db
+      .select()
+      .from(trips)
+      .where(eq(trips.driverName, driver.name))
+      .orderBy(desc(trips.departureAt))
+      .limit(20),
+    db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(100),
+  ]);
+
+  return {
+    driver: {
+      id: driver.id,
+      initials: driver.initials,
+      name: driver.name,
+      email: driver.email ?? "",
+      phone: driver.phone ?? "",
+      location: driver.location,
+      vehicleMake: driver.vehicleMake,
+      vehicleModel: driver.vehicleModel,
+      vehicleYear: driver.vehicleYear,
+      vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}`,
+      checks: driver.checks,
+      status: driver.status,
+      submittedAt: driver.submittedAt.toISOString(),
+      updatedAt: driver.updatedAt.toISOString(),
+    },
+    trips: driverTrips.map((trip) => ({
+      id: trip.publicId,
+      route: `${trip.fromCity} → ${trip.toCity}`,
+      departure: `${zaDate.format(trip.departureAt)} · ${zaTime.format(trip.departureAt)}`,
+      occupancy: `${trip.seatsBooked} / ${trip.seatCapacity}`,
+      fare: money(trip.fareCents),
+      status: trip.status,
+    })),
+    activity: activity
+      .filter((item) => item.metadata?.driverId === driver.id)
+      .slice(0, 20)
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        detail: item.detail,
+        time: relativeTime(item.createdAt),
+      })),
+  };
+}
+
+export async function updateDriver(
+  id: string,
+  input: {
+    name?: string;
+    email?: string | null;
+    phone?: string | null;
+    location?: string;
+    vehicleMake?: string;
+    vehicleModel?: string;
+    vehicleYear?: number;
+    checks?: string;
+    status?: string;
+  }
+) {
+  const db = getDb();
+
+  const [existing] = await db.select().from(drivers).where(eq(drivers.id, id)).limit(1);
+  if (!existing) return null;
+
+  const updateValues = {
+    ...input,
+    updatedAt: new Date(),
+  };
+
+  const [driver] = await db
+    .update(drivers)
+    .set(updateValues)
+    .where(eq(drivers.id, id))
+    .returning();
+
+  if (!driver) return null;
+
+  const changedFields = Object.keys(input).filter(
+    (key) => input[key as keyof typeof input] !== undefined
+  );
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_updated",
+    title: "Driver profile updated",
+    detail: `${driver.name} · ${changedFields.join(", ")}`,
+    metadata: { driverId: driver.id, changedFields },
+  });
+
+  return driver;
+}
+
+export async function removeDriver(id: string) {
+  const db = getDb();
+
+  const [driver] = await db
+    .update(drivers)
+    .set({ status: "Removed", updatedAt: new Date() })
+    .where(eq(drivers.id, id))
+    .returning();
+
+  if (!driver) return null;
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_removed",
+    title: "Driver removed from active CRM",
+    detail: driver.name,
+    metadata: { driverId: driver.id, previousStatus: driver.status },
   });
 
   return driver;
