@@ -530,7 +530,11 @@ export function AdminCrm() {
   }, []);
 
   useEffect(() => {
-    void refreshDashboard();
+    const task = window.setTimeout(() => {
+      void refreshDashboard();
+    }, 0);
+
+    return () => window.clearTimeout(task);
   }, [refreshDashboard]);
 
   const addActivity = (title: string, detail: string) => {
