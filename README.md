@@ -49,10 +49,11 @@ Copy `web/.env.example` to `web/.env.local` and set:
 
 ```bash
 DATABASE_URL="postgresql://user:password@your-neon-pooler-host/neondb?sslmode=require"
+DATABASE_URL_UNPOOLED="postgresql://user:password@your-neon-direct-host/neondb?sslmode=require"
 NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 ```
 
-Use the pooled Neon connection string for the application.
+Use the pooled Neon connection string for application traffic. Use the direct/unpooled connection string for Drizzle migrations; the migration hostname must not contain `-pooler`.
 
 ### Database commands
 
@@ -85,5 +86,5 @@ When `DATABASE_URL` is absent, the Admin CRM explicitly falls back to preview mo
 
 ### Deployment
 
-Set `DATABASE_URL` in the deployment environment before enabling production CRM use. Apply migrations and seed only the environments that need seed data. Database credentials must never use a `NEXT_PUBLIC_` prefix.
+Set `DATABASE_URL` in the deployment environment before enabling production CRM use. Keep `DATABASE_URL_UNPOOLED` available only where migrations run; the runtime application does not need the direct connection. Apply migrations and seed only the environments that need seed data. Database credentials must never use a `NEXT_PUBLIC_` prefix.
 
