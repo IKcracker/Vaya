@@ -24,7 +24,7 @@
 }
 
 * { box-sizing: border-box; border-color: var(--border); }
-html { scroll-behavior: smooth; font-family: var(--font-manrope), Arial, Helvetica, sans-serif; background: var(--background); }
+html { scroll-behavior: smooth; font-family: var(--font-jakarta), Arial, Helvetica, sans-serif; background: var(--background); }
 body { margin: 0; background: var(--background); color: var(--foreground); }
 button, input { font: inherit; }
 button { cursor: pointer; }
