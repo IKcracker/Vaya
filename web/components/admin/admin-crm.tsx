@@ -1080,7 +1080,34 @@ function Overview({
 }
 
 function DriversView({ rows, onReview }: { rows: typeof drivers; onReview: (driver: (typeof drivers)[number]) => void }) {
+  const [statusFilter, setStatusFilter] = useState("All");
+  const visibleRows =
+    statusFilter === "All" ? rows : rows.filter((driver) => driver.status === statusFilter);
   const nextReview = rows.find((driver) => !["Approved", "Rejected"].includes(driver.status));
+
+  const exportDrivers = () => {
+    const escapeCsv = (value: string) => `"${value.replaceAll('"', '""')}"`;
+    const csv = [
+      ["Name", "Location", "Vehicle", "Checks", "Submitted", "Status"],
+      ...visibleRows.map((driver) => [
+        driver.name,
+        driver.location,
+        driver.vehicle,
+        driver.checks,
+        driver.submitted,
+        driver.status,
+      ]),
+    ]
+      .map((row) => row.map((cell) => escapeCsv(String(cell))).join(","))
+      .join("\n");
+
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "vaya-drivers.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <>
@@ -1090,20 +1117,31 @@ function DriversView({ rows, onReview }: { rows: typeof drivers; onReview: (driv
         description="Manage driver profiles, verification, vehicle information, status and operational history."
         action={
           <div className="flex gap-2">
-            <Button variant="outline" className="h-9"><Download /> Export</Button>
+            <Button variant="outline" className="h-9" onClick={exportDrivers}><Download /> Export</Button>
             <Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]" disabled={!nextReview} onClick={() => nextReview && onReview(nextReview)}><UserCheck /> Review next</Button>
           </div>
         }
       />
       <Card className="overflow-hidden shadow-none">
-        <CardHeader className="flex-row items-center justify-between border-b border-[#EAECF0]">
+        <CardHeader className="gap-4 border-b border-[#EAECF0] sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle>Verification queue</CardTitle>
-            <CardDescription>{rows.length} driver applications shown</CardDescription>
+            <CardTitle>Driver directory</CardTitle>
+            <CardDescription>{visibleRows.length} of {rows.length} active driver records shown</CardDescription>
           </div>
-          <Button variant="outline" size="sm"><SlidersHorizontal /> Filters</Button>
+          <div className="flex flex-wrap gap-2">
+            {["All", "Review", "Ready", "Needs info", "Approved", "Rejected", "Suspended"].map((status) => (
+              <Button
+                key={status}
+                type="button"
+                variant={statusFilter === status ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter(status)}>
+                {status}
+              </Button>
+            ))}
+          </div>
         </CardHeader>
-        {rows.length ? (
+        {visibleRows.length ? (
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -1116,7 +1154,7 @@ function DriversView({ rows, onReview }: { rows: typeof drivers; onReview: (driv
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((driver) => (
+              {visibleRows.map((driver) => (
                 <TableRow key={driver.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -1488,6 +1526,11 @@ function DriverReviewDialog({
         ) : null}
 
         <DialogFooter>
+          {driver ? (
+            <Button type="button" variant="outline" render={<Link href={`/admin/drivers/${driver.id}`} />}>
+              Open full profile
+            </Button>
+          ) : null}
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button type="button" variant="destructive" onClick={() => onUpdateStatus("Rejected")}>Reject</Button>
           <Button type="button" variant="outline" onClick={() => onUpdateStatus("Needs info")}>Request info</Button>
