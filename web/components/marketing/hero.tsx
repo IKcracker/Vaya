@@ -82,11 +82,11 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="relative mx-auto w-full max-w-[620px] lg:mr-0">
+        <div className="relative mx-auto w-full max-w-[620px] lg:mr-0" aria-label="Illustrative Vaya app preview">
           <div className="absolute -left-8 top-14 hidden h-52 w-52 rounded-full bg-[#E7F3FF] blur-3xl sm:block" />
           <div className="absolute -right-10 bottom-10 hidden h-56 w-56 rounded-full bg-[#F0F2F5] blur-3xl sm:block" />
 
-          <div className="relative ml-auto w-full max-w-[530px] rounded-[26px] border border-[#DDE3EA] bg-[#F7F9FC] p-3 shadow-[0_32px_80px_rgba(16,24,40,.14)] sm:p-4">
+          <div className="relative ml-auto w-full max-w-[530px] rounded-[26px] border border-[#DDE3EA] bg-[#F7F9FC] p-3 shadow-[0_32px_80px_rgba(16,24,40,.14)] sm:p-4">\n            <div className="mb-2 px-1 text-right text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative app preview</div>
             <div className="overflow-hidden rounded-[19px] border border-[#E4E7EC] bg-white">
               <div className="flex items-center justify-between border-b border-[#EAECF0] px-5 py-4">
                 <div className="inline-flex items-baseline">
