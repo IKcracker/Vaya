@@ -44,7 +44,7 @@ jobs:
 
       - name: Commit generated backend artifacts
         run: |
-          if git diff --quiet -- package-lock.json web/package-lock.json web/drizzle; then
+          if [ -z "$(git status --porcelain -- package-lock.json web/package-lock.json web/drizzle)" ]; then
             echo "Backend artifacts already current."
             exit 0
           fi
