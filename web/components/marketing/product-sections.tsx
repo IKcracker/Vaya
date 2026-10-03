@@ -42,7 +42,7 @@ export function ProductSections() {
   return (
     <>
       <section id="how-it-works" className="bg-white py-24 sm:py-28">
-        <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
+        <div data-reveal="soft" className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
           <div className="grid gap-12 lg:grid-cols-[.86fr_1.14fr] lg:items-end">
             <div>
               <div className="flex items-center gap-3 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#1877F2]">
@@ -66,7 +66,7 @@ export function ProductSections() {
               ["03", "Reserve a seat", "Choose the trip that works for you and keep the booking information in one place."],
               ["04", "Travel with clarity", "Follow the trip details and stay connected to the journey from pickup to arrival."],
             ].map(([step, title, copy]) => (
-              <div key={step} className="bg-white p-7">
+              <div key={step} className="interactive-card bg-white p-7">
                 <div className="text-[11px] font-black tracking-[.14em] text-[#1877F2]">{step}</div>
                 <h3 className="mt-8 text-lg font-extrabold tracking-[-.025em] text-[#101828]">{title}</h3>
                 <p className="mt-3 text-sm leading-6 text-[#667085]">{copy}</p>
@@ -77,7 +77,7 @@ export function ProductSections() {
       </section>
 
       <section id="riders" className="bg-[#F7F9FC] py-24 sm:py-28">
-        <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
+        <div data-reveal="soft" className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
           <div className="grid gap-14 lg:grid-cols-[.88fr_1.12fr] lg:items-center">
             <div className="max-w-xl">
               <div className="flex items-center gap-3 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#1877F2]">
@@ -100,7 +100,7 @@ export function ProductSections() {
                 ].map(([Icon, title, copy]) => {
                   const FeatureIcon = Icon as typeof BadgeCheck;
                   return (
-                    <div key={String(title)} className="rounded-[12px] border border-[#E4E7EC] bg-white p-5">
+                    <div key={String(title)} className="interactive-card rounded-[12px] border border-[#E4E7EC] bg-white p-5">
                       <FeatureIcon size={18} className="text-[#1877F2]" />
                       <h3 className="mt-4 text-sm font-extrabold text-[#101828]">{String(title)}</h3>
                       <p className="mt-2 text-xs leading-5 text-[#667085]">{String(copy)}</p>
@@ -110,12 +110,12 @@ export function ProductSections() {
               </div>
 
               <a href="#download" className="mt-8 inline-flex items-center gap-2 text-[13px] font-extrabold text-[#1877F2]">
-                Get the passenger app <ArrowRight size={15} />
+                Get the passenger app <ArrowRight size={15} className="arrow-shift" />
               </a>
             </div>
 
             <div className="relative">
-              <div className="rounded-[22px] border border-[#DDE3EA] bg-white p-4 shadow-[0_24px_70px_rgba(16,24,40,.11)] sm:p-6">\n                <div className="mb-3 text-right text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative trip results</div>
+              <div data-reveal="scale" className="interactive-card rounded-[22px] border border-[#DDE3EA] bg-white p-4 shadow-[0_24px_70px_rgba(16,24,40,.11)] sm:p-6">\n                <div className="mb-3 text-right text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative trip results</div>
                 <div className="flex items-center justify-between border-b border-[#EAECF0] pb-5">
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-[.1em] text-[#98A2B3]">Trip results</div>
@@ -175,7 +175,7 @@ export function ProductSections() {
       </section>
 
       <section className="bg-white py-20">
-        <div className="mx-auto grid max-w-[1280px] gap-12 px-5 sm:px-8 lg:grid-cols-[.72fr_1.28fr] lg:px-10">
+        <div data-reveal="soft" className="mx-auto grid max-w-[1280px] gap-12 px-5 sm:px-8 lg:grid-cols-[.72fr_1.28fr] lg:px-10">
           <div>
             <div className="flex items-center gap-3 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#1877F2]">
               <span className="h-px w-8 bg-[#1877F2]" />
@@ -206,7 +206,7 @@ export function ProductSections() {
       </section>
 
       <section id="routes" className="bg-[#F7F9FC] py-24">
-        <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
+        <div data-reveal="soft" className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
           <div className="grid gap-12 lg:grid-cols-[.72fr_1.28fr] lg:items-start">
             <div>
               <div className="flex items-center gap-3 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#1877F2]">
@@ -234,7 +234,7 @@ export function ProductSections() {
                 {routes.map((route, index) => (
                   <div
                     key={route.from + route.to}
-                    className="grid gap-4 border-b border-[#E4E7EC] px-5 py-5 last:border-b-0 sm:grid-cols-[38px_1fr_auto] sm:items-center">
+                    className="route-row grid gap-4 border-b border-[#E4E7EC] px-5 py-5 last:border-b-0 sm:grid-cols-[38px_1fr_auto] sm:items-center">
                     <div className="text-[10px] font-black text-[#98A2B3]">{String(index + 1).padStart(2, "0")}</div>
                     <div>
                       <div className="flex flex-wrap items-center gap-2 text-sm font-extrabold text-[#101828]">
@@ -254,7 +254,7 @@ export function ProductSections() {
       </section>
 
       <section id="drivers" className="bg-white py-24 sm:py-28">
-        <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
+        <div data-reveal="soft" className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
           <div className="grid gap-14 lg:grid-cols-[.88fr_1.12fr] lg:items-center">
             <div className="max-w-xl">
               <div className="flex items-center gap-3 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#1877F2]">
@@ -286,12 +286,12 @@ export function ProductSections() {
 
               <a
                 href="#download"
-                className="mt-9 inline-flex items-center gap-2 rounded-[7px] bg-[#1877F2] px-4 py-2.5 text-[13px] font-bold text-white transition hover:bg-[#166FE5]">
-                Become a Vaya driver <ArrowRight size={15} />
+                className="group button-lift mt-9 inline-flex items-center gap-2 rounded-[7px] bg-[#1877F2] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,.14)] hover:bg-[#166FE5] hover:shadow-[0_12px_28px_rgba(24,119,242,.2)]">
+                Become a Vaya driver <ArrowRight size={15} className="arrow-shift" />
               </a>
             </div>
 
-            <div className="rounded-[22px] border border-[#DDE3EA] bg-[#F7F9FC] p-4 shadow-[0_24px_70px_rgba(16,24,40,.1)] sm:p-6">\n              <div className="mb-3 text-right text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative driver preview</div>
+            <div data-reveal="scale" className="interactive-card rounded-[22px] border border-[#DDE3EA] bg-[#F7F9FC] p-4 shadow-[0_24px_70px_rgba(16,24,40,.1)] sm:p-6">\n              <div className="mb-3 text-right text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative driver preview</div>
               <div className="rounded-[16px] border border-[#E4E7EC] bg-white p-5">
                 <div className="flex items-center justify-between">
                   <div>
@@ -314,7 +314,7 @@ export function ProductSections() {
                   ].map(([Icon, label, value]) => {
                     const FieldIcon = Icon as typeof MapPin;
                     return (
-                      <div key={String(label)} className="rounded-[10px] border border-[#E4E7EC] p-3">
+                      <div key={String(label)} className="interactive-card rounded-[10px] border border-[#E4E7EC] p-3">
                         <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[.08em] text-[#98A2B3]">
                           <FieldIcon size={12} className="text-[#1877F2]" />
                           {String(label)}
@@ -349,7 +349,7 @@ export function ProductSections() {
       </section>
 
       <section id="safety" className="bg-[#EEF6FF] py-24">
-        <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
+        <div data-reveal="soft" className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
           <div className="grid gap-14 lg:grid-cols-[.78fr_1.22fr] lg:items-start">
             <div>
               <div className="flex items-center gap-3 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#1877F2]">
@@ -373,7 +373,7 @@ export function ProductSections() {
               ].map(([Icon, title, copy]) => {
                 const FeatureIcon = Icon as typeof BadgeCheck;
                 return (
-                  <div key={String(title)} className="rounded-[14px] border border-[#CFE2FA] bg-white p-6">
+                  <div key={String(title)} className="interactive-card rounded-[14px] border border-[#CFE2FA] bg-white p-6">
                     <div className="grid h-9 w-9 place-items-center rounded-[9px] bg-[#E7F3FF] text-[#1877F2]">
                       <FeatureIcon size={17} />
                     </div>
@@ -388,9 +388,9 @@ export function ProductSections() {
       </section>
 
       <section id="download" className="bg-white py-24 sm:py-28">
-        <div className="mx-auto grid max-w-[1280px] gap-14 px-5 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:items-center lg:px-10">
-          <div className="relative mx-auto min-h-[510px] w-full max-w-[600px]" aria-label="Illustrative Vaya mobile app previews">\n            <div className="absolute left-1/2 top-0 z-20 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative app previews</div>
-            <div className="absolute left-[4%] top-[4%] w-[56%] rotate-[-4deg] rounded-[28px] border border-[#DDE3EA] bg-[#F7F9FC] p-2.5 shadow-[0_28px_70px_rgba(16,24,40,.14)]">
+        <div data-reveal="soft" className="mx-auto grid max-w-[1280px] gap-14 px-5 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:items-center lg:px-10">
+          <div data-reveal="scale" className="relative mx-auto min-h-[510px] w-full max-w-[600px]" aria-label="Illustrative Vaya mobile app previews">\n            <div className="absolute left-1/2 top-0 z-20 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative app previews</div>
+            <div className="interactive-card absolute left-[4%] top-[4%] w-[56%] rotate-[-4deg] rounded-[28px] border border-[#DDE3EA] bg-[#F7F9FC] p-2.5 shadow-[0_28px_70px_rgba(16,24,40,.14)]">
               <div className="overflow-hidden rounded-[21px] border border-[#E4E7EC] bg-white">
                 <div className="px-4 pt-5 text-[18px] font-extrabold tracking-[-1px] text-[#101828]">
                   vaya<span className="text-[#1877F2]">.</span>
@@ -407,7 +407,7 @@ export function ProductSections() {
               </div>
             </div>
 
-            <div className="absolute bottom-[2%] right-[3%] w-[56%] rotate-[4deg] rounded-[28px] border border-[#DDE3EA] bg-[#F7F9FC] p-2.5 shadow-[0_28px_70px_rgba(16,24,40,.14)]">
+            <div className="interactive-card absolute bottom-[2%] right-[3%] w-[56%] rotate-[4deg] rounded-[28px] border border-[#DDE3EA] bg-[#F7F9FC] p-2.5 shadow-[0_28px_70px_rgba(16,24,40,.14)]">
               <div className="overflow-hidden rounded-[21px] border border-[#E4E7EC] bg-white">
                 <div className="px-4 pt-5 text-[18px] font-extrabold tracking-[-1px] text-[#101828]">
                   vaya<span className="text-[#1877F2]">.</span>
@@ -475,14 +475,14 @@ export function ProductSections() {
             <div className="text-[10px] font-black uppercase tracking-[.14em] text-white/70">Ready when you are</div>
             <h2 className="mt-2 text-3xl font-extrabold tracking-[-.035em] text-white">Plan the trip before travel day.</h2>
           </div>
-          <a href="#download" className="inline-flex items-center justify-center gap-2 rounded-[7px] bg-white px-4 py-2.5 text-[13px] font-bold text-[#1877F2]">
-            Get Vaya <ArrowRight size={15} />
+          <a href="#download" className="group button-lift inline-flex items-center justify-center gap-2 rounded-[7px] bg-white px-4 py-2.5 text-[13px] font-bold text-[#1877F2] shadow-[0_8px_20px_rgba(0,0,0,.08)] hover:shadow-[0_12px_28px_rgba(0,0,0,.12)]">
+            Get Vaya <ArrowRight size={15} className="arrow-shift" />
           </a>
         </div>
       </section>
 
       <footer className="border-t border-[#EAECF0] bg-white text-[#101828]">
-        <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
+        <div data-reveal="soft" className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
           <div className="grid gap-10 py-12 md:grid-cols-[1.4fr_.8fr_.8fr]">
             <div>
               <Link href="/" className="inline-flex items-baseline">
