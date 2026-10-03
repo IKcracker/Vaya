@@ -38,10 +38,10 @@ const drivers = [
 ];
 
 const routes = [
-  ["Polokwane → Pretoria", "38", "76% occupied"],
-  ["Thohoyandou → Johannesburg", "27", "69% occupied"],
-  ["Giyani → Pretoria", "21", "82% occupied"],
-  ["Pretoria → Polokwane", "18", "64% occupied"],
+  ["Polokwane → Pretoria", "38", "76"],
+  ["Thohoyandou → Johannesburg", "27", "69"],
+  ["Giyani → Pretoria", "21", "82"],
+  ["Pretoria → Polokwane", "18", "64"],
 ];
 
 export default function AdminDashboard() {
@@ -193,9 +193,9 @@ export default function AdminDashboard() {
                       <span className="rounded-lg bg-[#E7F3FF] px-2 py-1 text-xs font-black text-[#1877F2]">{count}</span>
                     </div>
                     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E4E6EB]">
-                      <div className="h-full rounded-full bg-[#1877F2]" style={{ width: occupancy }} />
+                      <div className="h-full rounded-full bg-[#1877F2]" style={{ width: `${occupancy}%` }} />
                     </div>
-                    <div className="mt-1.5 text-[11px] text-[#65676B]">{occupancy}</div>
+                    <div className="mt-1.5 text-[11px] text-[#65676B]">{occupancy}% occupied</div>
                   </div>
                 ))}
               </div>
