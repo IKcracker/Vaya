@@ -115,7 +115,7 @@ export function ProductSections() {
             </div>
 
             <div className="relative">
-              <div className="rounded-[22px] border border-[#DDE3EA] bg-white p-4 shadow-[0_24px_70px_rgba(16,24,40,.11)] sm:p-6">
+              <div className="rounded-[22px] border border-[#DDE3EA] bg-white p-4 shadow-[0_24px_70px_rgba(16,24,40,.11)] sm:p-6">\n                <div className="mb-3 text-right text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative trip results</div>
                 <div className="flex items-center justify-between border-b border-[#EAECF0] pb-5">
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-[.1em] text-[#98A2B3]">Trip results</div>
@@ -244,7 +244,7 @@ export function ProductSections() {
                       </div>
                       <div className="mt-1 text-[10px] font-medium text-[#98A2B3]">{route.type}</div>
                     </div>
-                    <div className="text-[11px] font-bold text-[#1877F2]">{route.fare}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-[.08em] text-[#98A2B3]">Example route</div>
                   </div>
                 ))}
               </div>
@@ -291,7 +291,7 @@ export function ProductSections() {
               </a>
             </div>
 
-            <div className="rounded-[22px] border border-[#DDE3EA] bg-[#F7F9FC] p-4 shadow-[0_24px_70px_rgba(16,24,40,.1)] sm:p-6">
+            <div className="rounded-[22px] border border-[#DDE3EA] bg-[#F7F9FC] p-4 shadow-[0_24px_70px_rgba(16,24,40,.1)] sm:p-6">\n              <div className="mb-3 text-right text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative driver preview</div>
               <div className="rounded-[16px] border border-[#E4E7EC] bg-white p-5">
                 <div className="flex items-center justify-between">
                   <div>
@@ -389,7 +389,7 @@ export function ProductSections() {
 
       <section id="download" className="bg-white py-24 sm:py-28">
         <div className="mx-auto grid max-w-[1280px] gap-14 px-5 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:items-center lg:px-10">
-          <div className="relative mx-auto min-h-[510px] w-full max-w-[600px]">
+          <div className="relative mx-auto min-h-[510px] w-full max-w-[600px]" aria-label="Illustrative Vaya mobile app previews">\n            <div className="absolute left-1/2 top-0 z-20 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[.09em] text-[#98A2B3]">Illustrative app previews</div>
             <div className="absolute left-[4%] top-[4%] w-[56%] rotate-[-4deg] rounded-[28px] border border-[#DDE3EA] bg-[#F7F9FC] p-2.5 shadow-[0_28px_70px_rgba(16,24,40,.14)]">
               <div className="overflow-hidden rounded-[21px] border border-[#E4E7EC] bg-white">
                 <div className="px-4 pt-5 text-[18px] font-extrabold tracking-[-1px] text-[#101828]">
