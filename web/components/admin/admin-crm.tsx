@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -116,6 +116,7 @@ const stats = [
 
 const drivers = [
   {
+    id: "preview-driver-1",
     initials: "TM",
     name: "Thabo Mokoena",
     location: "Polokwane, Limpopo",
@@ -125,6 +126,7 @@ const drivers = [
     status: "Review",
   },
   {
+    id: "preview-driver-2",
     initials: "LN",
     name: "Lerato Ndlovu",
     location: "Midrand, Gauteng",
@@ -134,6 +136,7 @@ const drivers = [
     status: "Needs info",
   },
   {
+    id: "preview-driver-3",
     initials: "RM",
     name: "Rendani Mulaudzi",
     location: "Thohoyandou, Limpopo",
@@ -143,6 +146,7 @@ const drivers = [
     status: "Ready",
   },
   {
+    id: "preview-driver-4",
     initials: "SK",
     name: "Sibusiso Khumalo",
     location: "Durban, KwaZulu-Natal",
@@ -237,6 +241,7 @@ const bookings = [
 
 const passengers = [
   {
+    id: "preview-passenger-1",
     name: "Thato Maseko",
     contact: "thato.maseko@example.com",
     city: "Johannesburg",
@@ -245,6 +250,7 @@ const passengers = [
     status: "Active",
   },
   {
+    id: "preview-passenger-2",
     name: "Nokuthula Dube",
     contact: "nokuthula@example.com",
     city: "Cape Town",
@@ -253,6 +259,7 @@ const passengers = [
     status: "Active",
   },
   {
+    id: "preview-passenger-3",
     name: "Kagiso Seabi",
     contact: "kagiso@example.com",
     city: "Polokwane",
@@ -261,6 +268,7 @@ const passengers = [
     status: "Active",
   },
   {
+    id: "preview-passenger-4",
     name: "Mpho Baloyi",
     contact: "mpho@example.com",
     city: "Mbombela",
@@ -309,9 +317,16 @@ const payments = [
   },
 ];
 
+const initialActivity = [
+  { id: "A-1", title: "Driver application submitted", detail: "Sibusiso Khumalo · Durban", time: "2 hrs ago" },
+  { id: "A-2", title: "Payment settled", detail: "PAY-88432 · R640.00", time: "3 hrs ago" },
+  { id: "A-3", title: "Safety case opened", detail: "SAFE-031 · High priority", time: "4 hrs ago" },
+];
+
 const safetyCases = [
   {
     id: "SAFE-031",
+    databaseId: "preview-safety-1",
     subject: "Passenger reported unsafe driving",
     trip: "VY-1041 · Pretoria → Polokwane",
     priority: "High",
@@ -321,6 +336,7 @@ const safetyCases = [
   },
   {
     id: "SAFE-030",
+    databaseId: "preview-safety-2",
     subject: "Dispute about pickup location",
     trip: "VY-1039 · Johannesburg → Durban",
     priority: "Medium",
@@ -390,7 +406,11 @@ export function AdminCrm() {
   const [driverRecords, setDriverRecords] = useState(drivers);
   const [tripRecords, setTripRecords] = useState(trips);
   const [passengerRecords, setPassengerRecords] = useState(passengers);
+  const [bookingRecords, setBookingRecords] = useState(bookings);
+  const [paymentRecords, setPaymentRecords] = useState(payments);
   const [safetyRecords, setSafetyRecords] = useState(safetyCases);
+  const [backendMode, setBackendMode] = useState<"loading" | "live" | "preview">("loading");
+  const [backendError, setBackendError] = useState<string | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<(typeof drivers)[number] | null>(null);
   const [driverDialogOpen, setDriverDialogOpen] = useState(false);
   const [createTripOpen, setCreateTripOpen] = useState(false);
@@ -401,11 +421,7 @@ export function AdminCrm() {
     subtitle?: string;
     fields: Array<[string, string]>;
   } | null>(null);
-  const [activityLog, setActivityLog] = useState([
-    { id: "A-1", title: "Driver application submitted", detail: "Sibusiso Khumalo · Durban", time: "2 hrs ago" },
-    { id: "A-2", title: "Payment settled", detail: "PAY-88432 · R640.00", time: "3 hrs ago" },
-    { id: "A-3", title: "Safety case opened", detail: "SAFE-031 · High priority", time: "4 hrs ago" },
-  ]);
+  const [activityLog, setActivityLog] = useState(initialActivity);
 
   const current = modules.find((item) => item.key === active) ?? modules[0];
 
@@ -435,13 +451,13 @@ export function AdminCrm() {
 
   const filteredBookings = useMemo(
     () =>
-      bookings.filter((booking) =>
+      bookingRecords.filter((booking) =>
         [booking.id, booking.passenger, booking.trip, booking.status]
           .join(" ")
           .toLowerCase()
           .includes(normalizedQuery)
       ),
-    [normalizedQuery]
+    [normalizedQuery, bookingRecords]
   );
 
   const filteredPassengers = useMemo(
@@ -457,13 +473,13 @@ export function AdminCrm() {
 
   const filteredPayments = useMemo(
     () =>
-      payments.filter((payment) =>
+      paymentRecords.filter((payment) =>
         [payment.ref, payment.booking, payment.customer, payment.status]
           .join(" ")
           .toLowerCase()
           .includes(normalizedQuery)
       ),
-    [normalizedQuery]
+    [normalizedQuery, paymentRecords]
   );
 
   const filteredSafety = useMemo(
@@ -483,6 +499,39 @@ export function AdminCrm() {
     setQuery("");
   };
 
+
+  const refreshDashboard = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/dashboard", { cache: "no-store" });
+      const payload = await response.json();
+
+      if (!response.ok || payload?.configured === false) {
+        setBackendMode("preview");
+        setBackendError(
+          payload?.error ??
+            "Neon is not configured for this deployment. Using preview data."
+        );
+        return;
+      }
+
+      setDriverRecords(payload.drivers);
+      setTripRecords(payload.trips);
+      setBookingRecords(payload.bookings);
+      setPassengerRecords(payload.passengers);
+      setPaymentRecords(payload.payments);
+      setSafetyRecords(payload.safetyCases);
+      setActivityLog(payload.activity);
+      setBackendMode("live");
+      setBackendError(null);
+    } catch {
+      setBackendMode("preview");
+      setBackendError("Unable to reach the backend. Using preview data.");
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshDashboard();
+  }, [refreshDashboard]);
 
   const addActivity = (title: string, detail: string) => {
     setActivityLog((items) => [
