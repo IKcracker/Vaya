@@ -1,143 +1,140 @@
 import {
   ArrowRight,
   BadgeCheck,
-  Car,
-  ChevronRight,
-  Clock3,
+  CalendarDays,
+  CarFront,
   Luggage,
   MapPin,
-  Route,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 
-const routes = [
-  ["Pretoria", "Polokwane"],
-  ["Johannesburg", "Thohoyandou"],
-  ["Pretoria", "Giyani"],
-  ["Polokwane", "Midrand"],
-];
-
 export function Hero() {
   return (
-    <section className="relative bg-[#0B1730] pt-[72px] text-white">
-      <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_20%,#1877F2_0,transparent_28%),radial-gradient(circle_at_82%_40%,#1877F2_0,transparent_22%)]" />
-      <div className="absolute inset-0 opacity-[.11] [background-image:linear-gradient(rgba(255,255,255,.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.22)_1px,transparent_1px)] [background-size:56px_56px]" />
+    <section className="relative overflow-hidden bg-white pt-[72px]">
+      <div className="absolute -left-40 top-28 h-[420px] w-[420px] rounded-full bg-[#E7F3FF] blur-3xl" />
+      <div className="absolute -right-44 top-12 h-[500px] w-[500px] rounded-full bg-[#F0F2F5] blur-3xl" />
 
-      <div className="relative mx-auto grid min-h-[760px] max-w-[1440px] items-center gap-14 px-5 py-20 sm:px-8 lg:grid-cols-[.92fr_1.08fr] lg:px-12 lg:py-24">
-        <div className="animate-fade-up max-w-2xl">
-          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3.5 py-2 text-xs font-bold text-white/80">
-            <Route size={14} className="text-[#7DB7FF]" />
-            Built for scheduled long-distance travel
+      <div className="relative mx-auto grid min-h-[760px] max-w-[1440px] items-center gap-14 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_.95fr] lg:px-12 lg:py-24">
+        <div className="animate-fade-up max-w-3xl">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#D8E8FF] bg-[#F7FAFF] px-3.5 py-2 text-xs font-black text-[#1877F2]">
+            <CarFront size={14} />
+            Long-distance travel, organised properly
           </div>
 
-          <h1 className="text-[3.2rem] font-black leading-[.98] tracking-[-.06em] sm:text-[4.6rem] xl:text-[5.3rem]">
-            Your seat home,
-            <span className="block text-[#60A5FA]">sorted before you leave.</span>
+          <h1 className="max-w-[760px] text-[3.35rem] font-black leading-[.98] tracking-[-.06em] text-[#050505] sm:text-[4.6rem] xl:text-[5.35rem]">
+            Find your ride.
+            <span className="block text-[#1877F2]">Travel on your terms.</span>
           </h1>
 
-          <p className="mt-7 max-w-xl text-lg leading-8 text-[#B7C3D8]">
-            Find verified drivers already travelling your route, compare their fares and pickup points, then reserve the ride that works for you.
+          <p className="mt-7 max-w-2xl text-lg leading-8 text-[#65676B] sm:text-xl">
+            Vaya helps you find verified drivers already travelling your route. Compare departure times, prices, pickup points and luggage space before you book.
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <a
               href="#download"
-              className="group inline-flex items-center justify-center gap-2 rounded-[14px] bg-[#1877F2] px-6 py-4 font-black text-white shadow-[0_16px_36px_rgba(24,119,242,.3)] transition hover:-translate-y-1 hover:bg-[#2D86F7]">
+              className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#1877F2] px-6 py-4 font-black text-white shadow-[0_12px_28px_rgba(24,119,242,.22)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#166FE5]">
               Download Vaya
               <ArrowRight size={18} className="transition group-hover:translate-x-1" />
             </a>
             <a
-              href="#why-vaya"
-              className="inline-flex items-center justify-center rounded-[14px] border border-white/15 bg-white/6 px-6 py-4 font-black text-white transition hover:bg-white/10">
-              How Vaya works
+              href="#how-it-works"
+              className="inline-flex items-center justify-center rounded-full border border-[#DADDE1] bg-white px-6 py-4 font-black text-[#050505] transition hover:border-[#B8D5FA] hover:bg-[#F7FAFF]">
+              See how it works
             </a>
           </div>
 
-          <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-[#C7D1E2]">
-            <span className="flex items-center gap-2"><BadgeCheck size={17} className="text-[#60A5FA]" /> Driver verification</span>
-            <span className="flex items-center gap-2"><Luggage size={17} className="text-[#60A5FA]" /> Luggage-aware bookings</span>
-            <span className="flex items-center gap-2"><Users size={17} className="text-[#60A5FA]" /> Shared long trips</span>
+          <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-[#65676B]">
+            <span className="flex items-center gap-2">
+              <BadgeCheck size={17} className="text-[#1877F2]" />
+              Verified drivers
+            </span>
+            <span className="flex items-center gap-2">
+              <Luggage size={17} className="text-[#1877F2]" />
+              Luggage-aware rides
+            </span>
+            <span className="flex items-center gap-2">
+              <ShieldCheck size={17} className="text-[#1877F2]" />
+              Safer booking flow
+            </span>
           </div>
         </div>
 
         <div className="animate-fade-up relative" style={{ animationDelay: "120ms" }}>
-          <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#101F3C] p-5 shadow-[0_38px_90px_rgba(0,0,0,.34)] sm:p-7">
-            <div className="flex items-center justify-between border-b border-white/10 pb-5">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[.14em] text-[#7DB7FF]">Route preview</p>
-                <h2 className="mt-2 text-2xl font-black tracking-[-.03em]">Limpopo → Gauteng</h2>
+          <div className="relative rounded-[32px] border border-[#E4E6EB] bg-[#F7F8FA] p-4 shadow-[0_24px_70px_rgba(21,44,84,.10)] sm:p-6">
+            <div className="rounded-[26px] bg-white p-5 sm:p-6">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[.16em] text-[#1877F2]">Plan a trip</p>
+                  <h2 className="mt-2 text-2xl font-black tracking-[-.03em] text-[#050505]">Where are you going?</h2>
+                </div>
+                <span className="rounded-full bg-[#E7F3FF] px-3 py-2 text-xs font-black text-[#1877F2]">
+                  Long distance
+                </span>
               </div>
-              <span className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-bold text-white/70">
-                Long distance
-              </span>
-            </div>
 
-            <div className="relative mt-7 rounded-[24px] border border-white/10 bg-[#0B1730] p-5 sm:p-7">
-              <div className="absolute left-[35px] top-[44px] h-[calc(100%-88px)] w-px bg-gradient-to-b from-[#1877F2] via-[#60A5FA] to-white/20" />
-
-              {[
-                ["Polokwane", "06:00", "Pickup"],
-                ["Mokopane", "07:00", "Stop"],
-                ["Midrand", "09:25", "Drop-off"],
-                ["Pretoria", "10:00", "Destination"],
-              ].map(([place, time, type], index) => (
-                <div key={place} className="relative flex items-center gap-4 py-4">
-                  <span className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border-4 border-[#0B1730] ${
-                    index === 0 ? "bg-[#1877F2]" : index === 3 ? "bg-white" : "bg-[#60A5FA]"
-                  }`}>
-                    {index === 3 ? <MapPin size={13} className="text-[#0B1730]" /> : null}
+              <div className="space-y-3">
+                <div className="flex items-center gap-4 rounded-2xl border border-[#E4E6EB] px-4 py-4">
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-[#F0F2F5] text-[#65676B]">
+                    <MapPin size={18} />
                   </span>
-                  <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
-                    <div>
-                      <div className="font-black">{place}</div>
-                      <div className="mt-1 text-xs text-white/45">{type}</div>
-                    </div>
-                    <div className="text-sm font-bold text-white/65">{time}</div>
+                  <div>
+                    <div className="text-[11px] font-bold text-[#8A8D91]">Leaving from</div>
+                    <div className="mt-1 text-sm font-black text-[#050505]">Polokwane</div>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[18px] border border-white/10 bg-white/6 p-4">
-                <Car size={18} className="text-[#60A5FA]" />
-                <div className="mt-3 text-xs text-white/45">Choose vehicle</div>
-                <div className="mt-1 text-sm font-black">Compare rides</div>
+                <div className="flex items-center gap-4 rounded-2xl border border-[#E4E6EB] px-4 py-4">
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-[#E7F3FF] text-[#1877F2]">
+                    <MapPin size={18} />
+                  </span>
+                  <div>
+                    <div className="text-[11px] font-bold text-[#8A8D91]">Going to</div>
+                    <div className="mt-1 text-sm font-black text-[#050505]">Pretoria</div>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-[18px] border border-white/10 bg-white/6 p-4">
-                <Luggage size={18} className="text-[#60A5FA]" />
-                <div className="mt-3 text-xs text-white/45">Plan luggage</div>
-                <div className="mt-1 text-sm font-black">Know capacity</div>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="flex items-center gap-3 rounded-2xl border border-[#E4E6EB] px-4 py-4">
+                  <CalendarDays size={18} className="text-[#1877F2]" />
+                  <div>
+                    <div className="text-[11px] font-bold text-[#8A8D91]">Travel date</div>
+                    <div className="mt-1 text-sm font-black">Choose date</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-2xl border border-[#E4E6EB] px-4 py-4">
+                  <Users size={18} className="text-[#1877F2]" />
+                  <div>
+                    <div className="text-[11px] font-bold text-[#8A8D91]">Passengers</div>
+                    <div className="mt-1 text-sm font-black">1 passenger</div>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-[18px] border border-white/10 bg-white/6 p-4">
-                <BadgeCheck size={18} className="text-[#60A5FA]" />
-                <div className="mt-3 text-xs text-white/45">Book confidently</div>
-                <div className="mt-1 text-sm font-black">Verified driver</div>
+
+              <button className="mt-5 w-full rounded-full bg-[#1877F2] py-4 text-sm font-black text-white transition hover:bg-[#166FE5]">
+                Search available rides
+              </button>
+
+              <div className="mt-6 border-t border-[#E4E6EB] pt-5">
+                <div className="text-xs font-black text-[#050505]">Popular routes</div>
+                <div className="mt-3 grid gap-2">
+                  {[
+                    ["Pretoria", "Polokwane"],
+                    ["Johannesburg", "Thohoyandou"],
+                    ["Pretoria", "Giyani"],
+                  ].map(([from, to]) => (
+                    <div
+                      key={from + to}
+                      className="flex items-center justify-between rounded-xl bg-[#F7F8FA] px-3.5 py-3 text-sm">
+                      <span className="font-bold text-[#344054]">{from} → {to}</span>
+                      <span className="text-xs font-black text-[#1877F2]">View</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="animate-float absolute -left-8 bottom-16 hidden rounded-2xl border border-[#D7E8FF] bg-white p-4 text-[#101828] shadow-[0_20px_50px_rgba(3,12,28,.22)] xl:block">
-            <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-full bg-[#E7F3FF] text-[#1877F2]"><Clock3 size={19} /></div>
-              <div>
-                <div className="text-xs font-black">Leave when planned</div>
-                <div className="mt-1 text-[11px] text-[#667085]">No waiting for a taxi to fill</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="relative border-t border-white/10">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-5 py-6 sm:px-8 lg:flex-row lg:items-center lg:px-12">
-          <span className="shrink-0 text-xs font-black uppercase tracking-[.14em] text-white/40">Common routes</span>
-          <div className="flex flex-wrap gap-2.5">
-            {routes.map(([from, to]) => (
-              <span key={from + to} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-2 text-sm font-semibold text-white/70">
-                {from} <ChevronRight size={13} className="text-[#60A5FA]" /> {to}
-              </span>
-            ))}
           </div>
         </div>
       </div>
