@@ -2,15 +2,15 @@
   "name": "vaya",
   "private": true,
   "packageManager": "npm@11.6.0",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": ["mobile", "web"],
   "scripts": {
     "dev": "turbo dev",
+    "dev:mobile": "npm run start --workspace mobile",
+    "dev:web": "npm run dev --workspace web",
     "build": "turbo build",
-    "lint": "turbo lint",
-    "typecheck": "turbo typecheck"
+    "lint": "turbo lint"
   },
   "devDependencies": {
-    "turbo": "^2.5.0",
-    "typescript": "^5.9.0"
+    "turbo": "^2.5.0"
   }
 }
