@@ -1079,7 +1079,7 @@ function DriversView({ rows, onReview }: { rows: typeof drivers; onReview: (driv
       <PageHeading
         eyebrow="Driver operations"
         title="Driver verification"
-        description="Review identity, licence and vehicle documentation before drivers can publish trips."
+        description="Manage driver profiles, verification, vehicle information, status and operational history."
         action={
           <div className="flex gap-2">
             <Button variant="outline" className="h-9"><Download /> Export</Button>
@@ -1114,7 +1114,7 @@ function DriversView({ rows, onReview }: { rows: typeof drivers; onReview: (driv
                     <div className="flex items-center gap-3">
                       <div className="grid h-9 w-9 place-items-center rounded-full bg-[#E7F3FF] text-[10px] font-bold text-[#1877F2]">{driver.initials}</div>
                       <div>
-                        <div className="font-semibold text-[#101828]">{driver.name}</div>
+                        <Link href={`/admin/drivers/${driver.id}`} className="font-semibold text-[#101828] transition hover:text-[#1877F2] hover:underline hover:underline-offset-4">{driver.name}</Link>
                         <div className="mt-0.5 text-[11px] text-[#98A2B3]">{driver.location}</div>
                       </div>
                     </div>
@@ -1125,8 +1125,8 @@ function DriversView({ rows, onReview }: { rows: typeof drivers; onReview: (driv
                   <TableCell><Badge variant={statusVariant(driver.status)}>{driver.status}</Badge></TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => onReview(driver)}>Review</Button>
-                      <TableActions onClick={() => onReview(driver)} label={`Review ${driver.name}`} />
+                      <Button variant="outline" size="sm" render={<Link href={`/admin/drivers/${driver.id}`} />}>View profile</Button>
+                      <Button variant="ghost" size="sm" onClick={() => onReview(driver)}>Review</Button>
                     </div>
                   </TableCell>
                 </TableRow>
