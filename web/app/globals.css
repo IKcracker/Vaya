@@ -46,3 +46,17 @@ button { cursor: pointer; }
     transition-duration: .001ms !important;
   }
 }
+
+::selection {
+  background: #D9E8FB;
+  color: #101828;
+}
+
+:where(a, button, summary):focus-visible {
+  outline: 3px solid rgba(24, 119, 242, 0.35);
+  outline-offset: 3px;
+}
+
+section[id] {
+  scroll-margin-top: 5rem;
+}
