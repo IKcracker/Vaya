@@ -294,7 +294,7 @@ export function ProductSections() {
                 <div className="text-2xl font-black text-[#1877F2]">vaya</div>
                 <div className="mt-7 border border-[#E4E6EB] bg-white p-4">
                   <div className="text-[10px] font-black uppercase tracking-[.12em] text-[#1877F2]">Find a ride</div>
-                  <div className="mt-3 text-base font-black">Polokwane → Pretoria</div>
+                  <div className="mt-3 text-base font-black">Cape Town → Gqeberha</div>
                   <div className="mt-5 space-y-2">
                     <div className="h-11 bg-[#F0F2F5]" />
                     <div className="h-11 bg-[#F0F2F5]" />
@@ -309,7 +309,7 @@ export function ProductSections() {
                 <div className="text-2xl font-black text-[#1877F2]">vaya</div>
                 <div className="mt-7 border border-[#E4E6EB] bg-white p-4">
                   <div className="text-[10px] font-black uppercase tracking-[.12em] text-[#1877F2]">Driver trip</div>
-                  <div className="mt-3 text-base font-black">Pretoria → Polokwane</div>
+                  <div className="mt-3 text-base font-black">Johannesburg → Durban</div>
                   <div className="mt-5 grid grid-cols-2 gap-2">
                     <div className="bg-[#F0F2F5] p-3 text-center text-[10px] font-bold">3 seats</div>
                     <div className="bg-[#F0F2F5] p-3 text-center text-[10px] font-bold">R280</div>
@@ -385,7 +385,7 @@ export function ProductSections() {
                 <span className="ml-0.5 text-[22px] font-black text-[#1877F2]">.</span>
               </Link>
               <p className="mt-4 max-w-sm text-[13px] leading-6 text-white/48">
-                A structured way to find and publish shared long-distance trips across South Africa.
+                Shared interprovincial trips for going home, campus travel, work journeys and family visits across South Africa.
               </p>
             </div>
 
