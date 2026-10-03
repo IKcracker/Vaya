@@ -1,28 +1,36 @@
 # Vaya
 
-Vaya is a South African mobility platform focused on scheduled long-distance shared travel, with local on-demand rides planned as a second mode.
+Vaya is a South African mobility platform focused first on scheduled long-distance shared travel, with local on-demand rides as a second mode.
 
-## Product surfaces
+## Current architecture
 
-- **Passenger app** — Expo + React Native
-- **Driver app** — Expo + React Native
-- **Admin dashboard** — Next.js + React
-- **Backend/API** — planned after the product shell and core flows are stable
+- `mobile/` — Expo + React Native app with passenger and driver modes
+- `web/` — Next.js admin operations and driver-verification dashboard
+- Backend/API — next implementation phase after the core product flows are locked
 
 ## Design direction
 
-The first design system uses a Facebook-inspired visual language: confident blue, white surfaces, soft neutral backgrounds, rounded cards, clear typography, and familiar social/mobile interaction patterns — without copying Facebook layouts or assets.
+Vaya uses a Facebook-inspired visual language: confident blue, white surfaces, soft neutral backgrounds, rounded cards, clear typography, and familiar mobile interaction patterns. It does not copy Facebook layouts or brand assets.
 
 ## Initial MVP
 
-1. Passenger and driver authentication
+1. Authentication and role selection
 2. Driver onboarding and verification
 3. Vehicle onboarding
 4. Admin verification dashboard
 5. Long-distance trip publishing
-6. Trip search and route matching
+6. Route and stop matching
 7. Seat and luggage booking
 8. Messaging and notifications
 9. Payments and payouts
 10. Local ride mode
 
+## Local development
+
+```bash
+npm install
+npm run dev:mobile
+npm run dev:web
+```
+
+The long-distance marketplace is the primary launch scope. Local ride dispatch comes after the scheduled-trip flow is production-ready.
