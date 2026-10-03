@@ -82,7 +82,7 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="app-enter relative mx-auto w-full max-w-[620px] lg:mr-0" aria-label="Illustrative Vaya app preview">
+        <div className="app-enter pointer-events-none relative mx-auto w-full max-w-[620px] select-none lg:mr-0" role="img" aria-label="Illustrative Vaya app preview">
           <div className="absolute -left-8 top-14 hidden h-52 w-52 rounded-full bg-[#E7F3FF] blur-3xl sm:block" />
           <div className="absolute -right-10 bottom-10 hidden h-56 w-56 rounded-full bg-[#F0F2F5] blur-3xl sm:block" />
 
@@ -142,10 +142,10 @@ export function Hero() {
                     </div>
                   </div>
 
-                  <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] py-3 text-[11px] font-bold text-white transition hover:bg-[#166FE5]">
+                  <div className="mt-3 flex w-full items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] py-3 text-[11px] font-bold text-white">
                     Search available trips
                     <ArrowRight size={14} />
-                  </button>
+                  </div>
                 </div>
 
                 <div className="mt-5 flex items-center justify-between">
@@ -199,9 +199,9 @@ export function Hero() {
 
                   <div className="mt-3 flex items-center justify-between">
                     <div className="text-[9px] font-medium text-[#667085]">Pickup: Park Station, JHB</div>
-                    <button className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1877F2]">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1877F2]">
                       View trip <ChevronRight size={12} />
-                    </button>
+                    </span>
                   </div>
                 </div>
               </div>
