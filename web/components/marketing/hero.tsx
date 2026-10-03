@@ -26,35 +26,35 @@ export function Hero() {
 
       <div className="relative mx-auto grid max-w-[1280px] gap-14 px-5 pb-16 pt-14 sm:px-8 sm:pt-18 lg:grid-cols-[.92fr_1.08fr] lg:items-center lg:px-10 lg:pb-24 lg:pt-20">
         <div className="max-w-[650px]">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#D9E8FB] bg-[#F5F9FF] px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[.13em] text-[#1877F2]">
+          <div className="hero-enter inline-flex items-center gap-2 rounded-full border border-[#D9E8FB] bg-[#F5F9FF] px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[.13em] text-[#1877F2]">
             <Navigation size={13} />
             Shared trips across South Africa
           </div>
 
-          <h1 className="mt-6 text-[3.2rem] font-extrabold leading-[.98] tracking-[-.055em] text-[#101828] sm:text-[4.35rem] lg:text-[4.8rem]">
+          <h1 className="hero-enter hero-enter-delay-1 mt-6 text-[3.2rem] font-extrabold leading-[.98] tracking-[-.055em] text-[#101828] sm:text-[4.35rem] lg:text-[4.8rem]">
             Your next trip is already
             <span className="block text-[#1877F2]">going your way.</span>
           </h1>
 
-          <p className="mt-6 max-w-[590px] text-base leading-7 text-[#667085] sm:text-lg sm:leading-8">
+          <p className="hero-enter hero-enter-delay-2 mt-6 max-w-[590px] text-base leading-7 text-[#667085] sm:text-lg sm:leading-8">
             Vaya helps passengers find verified drivers already travelling between cities, towns and provinces. See the route, pickup point, departure time, fare, seats and luggage space before you book.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="hero-enter hero-enter-delay-3 mt-8 flex flex-col gap-3 sm:flex-row">
             <a
               href="#download"
-              className="inline-flex items-center justify-center gap-2 rounded-[7px] bg-[#1877F2] px-5 py-3 text-[13px] font-bold text-white shadow-[0_12px_28px_rgba(24,119,242,.2)] transition hover:bg-[#166FE5]">
+              className="group button-lift inline-flex items-center justify-center gap-2 rounded-[7px] bg-[#1877F2] px-5 py-3 text-[13px] font-bold text-white shadow-[0_12px_28px_rgba(24,119,242,.2)] hover:bg-[#166FE5] hover:shadow-[0_16px_34px_rgba(24,119,242,.24)]">
               Get the Vaya app
-              <ArrowRight size={16} />
+              <ArrowRight size={16} className="arrow-shift" />
             </a>
             <a
               href="#how-it-works"
-              className="inline-flex items-center justify-center gap-2 rounded-[7px] border border-[#D0D5DD] bg-white px-5 py-3 text-[13px] font-bold text-[#344054] transition hover:bg-[#F9FAFB]">
+              className="button-lift inline-flex items-center justify-center gap-2 rounded-[7px] border border-[#D0D5DD] bg-white px-5 py-3 text-[13px] font-bold text-[#344054] hover:border-[#B8C7DA] hover:bg-[#F9FAFB]">
               See how it works
             </a>
           </div>
 
-          <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 border-t border-[#EAECF0] pt-6 text-[12px] font-semibold text-[#667085]">
+          <div className="hero-enter hero-enter-delay-4 mt-9 flex flex-wrap gap-x-6 gap-y-3 border-t border-[#EAECF0] pt-6 text-[12px] font-semibold text-[#667085]">
             <span className="flex items-center gap-2">
               <BadgeCheck size={16} className="text-[#1877F2]" />
               Verified drivers
@@ -69,20 +69,20 @@ export function Hero() {
             </span>
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="hero-enter hero-enter-delay-4 mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
             <span className="text-[11px] font-bold uppercase tracking-[.11em] text-[#98A2B3]">Popular routes</span>
             {quickRoutes.map((route) => (
               <a
                 key={route}
                 href="#routes"
-                className="text-[12px] font-semibold text-[#475467] transition hover:text-[#1877F2]">
+                className="text-[12px] font-semibold text-[#475467] transition hover:text-[#1877F2] hover:underline hover:underline-offset-4">
                 {route}
               </a>
             ))}
           </div>
         </div>
 
-        <div className="relative mx-auto w-full max-w-[620px] lg:mr-0" aria-label="Illustrative Vaya app preview">
+        <div className="app-enter relative mx-auto w-full max-w-[620px] lg:mr-0" aria-label="Illustrative Vaya app preview">
           <div className="absolute -left-8 top-14 hidden h-52 w-52 rounded-full bg-[#E7F3FF] blur-3xl sm:block" />
           <div className="absolute -right-10 bottom-10 hidden h-56 w-56 rounded-full bg-[#F0F2F5] blur-3xl sm:block" />
 
@@ -214,7 +214,7 @@ export function Hero() {
             </div>
           </div>
 
-          <div className="absolute -bottom-8 -left-3 hidden w-[220px] rounded-[14px] border border-[#DDE3EA] bg-white p-4 shadow-[0_18px_45px_rgba(16,24,40,.14)] sm:block lg:-left-14">
+          <div className="app-float absolute -bottom-8 -left-3 hidden w-[220px] rounded-[14px] border border-[#DDE3EA] bg-white p-4 shadow-[0_18px_45px_rgba(16,24,40,.14)] sm:block lg:-left-14">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase tracking-[.09em] text-[#1877F2]">Driver mode</span>
               <CarFront size={15} className="text-[#1877F2]" />
