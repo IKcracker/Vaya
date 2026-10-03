@@ -15,7 +15,7 @@ export function Hero() {
       <div className="absolute -left-40 top-28 h-[420px] w-[420px] rounded-full bg-[#E7F3FF] blur-3xl" />
       <div className="absolute -right-44 top-12 h-[500px] w-[500px] rounded-full bg-[#F0F2F5] blur-3xl" />
 
-      <div className="relative mx-auto grid min-h-[760px] max-w-[1440px] items-center gap-14 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_.95fr] lg:px-12 lg:py-24">
+      <div className="relative mx-auto grid min-h-[760px] max-w-[1280px] items-center gap-14 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_.95fr] lg:px-10 lg:py-24">
         <div className="animate-fade-up max-w-3xl">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#D8E8FF] bg-[#F7FAFF] px-3.5 py-2 text-xs font-black text-[#1877F2]">
             <CarFront size={14} />
