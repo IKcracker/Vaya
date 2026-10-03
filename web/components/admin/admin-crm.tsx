@@ -545,18 +545,37 @@ export function AdminCrm() {
     setDriverDialogOpen(true);
   };
 
-  const updateDriverStatus = (status: string) => {
+  const updateDriverStatus = async (status: string) => {
     if (!selectedDriver) return;
+
+    if (backendMode === "live") {
+      const response = await fetch(`/api/admin/drivers/${selectedDriver.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setBackendError(payload?.error ?? "Unable to update driver");
+        return;
+      }
+
+      setDriverDialogOpen(false);
+      await refreshDashboard();
+      return;
+    }
+
     setDriverRecords((rows) =>
       rows.map((driver) =>
-        driver.name === selectedDriver.name ? { ...driver, status } : driver
+        driver.id === selectedDriver.id ? { ...driver, status } : driver
       )
     );
     addActivity(`Driver ${status.toLowerCase()}`, selectedDriver.name);
     setDriverDialogOpen(false);
   };
 
-  const createTrip = (formData: FormData) => {
+  const createTrip = async (formData: FormData) => {
     const from = String(formData.get("from") || "").trim();
     const to = String(formData.get("to") || "").trim();
     const driver = String(formData.get("driver") || "").trim();
@@ -566,6 +585,32 @@ export function AdminCrm() {
     const fare = String(formData.get("fare") || "").trim();
 
     if (!from || !to || !driver || !date || !departure || !fare) return;
+
+    if (backendMode === "live") {
+      const response = await fetch("/api/admin/trips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from,
+          to,
+          driver,
+          date,
+          departure,
+          seats: Number(seats),
+          fare: Number(fare.replace(/^R/i, "")),
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setBackendError(payload?.error ?? "Unable to create trip");
+        return;
+      }
+
+      setCreateTripOpen(false);
+      await refreshDashboard();
+      return;
+    }
 
     const trip = {
       id: `VY-${1100 + tripRecords.length + 1}`,
@@ -583,15 +628,34 @@ export function AdminCrm() {
     setCreateTripOpen(false);
   };
 
-  const addPassenger = (formData: FormData) => {
+  const addPassenger = async (formData: FormData) => {
     const name = String(formData.get("name") || "").trim();
     const contact = String(formData.get("contact") || "").trim();
     const city = String(formData.get("city") || "").trim();
 
     if (!name || !contact || !city) return;
 
+    if (backendMode === "live") {
+      const response = await fetch("/api/admin/passengers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email: contact, city }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setBackendError(payload?.error ?? "Unable to add passenger");
+        return;
+      }
+
+      setAddPassengerOpen(false);
+      await refreshDashboard();
+      return;
+    }
+
     setPassengerRecords((rows) => [
       {
+        id: `preview-passenger-${Date.now()}`,
         name,
         contact,
         city,
@@ -605,16 +669,36 @@ export function AdminCrm() {
     setAddPassengerOpen(false);
   };
 
-  const createSafetyCase = (formData: FormData) => {
+  const createSafetyCase = async (formData: FormData) => {
     const subject = String(formData.get("subject") || "").trim();
     const trip = String(formData.get("trip") || "").trim();
     const priority = String(formData.get("priority") || "Medium").trim();
     const owner = String(formData.get("owner") || "Unassigned").trim();
+    const note = String(formData.get("note") || "").trim();
 
     if (!subject || !trip) return;
 
+    if (backendMode === "live") {
+      const response = await fetch("/api/admin/safety-cases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, trip, priority, owner, note }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setBackendError(payload?.error ?? "Unable to create safety case");
+        return;
+      }
+
+      setCreateSafetyOpen(false);
+      await refreshDashboard();
+      return;
+    }
+
     const item = {
       id: `SAFE-${String(40 + safetyRecords.length).padStart(3, "0")}`,
+      databaseId: `preview-safety-${Date.now()}`,
       subject,
       trip,
       priority,
@@ -691,11 +775,13 @@ export function AdminCrm() {
           <Card className="border-[#D1E9FF] bg-[#F5F9FF] shadow-none">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-xs font-semibold text-[#344054]">
-                <span className="h-2 w-2 rounded-full bg-[#12B76A]" />
-                Platform operational
+                <span className={`h-2 w-2 rounded-full ${backendMode === "live" ? "bg-[#12B76A]" : backendMode === "loading" ? "bg-[#F79009]" : "bg-[#98A2B3]"}`} />
+                {backendMode === "live" ? "Neon database live" : backendMode === "loading" ? "Connecting to backend" : "Preview mode"}
               </div>
               <p className="mt-2 text-[11px] leading-5 text-[#667085]">
-                Core booking, trip and verification services are available.
+                {backendMode === "live"
+                  ? "CRM changes are persisted to Neon Postgres."
+                  : backendError ?? "Preview records reset when the page reloads."}
               </p>
             </CardContent>
           </Card>
@@ -742,8 +828,8 @@ export function AdminCrm() {
               </div>
             </div>
 
-            <Button variant="outline" size="icon" aria-label="Refresh">
-              <RefreshCw />
+            <Button variant="outline" size="icon" aria-label="Refresh" onClick={() => void refreshDashboard()} disabled={backendMode === "loading"}>
+              <RefreshCw className={backendMode === "loading" ? "animate-spin" : ""} />
             </Button>
             <Button variant="outline" size="icon" className="relative" aria-label="Notifications">
               <Bell />
@@ -1434,7 +1520,7 @@ function CreateTripDialog({
               <Input id="trip-driver" name="driver" placeholder="Driver name" required />
             </FormField>
             <FormField label="Date" htmlFor="trip-date">
-              <Input id="trip-date" name="date" placeholder="10 Oct" required />
+              <Input id="trip-date" name="date" type="date" required />
             </FormField>
             <FormField label="Departure time" htmlFor="trip-departure">
               <Input id="trip-departure" name="departure" type="time" required />
