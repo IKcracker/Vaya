@@ -15,7 +15,7 @@
 }
 
 :root {
-  --background: #F0F2F5;
+  --background: #FFFFFF;
   --foreground: #050505;
   --primary: #1877F2;
   --primary-foreground: #FFFFFF;
@@ -34,26 +34,8 @@ button { cursor: pointer; }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50% { transform: translateY(-10px) rotate(1deg); }
-}
-
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0) rotate(1deg); }
-  50% { transform: translateY(9px) rotate(-1deg); }
-}
-
 .animate-fade-up {
   animation: fade-up .7s cubic-bezier(.2,.7,.2,1) both;
-}
-
-.animate-float {
-  animation: float 4s ease-in-out infinite;
-}
-
-.animate-float-slow {
-  animation: float-slow 5.5s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
