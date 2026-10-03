@@ -760,12 +760,31 @@ function PageHeading({
 }
 
 function Overview({
+  driverRows,
+  tripRows,
+  safetyRows,
+  activityLog,
   onOpenDrivers,
   onOpenSafety,
+  onReviewDriver,
+  onViewTrip,
 }: {
+  driverRows: typeof drivers;
+  tripRows: typeof trips;
+  safetyRows: typeof safetyCases;
+  activityLog: Array<{ id: string; title: string; detail: string; time: string }>;
   onOpenDrivers: () => void;
   onOpenSafety: () => void;
+  onReviewDriver: (driver: (typeof drivers)[number]) => void;
+  onViewTrip: (trip: (typeof trips)[number]) => void;
 }) {
+  const overviewStats = [
+    { ...stats[0], value: String(driverRows.filter((driver) => driver.status !== "Approved").length), note: `${driverRows.filter((driver) => driver.status === "Ready").length} ready for approval` },
+    { ...stats[1], value: String(tripRows.length), note: "Current trip records" },
+    stats[2],
+    { ...stats[3], value: String(safetyRows.filter((item) => item.status !== "Closed").length), note: `${safetyRows.filter((item) => item.priority === "High").length} high priority` },
+  ];
+
   return (
     <>
       <PageHeading
@@ -781,7 +800,7 @@ function Overview({
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => {
+        {overviewStats.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.label} className="shadow-none">
@@ -820,7 +839,7 @@ function Overview({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {drivers.slice(0, 3).map((driver) => (
+              {driverRows.slice(0, 3).map((driver) => (
                 <TableRow key={driver.name}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -833,7 +852,7 @@ function Overview({
                   </TableCell>
                   <TableCell>{driver.checks}</TableCell>
                   <TableCell><Badge variant={statusVariant(driver.status)}>{driver.status}</Badge></TableCell>
-                  <TableCell className="text-right"><TableActions /></TableCell>
+                  <TableCell className="text-right"><TableActions onClick={() => onReviewDriver(driver)} label={`Review ${driver.name}`} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -889,13 +908,32 @@ function Overview({
           </div>
           <Badge variant="success">Live</Badge>
         </CardHeader>
-        <TripsTable rows={trips} />
+        <TripsTable rows={tripRows} onView={onViewTrip} />
+      </Card>
+
+      <Card className="mt-6 shadow-none">
+        <CardHeader className="border-b border-[#EAECF0]">
+          <CardTitle>Recent CRM activity</CardTitle>
+          <CardDescription>Actions completed in this admin session.</CardDescription>
+        </CardHeader>
+        <CardContent className="divide-y divide-[#EAECF0] p-0">
+          {activityLog.map((item) => (
+            <div key={item.id} className="flex items-start gap-3 px-5 py-4">
+              <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#1877F2]" />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold text-[#101828]">{item.title}</div>
+                <div className="mt-1 text-[11px] text-[#667085]">{item.detail}</div>
+              </div>
+              <div className="shrink-0 text-[10px] text-[#98A2B3]">{item.time}</div>
+            </div>
+          ))}
+        </CardContent>
       </Card>
     </>
   );
 }
 
-function DriversView({ rows }: { rows: typeof drivers }) {
+function DriversView({ rows, onReview }: { rows: typeof drivers; onReview: (driver: (typeof drivers)[number]) => void }) {
   return (
     <>
       <PageHeading
@@ -905,7 +943,7 @@ function DriversView({ rows }: { rows: typeof drivers }) {
         action={
           <div className="flex gap-2">
             <Button variant="outline" className="h-9"><Download /> Export</Button>
-            <Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]"><Plus /> Invite driver</Button>
+            <Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]" disabled={!rows.length} onClick={() => rows[0] && onReview(rows[0])}><UserCheck /> Review next</Button>
           </div>
         }
       />
@@ -947,8 +985,8 @@ function DriversView({ rows }: { rows: typeof drivers }) {
                   <TableCell><Badge variant={statusVariant(driver.status)}>{driver.status}</Badge></TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm">Review</Button>
-                      <TableActions />
+                      <Button variant="outline" size="sm" onClick={() => onReview(driver)}>Review</Button>
+                      <TableActions onClick={() => onReview(driver)} label={`Review ${driver.name}`} />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -961,14 +999,14 @@ function DriversView({ rows }: { rows: typeof drivers }) {
   );
 }
 
-function TripsView({ rows }: { rows: typeof trips }) {
+function TripsView({ rows, onCreate, onView }: { rows: typeof trips; onCreate: () => void; onView: (trip: (typeof trips)[number]) => void }) {
   return (
     <>
       <PageHeading
         eyebrow="Network operations"
         title="Trips"
         description="Manage scheduled journeys, occupancy, departure readiness and route status."
-        action={<Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]"><Plus /> Create trip</Button>}
+        action={<Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]" onClick={onCreate}><Plus /> Create trip</Button>}
       />
       <Card className="overflow-hidden shadow-none">
         <CardHeader className="flex-row items-center justify-between border-b border-[#EAECF0]">
@@ -978,13 +1016,13 @@ function TripsView({ rows }: { rows: typeof trips }) {
           </div>
           <Button variant="outline" size="sm"><SlidersHorizontal /> Filters</Button>
         </CardHeader>
-        {rows.length ? <TripsTable rows={rows} /> : <EmptyState label="trips" />}
+        {rows.length ? <TripsTable rows={rows} onView={onView} /> : <EmptyState label="trips" />}
       </Card>
     </>
   );
 }
 
-function TripsTable({ rows }: { rows: typeof trips }) {
+function TripsTable({ rows, onView }: { rows: typeof trips; onView: (trip: (typeof trips)[number]) => void }) {
   return (
     <Table>
       <TableHeader>
@@ -1010,7 +1048,7 @@ function TripsTable({ rows }: { rows: typeof trips }) {
             <TableCell>{trip.occupancy}</TableCell>
             <TableCell className="font-semibold text-[#101828]">{trip.fare}</TableCell>
             <TableCell><Badge variant={statusVariant(trip.status)}>{trip.status}</Badge></TableCell>
-            <TableCell className="text-right"><TableActions /></TableCell>
+            <TableCell className="text-right"><TableActions onClick={() => onView(trip)} label={`View ${trip.id}`} /></TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -1018,7 +1056,7 @@ function TripsTable({ rows }: { rows: typeof trips }) {
   );
 }
 
-function BookingsView({ rows }: { rows: typeof bookings }) {
+function BookingsView({ rows, onView }: { rows: typeof bookings; onView: (booking: (typeof bookings)[number]) => void }) {
   return (
     <>
       <PageHeading
@@ -1056,7 +1094,7 @@ function BookingsView({ rows }: { rows: typeof bookings }) {
                   <TableCell className="font-semibold text-[#101828]">{booking.amount}</TableCell>
                   <TableCell><Badge variant={statusVariant(booking.payment)}>{booking.payment}</Badge></TableCell>
                   <TableCell><Badge variant={statusVariant(booking.status)}>{booking.status}</Badge></TableCell>
-                  <TableCell className="text-right"><TableActions /></TableCell>
+                  <TableCell className="text-right"><TableActions onClick={() => onView(booking)} label={`View ${booking.id}`} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1067,14 +1105,14 @@ function BookingsView({ rows }: { rows: typeof bookings }) {
   );
 }
 
-function PassengersView({ rows }: { rows: typeof passengers }) {
+function PassengersView({ rows, onAdd, onView }: { rows: typeof passengers; onAdd: () => void; onView: (passenger: (typeof passengers)[number]) => void }) {
   return (
     <>
       <PageHeading
         eyebrow="Customer records"
         title="Passengers"
         description="View passenger accounts, travel activity and account status."
-        action={<Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]"><Plus /> Add passenger</Button>}
+        action={<Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]" onClick={onAdd}><Plus /> Add passenger</Button>}
       />
       <Card className="overflow-hidden shadow-none">
         <CardHeader className="border-b border-[#EAECF0]">
@@ -1104,7 +1142,7 @@ function PassengersView({ rows }: { rows: typeof passengers }) {
                   <TableCell>{passenger.trips}</TableCell>
                   <TableCell>{passenger.joined}</TableCell>
                   <TableCell><Badge variant={statusVariant(passenger.status)}>{passenger.status}</Badge></TableCell>
-                  <TableCell className="text-right"><TableActions /></TableCell>
+                  <TableCell className="text-right"><TableActions onClick={() => onView(passenger)} label={`View ${passenger.name}`} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1115,7 +1153,7 @@ function PassengersView({ rows }: { rows: typeof passengers }) {
   );
 }
 
-function PaymentsView({ rows }: { rows: typeof payments }) {
+function PaymentsView({ rows, onView }: { rows: typeof payments; onView: (payment: (typeof payments)[number]) => void }) {
   return (
     <>
       <PageHeading
@@ -1158,7 +1196,7 @@ function PaymentsView({ rows }: { rows: typeof payments }) {
                   <TableCell>{payment.method}</TableCell>
                   <TableCell>{payment.date}</TableCell>
                   <TableCell><Badge variant={statusVariant(payment.status)}>{payment.status}</Badge></TableCell>
-                  <TableCell className="text-right"><TableActions /></TableCell>
+                  <TableCell className="text-right"><TableActions onClick={() => onView(payment)} label={`View ${payment.ref}`} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1169,14 +1207,14 @@ function PaymentsView({ rows }: { rows: typeof payments }) {
   );
 }
 
-function SafetyView({ rows }: { rows: typeof safetyCases }) {
+function SafetyView({ rows, onCreate, onView }: { rows: typeof safetyCases; onCreate: () => void; onView: (item: (typeof safetyCases)[number]) => void }) {
   return (
     <>
       <PageHeading
         eyebrow="Trust & safety"
         title="Safety & disputes"
         description="Investigate safety reports, booking disputes and refund-related incidents."
-        action={<Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]"><Plus /> Create case</Button>}
+        action={<Button className="h-9 bg-[#1877F2] hover:bg-[#166FE5]" onClick={onCreate}><Plus /> Create case</Button>}
       />
       <Card className="overflow-hidden shadow-none">
         <CardHeader className="flex-row items-center justify-between border-b border-[#EAECF0]">
@@ -1211,7 +1249,7 @@ function SafetyView({ rows }: { rows: typeof safetyCases }) {
                   <TableCell>{item.owner}</TableCell>
                   <TableCell>{item.created}</TableCell>
                   <TableCell><Badge variant={statusVariant(item.status)}>{item.status}</Badge></TableCell>
-                  <TableCell className="text-right"><TableActions /></TableCell>
+                  <TableCell className="text-right"><TableActions onClick={() => onView(item)} label={`View ${item.id}`} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
