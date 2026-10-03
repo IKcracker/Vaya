@@ -35,6 +35,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import {
   Table,
@@ -354,9 +364,9 @@ function statusVariant(value: string) {
   return "secondary" as const;
 }
 
-function TableActions() {
+function TableActions({ onClick, label = "View record" }: { onClick: () => void; label?: string }) {
   return (
-    <Button variant="ghost" size="icon-sm" aria-label="Open row actions">
+    <Button type="button" variant="ghost" size="icon-sm" aria-label={label} onClick={onClick}>
       <MoreHorizontal />
     </Button>
   );
@@ -376,6 +386,25 @@ export function AdminCrm() {
   const [active, setActive] = useState<ModuleKey>("overview");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [driverRecords, setDriverRecords] = useState(drivers);
+  const [tripRecords, setTripRecords] = useState(trips);
+  const [passengerRecords, setPassengerRecords] = useState(passengers);
+  const [safetyRecords, setSafetyRecords] = useState(safetyCases);
+  const [selectedDriver, setSelectedDriver] = useState<(typeof drivers)[number] | null>(null);
+  const [driverDialogOpen, setDriverDialogOpen] = useState(false);
+  const [createTripOpen, setCreateTripOpen] = useState(false);
+  const [addPassengerOpen, setAddPassengerOpen] = useState(false);
+  const [createSafetyOpen, setCreateSafetyOpen] = useState(false);
+  const [recordDetail, setRecordDetail] = useState<{
+    title: string;
+    subtitle?: string;
+    fields: Array<[string, string]>;
+  } | null>(null);
+  const [activityLog, setActivityLog] = useState([
+    { id: "A-1", title: "Driver application submitted", detail: "Sibusiso Khumalo · Durban", time: "2 hrs ago" },
+    { id: "A-2", title: "Payment settled", detail: "PAY-88432 · R640.00", time: "3 hrs ago" },
+    { id: "A-3", title: "Safety case opened", detail: "SAFE-031 · High priority", time: "4 hrs ago" },
+  ]);
 
   const current = modules.find((item) => item.key === active) ?? modules[0];
 
@@ -383,24 +412,24 @@ export function AdminCrm() {
 
   const filteredDrivers = useMemo(
     () =>
-      drivers.filter((driver) =>
+      driverRecords.filter((driver) =>
         [driver.name, driver.location, driver.vehicle, driver.status]
           .join(" ")
           .toLowerCase()
           .includes(normalizedQuery)
       ),
-    [normalizedQuery]
+    [normalizedQuery, driverRecords]
   );
 
   const filteredTrips = useMemo(
     () =>
-      trips.filter((trip) =>
+      tripRecords.filter((trip) =>
         [trip.id, trip.route, trip.driver, trip.status]
           .join(" ")
           .toLowerCase()
           .includes(normalizedQuery)
       ),
-    [normalizedQuery]
+    [normalizedQuery, tripRecords]
   );
 
   const filteredBookings = useMemo(
@@ -416,13 +445,13 @@ export function AdminCrm() {
 
   const filteredPassengers = useMemo(
     () =>
-      passengers.filter((passenger) =>
+      passengerRecords.filter((passenger) =>
         [passenger.name, passenger.contact, passenger.city, passenger.status]
           .join(" ")
           .toLowerCase()
           .includes(normalizedQuery)
       ),
-    [normalizedQuery]
+    [normalizedQuery, passengerRecords]
   );
 
   const filteredPayments = useMemo(
@@ -438,19 +467,119 @@ export function AdminCrm() {
 
   const filteredSafety = useMemo(
     () =>
-      safetyCases.filter((item) =>
+      safetyRecords.filter((item) =>
         [item.id, item.subject, item.trip, item.priority, item.status]
           .join(" ")
           .toLowerCase()
           .includes(normalizedQuery)
       ),
-    [normalizedQuery]
+    [normalizedQuery, safetyRecords]
   );
 
   const setModule = (key: ModuleKey) => {
     setActive(key);
     setMobileOpen(false);
     setQuery("");
+  };
+
+
+  const addActivity = (title: string, detail: string) => {
+    setActivityLog((items) => [
+      { id: `A-${Date.now()}`, title, detail, time: "Just now" },
+      ...items,
+    ].slice(0, 6));
+  };
+
+  const openDriverReview = (driver: (typeof drivers)[number]) => {
+    setSelectedDriver(driver);
+    setDriverDialogOpen(true);
+  };
+
+  const updateDriverStatus = (status: string) => {
+    if (!selectedDriver) return;
+    setDriverRecords((rows) =>
+      rows.map((driver) =>
+        driver.name === selectedDriver.name ? { ...driver, status } : driver
+      )
+    );
+    addActivity(`Driver ${status.toLowerCase()}`, selectedDriver.name);
+    setDriverDialogOpen(false);
+  };
+
+  const createTrip = (formData: FormData) => {
+    const from = String(formData.get("from") || "").trim();
+    const to = String(formData.get("to") || "").trim();
+    const driver = String(formData.get("driver") || "").trim();
+    const date = String(formData.get("date") || "").trim();
+    const departure = String(formData.get("departure") || "").trim();
+    const seats = String(formData.get("seats") || "4").trim();
+    const fare = String(formData.get("fare") || "").trim();
+
+    if (!from || !to || !driver || !date || !departure || !fare) return;
+
+    const trip = {
+      id: `VY-${1100 + tripRecords.length + 1}`,
+      route: `${from} → ${to}`,
+      driver,
+      departure,
+      date,
+      occupancy: `0 / ${seats}`,
+      fare: fare.startsWith("R") ? fare : `R${fare}`,
+      status: "Scheduled",
+    };
+
+    setTripRecords((rows) => [trip, ...rows]);
+    addActivity("Trip created", `${trip.id} · ${trip.route}`);
+    setCreateTripOpen(false);
+  };
+
+  const addPassenger = (formData: FormData) => {
+    const name = String(formData.get("name") || "").trim();
+    const contact = String(formData.get("contact") || "").trim();
+    const city = String(formData.get("city") || "").trim();
+
+    if (!name || !contact || !city) return;
+
+    setPassengerRecords((rows) => [
+      {
+        name,
+        contact,
+        city,
+        trips: "0",
+        joined: "Oct 2026",
+        status: "Active",
+      },
+      ...rows,
+    ]);
+    addActivity("Passenger added", `${name} · ${city}`);
+    setAddPassengerOpen(false);
+  };
+
+  const createSafetyCase = (formData: FormData) => {
+    const subject = String(formData.get("subject") || "").trim();
+    const trip = String(formData.get("trip") || "").trim();
+    const priority = String(formData.get("priority") || "Medium").trim();
+    const owner = String(formData.get("owner") || "Unassigned").trim();
+
+    if (!subject || !trip) return;
+
+    const item = {
+      id: `SAFE-${String(40 + safetyRecords.length).padStart(3, "0")}`,
+      subject,
+      trip,
+      priority,
+      owner,
+      created: "Just now",
+      status: "Open",
+    };
+
+    setSafetyRecords((rows) => [item, ...rows]);
+    addActivity("Safety case created", `${item.id} · ${priority} priority`);
+    setCreateSafetyOpen(false);
+  };
+
+  const openDetails = (title: string, subtitle: string | undefined, fields: Array<[string, string]>) => {
+    setRecordDetail({ title, subtitle, fields });
   };
 
   return (
