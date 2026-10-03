@@ -235,3 +235,30 @@ section[id] {
     transition: none !important;
   }
 }
+
+.nav-link {
+  position: relative;
+  transition: color .2s ease;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -7px;
+  height: 2px;
+  border-radius: 999px;
+  background: #1877F2;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform .22s cubic-bezier(.2,.7,.2,1);
+}
+
+.nav-link:hover {
+  color: #1877F2;
+}
+
+.nav-link:hover::after {
+  transform: scaleX(1);
+}
