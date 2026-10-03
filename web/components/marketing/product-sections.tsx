@@ -36,7 +36,7 @@ export function ProductSections() {
                 <span className="h-px w-8 bg-[#1877F2]" />
                 How Vaya works
               </div>
-              <h2 className="mt-5 text-4xl font-black leading-[1.02] tracking-[-.05em] text-[#050505] sm:text-5xl">
+              <h2 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-[-.05em] text-[#050505] sm:text-5xl">
                 Everything you need to decide before the road starts.
               </h2>
             </div>
@@ -77,7 +77,7 @@ export function ProductSections() {
                 For riders
               </div>
 
-              <h2 className="mt-5 text-4xl font-black leading-[1.02] tracking-[-.05em] text-[#050505] sm:text-5xl">
+              <h2 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-[-.05em] text-[#050505] sm:text-5xl">
                 The trip should make sense before you book it.
               </h2>
 
@@ -115,7 +115,7 @@ export function ProductSections() {
                 <span className="h-px w-8 bg-[#1877F2]" />
                 Route intelligence
               </div>
-              <h2 className="mt-5 text-4xl font-black tracking-[-.05em] text-[#050505]">
+              <h2 className="mt-5 text-4xl font-extrabold tracking-[-.045em] text-[#050505]">
                 Not every passenger starts where the driver starts.
               </h2>
               <p className="mt-5 text-base leading-7 text-[#65676B]">
@@ -156,7 +156,7 @@ export function ProductSections() {
                 <span className="h-px w-8 bg-[#1877F2]" />
                 Safety by design
               </div>
-              <h2 className="mt-5 text-4xl font-black leading-[1.02] tracking-[-.05em] sm:text-5xl">
+              <h2 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-[-.05em] sm:text-5xl">
                 Trust starts before a driver can publish.
               </h2>
               <p className="mt-6 max-w-xl text-lg leading-8 text-white/62">
@@ -195,7 +195,7 @@ export function ProductSections() {
                   Drive with Vaya
                 </div>
 
-                <h2 className="mt-5 text-4xl font-black leading-[1.02] tracking-[-.05em] sm:text-5xl">
+                <h2 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-[-.05em] sm:text-5xl">
                   Already making the trip? Put the empty seats to work.
                 </h2>
 
@@ -273,7 +273,7 @@ export function ProductSections() {
               Vaya mobile app
             </div>
 
-            <h2 className="mt-5 text-4xl font-black leading-[1.02] tracking-[-.05em] text-[#050505] sm:text-5xl">
+            <h2 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-[-.05em] text-[#050505] sm:text-5xl">
               Search. Book. Publish. Travel.
             </h2>
 
@@ -302,7 +302,7 @@ export function ProductSections() {
                 <div className="text-[9px] font-bold uppercase tracking-[.12em] text-white/48">Coming soon on</div>
                 <div className="mt-1 text-sm font-black">Google Play</div>
               </div>
-              <div className="min-w-[190px] bg-[#0B1220] px-5 py-4 text-white">
+              <div className="min-w-[180px] bg-[#0B1220] px-4 py-3.5 text-white">
                 <div className="text-[9px] font-bold uppercase tracking-[.12em] text-white/48">Coming soon on</div>
                 <div className="mt-1 text-sm font-black">App Store</div>
               </div>
@@ -315,7 +315,7 @@ export function ProductSections() {
         <div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-5 py-14 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-10">
           <div>
             <div className="text-xs font-black uppercase tracking-[.16em] text-white/65">Ready when you are</div>
-            <h2 className="mt-2 text-3xl font-black tracking-[-.04em] text-white">Plan the trip before travel day.</h2>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-[-.035em] text-white">Plan the trip before travel day.</h2>
           </div>
           <a href="#download" className="inline-flex items-center justify-center gap-2 rounded-[6px] bg-white px-4 py-2.5 text-[13px] font-bold text-[#1877F2]">
             Get Vaya <ArrowRight size={16} />
