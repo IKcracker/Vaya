@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 const heroImage =
-  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&fm=jpg&q=88&w=2400";
+  "https://images.unsplash.com/photo-1494783367193-149034c05e8f?auto=format&fit=crop&fm=jpg&q=88&w=2400";
 
 export function Hero() {
   return (
@@ -17,39 +17,38 @@ export function Hero() {
       <div
         className="absolute inset-x-0 top-16 h-[690px] bg-cover bg-center"
         style={{
-          backgroundImage: `linear-gradient(90deg, rgba(4,10,22,.96) 0%, rgba(4,10,22,.78) 42%, rgba(4,10,22,.34) 72%, rgba(4,10,22,.18) 100%), url("${heroImage}")`,
+          backgroundImage: `linear-gradient(90deg, rgba(4,10,22,.96) 0%, rgba(4,10,22,.82) 42%, rgba(4,10,22,.42) 74%, rgba(4,10,22,.22) 100%), url("${heroImage}")`,
         }}
       />
       <div className="absolute inset-x-0 top-16 h-[690px] bg-[linear-gradient(180deg,transparent_58%,#0B1220_100%)]" />
 
       <div className="relative mx-auto min-h-[690px] max-w-[1280px] px-5 sm:px-8 lg:px-10">
-        <div className="flex min-h-[690px] max-w-[760px] flex-col justify-center pb-24 pt-14">
+        <div className="flex min-h-[690px] max-w-[790px] flex-col justify-center pb-24 pt-14">
           <div className="mb-7 flex w-fit items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-[#7DB7FF]">
             <span className="h-px w-8 bg-[#1877F2]" />
-            Long-distance travel, properly organised
+            Shared trips across South Africa
           </div>
 
-          <h1 className="max-w-[760px] text-[3.5rem] font-extrabold leading-[.98] tracking-[-.06em] sm:text-[4.75rem] lg:text-[5.65rem]">
-            Your route.
-            <span className="block text-[#5EA5FF]">Your ride.</span>
-            <span className="block">Your choice.</span>
+          <h1 className="max-w-[790px] text-[3.5rem] font-extrabold leading-[.98] tracking-[-.06em] sm:text-[4.75rem] lg:text-[5.5rem]">
+            Going home?
+            <span className="block text-[#5EA5FF]">Find someone already going your way.</span>
           </h1>
 
           <p className="mt-7 max-w-2xl text-lg leading-8 text-white/72 sm:text-xl">
-            Find verified drivers already travelling your direction, compare fares and departure times, check luggage capacity and reserve a seat before travel day.
+            Vaya connects passengers with verified drivers travelling between cities, towns and provinces. Compare the route, departure time, fare, pickup point and luggage space before you book.
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <a
               href="#download"
-              className="group inline-flex items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] px-5 py-3 text-[13px] font-black text-white shadow-[0_16px_40px_rgba(24,119,242,.30)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#2D86F7]">
-              Get Vaya
+              className="group inline-flex items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] px-5 py-3 text-[13px] font-bold text-white shadow-[0_16px_40px_rgba(24,119,242,.30)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#2D86F7]">
+              Find a trip
               <ArrowRight size={17} className="transition group-hover:translate-x-1" />
             </a>
             <a
-              href="#how-it-works"
-              className="inline-flex items-center justify-center rounded-[8px] border border-white/20 bg-white/8 px-5 py-3 text-[13px] font-black text-white backdrop-blur transition hover:bg-white/12">
-              See how it works
+              href="#drivers"
+              className="inline-flex items-center justify-center rounded-[8px] border border-white/20 bg-white/8 px-5 py-3 text-[13px] font-bold text-white backdrop-blur transition hover:bg-white/12">
+              Publish a trip
             </a>
           </div>
 
@@ -64,7 +63,7 @@ export function Hero() {
             </span>
             <span className="flex items-center gap-2">
               <ShieldCheck size={17} className="text-[#63A4FF]" />
-              Recorded journeys
+              Trip records & safety
             </span>
           </div>
         </div>
@@ -83,7 +82,7 @@ export function Hero() {
               </button>
             </div>
             <div className="px-6 pb-4 text-xs font-semibold text-[#8A8D91] md:pb-0">
-              Search planned trips
+              Search trips across South Africa
             </div>
           </div>
 
@@ -94,7 +93,7 @@ export function Hero() {
               </span>
               <span>
                 <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">From</span>
-                <span className="mt-1 block text-[13px] font-bold">Choose pickup area</span>
+                <span className="mt-1 block text-[13px] font-bold">Johannesburg, Gauteng</span>
               </span>
             </button>
 
@@ -104,7 +103,7 @@ export function Hero() {
               </span>
               <span>
                 <span className="block text-[10px] font-black uppercase tracking-[.12em] text-[#8A8D91]">To</span>
-                <span className="mt-1 block text-[13px] font-bold">Choose destination</span>
+                <span className="mt-1 block text-[13px] font-bold">Durban, KwaZulu-Natal</span>
               </span>
             </button>
 
@@ -124,8 +123,8 @@ export function Hero() {
               </span>
             </button>
 
-            <button className="m-3 flex min-h-[50px] items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] px-6 text-[13px] font-black text-white transition hover:bg-[#166FE5]">
-              Find ride <ArrowRight size={16} />
+            <button className="m-3 flex min-h-[50px] items-center justify-center gap-2 rounded-[8px] bg-[#1877F2] px-6 text-[13px] font-bold text-white transition hover:bg-[#166FE5]">
+              Search trips <ArrowRight size={16} />
             </button>
           </div>
         </div>
