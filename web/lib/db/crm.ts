@@ -412,3 +412,510 @@ export async function createSafetyCase(input: {
 
   return item;
 }
+
+function mapActivity(
+  rows: Array<typeof activityLogs.$inferSelect>,
+  predicate: (metadata: Record<string, unknown>) => boolean
+) {
+  return rows
+    .filter((item) => predicate(item.metadata ?? {}))
+    .slice(0, 25)
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      detail: item.detail,
+      time: relativeTime(item.createdAt),
+    }));
+}
+
+export async function getPassengerDetails(id: string) {
+  const db = getDb();
+  const [passenger] = await db.select().from(passengers).where(eq(passengers.id, id)).limit(1);
+  if (!passenger) return null;
+
+  const [bookingRows, paymentRows, activityRows] = await Promise.all([
+    db
+      .select({
+        id: bookings.publicId,
+        tripId: trips.publicId,
+        routeFrom: trips.fromCity,
+        routeTo: trips.toCity,
+        seats: bookings.seats,
+        amountCents: bookings.amountCents,
+        paymentStatus: bookings.paymentStatus,
+        status: bookings.status,
+        createdAt: bookings.createdAt,
+      })
+      .from(bookings)
+      .innerJoin(trips, eq(bookings.tripId, trips.id))
+      .where(eq(bookings.passengerId, passenger.id))
+      .orderBy(desc(bookings.createdAt)),
+    db
+      .select({
+        ref: payments.publicId,
+        booking: bookings.publicId,
+        amountCents: payments.amountCents,
+        method: payments.method,
+        status: payments.status,
+        createdAt: payments.createdAt,
+      })
+      .from(payments)
+      .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+      .where(eq(bookings.passengerId, passenger.id))
+      .orderBy(desc(payments.createdAt)),
+    db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(250),
+  ]);
+
+  return {
+    passenger: {
+      id: passenger.id,
+      name: passenger.name,
+      email: passenger.email,
+      phone: passenger.phone ?? "",
+      city: passenger.city,
+      tripsCount: passenger.tripsCount,
+      status: passenger.status,
+      joinedAt: passenger.joinedAt.toISOString(),
+      updatedAt: passenger.updatedAt.toISOString(),
+    },
+    bookings: bookingRows.map((booking) => ({
+      id: booking.id,
+      tripId: booking.tripId,
+      route: `${booking.routeFrom} → ${booking.routeTo}`,
+      seats: booking.seats,
+      amount: money(booking.amountCents),
+      payment: booking.paymentStatus,
+      status: booking.status,
+      created: `${zaDate.format(booking.createdAt)} · ${zaTime.format(booking.createdAt)}`,
+    })),
+    payments: paymentRows.map((payment) => ({
+      ref: payment.ref,
+      booking: payment.booking,
+      amount: money(payment.amountCents),
+      method: payment.method,
+      status: payment.status,
+      created: `${zaDate.format(payment.createdAt)} · ${zaTime.format(payment.createdAt)}`,
+    })),
+    activity: mapActivity(activityRows, (metadata) => metadata.passengerId === passenger.id),
+  };
+}
+
+export async function updatePassenger(
+  id: string,
+  input: {
+    name?: string;
+    email?: string;
+    phone?: string | null;
+    city?: string;
+    status?: string;
+  }
+) {
+  const db = getDb();
+  const [passenger] = await db
+    .update(passengers)
+    .set({ ...input, updatedAt: new Date() })
+    .where(eq(passengers.id, id))
+    .returning();
+  if (!passenger) return null;
+
+  const changedFields = Object.keys(input);
+  await db.insert(activityLogs).values({
+    eventType: "passenger_updated",
+    title: "Passenger profile updated",
+    detail: `${passenger.name} · ${changedFields.join(", ")}`,
+    metadata: { passengerId: passenger.id, changedFields },
+  });
+
+  return passenger;
+}
+
+export async function removePassenger(id: string) {
+  const db = getDb();
+  const [passenger] = await db
+    .update(passengers)
+    .set({ status: "Removed", updatedAt: new Date() })
+    .where(eq(passengers.id, id))
+    .returning();
+  if (!passenger) return null;
+
+  await db.insert(activityLogs).values({
+    eventType: "passenger_removed",
+    title: "Passenger removed from active CRM",
+    detail: passenger.name,
+    metadata: { passengerId: passenger.id },
+  });
+
+  return passenger;
+}
+
+export async function getTripDetails(publicId: string) {
+  const db = getDb();
+  const [trip] = await db.select().from(trips).where(eq(trips.publicId, publicId)).limit(1);
+  if (!trip) return null;
+
+  const [bookingRows, caseRows, activityRows] = await Promise.all([
+    db
+      .select({
+        id: bookings.publicId,
+        passengerId: passengers.id,
+        passenger: passengers.name,
+        seats: bookings.seats,
+        amountCents: bookings.amountCents,
+        paymentStatus: bookings.paymentStatus,
+        status: bookings.status,
+      })
+      .from(bookings)
+      .innerJoin(passengers, eq(bookings.passengerId, passengers.id))
+      .where(eq(bookings.tripId, trip.id))
+      .orderBy(desc(bookings.createdAt)),
+    db
+      .select()
+      .from(safetyCases)
+      .where(eq(safetyCases.tripId, trip.id))
+      .orderBy(desc(safetyCases.createdAt)),
+    db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(250),
+  ]);
+
+  return {
+    trip: {
+      id: trip.id,
+      publicId: trip.publicId,
+      fromCity: trip.fromCity,
+      toCity: trip.toCity,
+      driverId: trip.driverId ?? "",
+      driverName: trip.driverName,
+      departureAt: trip.departureAt.toISOString(),
+      seatCapacity: trip.seatCapacity,
+      seatsBooked: trip.seatsBooked,
+      fareCents: trip.fareCents,
+      fare: money(trip.fareCents),
+      status: trip.status,
+      createdAt: trip.createdAt.toISOString(),
+      updatedAt: trip.updatedAt.toISOString(),
+    },
+    bookings: bookingRows.map((booking) => ({
+      id: booking.id,
+      passengerId: booking.passengerId,
+      passenger: booking.passenger,
+      seats: booking.seats,
+      amount: money(booking.amountCents),
+      payment: booking.paymentStatus,
+      status: booking.status,
+    })),
+    safetyCases: caseRows.map((item) => ({
+      id: item.publicId,
+      subject: item.subject,
+      priority: item.priority,
+      owner: item.owner,
+      status: item.status,
+    })),
+    activity: mapActivity(
+      activityRows,
+      (metadata) => metadata.tripId === trip.id || metadata.publicId === trip.publicId
+    ),
+  };
+}
+
+export async function updateTrip(
+  publicId: string,
+  input: {
+    fromCity?: string;
+    toCity?: string;
+    driverName?: string;
+    departureAt?: Date;
+    seatCapacity?: number;
+    fareCents?: number;
+    status?: string;
+  }
+) {
+  const db = getDb();
+  let driverId: string | null | undefined = undefined;
+
+  if (input.driverName) {
+    const [driver] = await db.select().from(drivers).where(eq(drivers.name, input.driverName)).limit(1);
+    driverId = driver?.id ?? null;
+  }
+
+  const [trip] = await db
+    .update(trips)
+    .set({
+      ...input,
+      ...(driverId !== undefined ? { driverId } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(trips.publicId, publicId))
+    .returning();
+  if (!trip) return null;
+
+  const changedFields = Object.keys(input);
+  await db.insert(activityLogs).values({
+    eventType: "trip_updated",
+    title: "Trip updated",
+    detail: `${trip.publicId} · ${changedFields.join(", ")}`,
+    metadata: { tripId: trip.id, publicId: trip.publicId, changedFields },
+  });
+
+  return trip;
+}
+
+export async function getBookingDetails(publicId: string) {
+  const db = getDb();
+  const [booking] = await db
+    .select({
+      id: bookings.id,
+      publicId: bookings.publicId,
+      seats: bookings.seats,
+      amountCents: bookings.amountCents,
+      paymentStatus: bookings.paymentStatus,
+      status: bookings.status,
+      createdAt: bookings.createdAt,
+      updatedAt: bookings.updatedAt,
+      passengerId: passengers.id,
+      passengerName: passengers.name,
+      passengerEmail: passengers.email,
+      tripId: trips.publicId,
+      tripDatabaseId: trips.id,
+      fromCity: trips.fromCity,
+      toCity: trips.toCity,
+      departureAt: trips.departureAt,
+      driverName: trips.driverName,
+    })
+    .from(bookings)
+    .innerJoin(passengers, eq(bookings.passengerId, passengers.id))
+    .innerJoin(trips, eq(bookings.tripId, trips.id))
+    .where(eq(bookings.publicId, publicId))
+    .limit(1);
+
+  if (!booking) return null;
+
+  const [paymentRows, activityRows] = await Promise.all([
+    db.select().from(payments).where(eq(payments.bookingId, booking.id)).orderBy(desc(payments.createdAt)),
+    db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(250),
+  ]);
+
+  return {
+    booking: {
+      id: booking.id,
+      publicId: booking.publicId,
+      seats: booking.seats,
+      amountCents: booking.amountCents,
+      amount: money(booking.amountCents),
+      paymentStatus: booking.paymentStatus,
+      status: booking.status,
+      createdAt: booking.createdAt.toISOString(),
+      updatedAt: booking.updatedAt.toISOString(),
+    },
+    passenger: {
+      id: booking.passengerId,
+      name: booking.passengerName,
+      email: booking.passengerEmail,
+    },
+    trip: {
+      id: booking.tripId,
+      databaseId: booking.tripDatabaseId,
+      route: `${booking.fromCity} → ${booking.toCity}`,
+      departure: `${zaDate.format(booking.departureAt)} · ${zaTime.format(booking.departureAt)}`,
+      driver: booking.driverName,
+    },
+    payments: paymentRows.map((payment) => ({
+      ref: payment.publicId,
+      amount: money(payment.amountCents),
+      method: payment.method,
+      status: payment.status,
+      created: `${zaDate.format(payment.createdAt)} · ${zaTime.format(payment.createdAt)}`,
+    })),
+    activity: mapActivity(
+      activityRows,
+      (metadata) => metadata.bookingId === booking.id || metadata.booking === booking.publicId
+    ),
+  };
+}
+
+export async function updateBooking(
+  publicId: string,
+  input: {
+    seats?: number;
+    amountCents?: number;
+    paymentStatus?: string;
+    status?: string;
+  }
+) {
+  const db = getDb();
+  const [booking] = await db
+    .update(bookings)
+    .set({ ...input, updatedAt: new Date() })
+    .where(eq(bookings.publicId, publicId))
+    .returning();
+  if (!booking) return null;
+
+  const changedFields = Object.keys(input);
+  await db.insert(activityLogs).values({
+    eventType: "booking_updated",
+    title: "Booking updated",
+    detail: `${booking.publicId} · ${changedFields.join(", ")}`,
+    metadata: { bookingId: booking.id, booking: booking.publicId, changedFields },
+  });
+
+  return booking;
+}
+
+export async function getPaymentDetails(publicId: string) {
+  const db = getDb();
+  const [payment] = await db
+    .select({
+      id: payments.id,
+      publicId: payments.publicId,
+      amountCents: payments.amountCents,
+      method: payments.method,
+      status: payments.status,
+      createdAt: payments.createdAt,
+      bookingId: bookings.publicId,
+      bookingDatabaseId: bookings.id,
+      passengerId: passengers.id,
+      passengerName: passengers.name,
+      passengerEmail: passengers.email,
+      tripId: trips.publicId,
+      fromCity: trips.fromCity,
+      toCity: trips.toCity,
+    })
+    .from(payments)
+    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+    .innerJoin(passengers, eq(bookings.passengerId, passengers.id))
+    .innerJoin(trips, eq(bookings.tripId, trips.id))
+    .where(eq(payments.publicId, publicId))
+    .limit(1);
+  if (!payment) return null;
+
+  const activityRows = await db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(250);
+
+  return {
+    payment: {
+      id: payment.id,
+      publicId: payment.publicId,
+      amountCents: payment.amountCents,
+      amount: money(payment.amountCents),
+      method: payment.method,
+      status: payment.status,
+      createdAt: payment.createdAt.toISOString(),
+    },
+    booking: {
+      id: payment.bookingId,
+      databaseId: payment.bookingDatabaseId,
+    },
+    passenger: {
+      id: payment.passengerId,
+      name: payment.passengerName,
+      email: payment.passengerEmail,
+    },
+    trip: {
+      id: payment.tripId,
+      route: `${payment.fromCity} → ${payment.toCity}`,
+    },
+    activity: mapActivity(
+      activityRows,
+      (metadata) => metadata.paymentId === payment.id || metadata.payment === payment.publicId
+    ),
+  };
+}
+
+export async function updatePayment(
+  publicId: string,
+  input: {
+    amountCents?: number;
+    method?: string;
+    status?: string;
+  }
+) {
+  const db = getDb();
+  const [payment] = await db
+    .update(payments)
+    .set(input)
+    .where(eq(payments.publicId, publicId))
+    .returning();
+  if (!payment) return null;
+
+  const changedFields = Object.keys(input);
+  await db.insert(activityLogs).values({
+    eventType: "payment_updated",
+    title: "Payment updated",
+    detail: `${payment.publicId} · ${changedFields.join(", ")}`,
+    metadata: { paymentId: payment.id, payment: payment.publicId, changedFields },
+  });
+
+  return payment;
+}
+
+export async function getSafetyCaseDetails(publicId: string) {
+  const db = getDb();
+  const [item] = await db
+    .select()
+    .from(safetyCases)
+    .where(eq(safetyCases.publicId, publicId))
+    .limit(1);
+  if (!item) return null;
+
+  let linkedTrip = null;
+  if (item.tripId) {
+    const [trip] = await db.select().from(trips).where(eq(trips.id, item.tripId)).limit(1);
+    linkedTrip = trip
+      ? {
+          id: trip.publicId,
+          route: `${trip.fromCity} → ${trip.toCity}`,
+          driver: trip.driverName,
+          status: trip.status,
+        }
+      : null;
+  }
+
+  const activityRows = await db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(250);
+
+  return {
+    safetyCase: {
+      id: item.id,
+      publicId: item.publicId,
+      subject: item.subject,
+      tripLabel: item.tripLabel,
+      priority: item.priority,
+      owner: item.owner,
+      note: item.note ?? "",
+      status: item.status,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+    },
+    trip: linkedTrip,
+    activity: mapActivity(
+      activityRows,
+      (metadata) => metadata.safetyCaseId === item.id || metadata.publicId === item.publicId
+    ),
+  };
+}
+
+export async function updateSafetyCase(
+  publicId: string,
+  input: {
+    subject?: string;
+    priority?: string;
+    owner?: string;
+    note?: string | null;
+    status?: string;
+  }
+) {
+  const db = getDb();
+  const [item] = await db
+    .update(safetyCases)
+    .set({ ...input, updatedAt: new Date() })
+    .where(eq(safetyCases.publicId, publicId))
+    .returning();
+  if (!item) return null;
+
+  const changedFields = Object.keys(input);
+  await db.insert(activityLogs).values({
+    eventType: "safety_case_updated",
+    title: "Safety case updated",
+    detail: `${item.publicId} · ${changedFields.join(", ")}`,
+    metadata: { safetyCaseId: item.id, publicId: item.publicId, changedFields },
+  });
+
+  return item;
+}
+
