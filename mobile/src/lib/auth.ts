@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-import { API_URL } from '@/lib/api';
+import { API_URL, normalizeConnectionError } from '@/lib/api';
 
 const SESSION_KEY = 'vaya.passenger.session';
 
@@ -66,25 +66,31 @@ async function request<T>(
   init?: RequestInit,
   session?: string | null
 ): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(session ? { 'x-vaya-session': session } : {}),
-      ...init?.headers,
-    },
-  });
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(session ? { 'x-vaya-session': session } : {}),
+        ...init?.headers,
+      },
+    });
 
-  const payload = await response.json().catch(() => null);
+    const payload = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    const error = new Error(payload?.error ?? `Request failed (${response.status})`);
-    (error as Error & { status?: number }).status = response.status;
-    throw error;
+    if (!response.ok) {
+      const error = new Error(
+        payload?.error ?? `Request failed (${response.status})`
+      );
+      (error as Error & { status?: number }).status = response.status;
+      throw error;
+    }
+
+    return payload as T;
+  } catch (error) {
+    throw normalizeConnectionError(error);
   }
-
-  return payload as T;
 }
 
 export async function passengerSignIn(email: string, password: string) {
