@@ -269,6 +269,38 @@ export async function verifyPassengerPayment(
 }
 
 
+export type DriverDocumentKind =
+  | 'identity'
+  | 'drivers_license'
+  | 'vehicle_registration'
+  | 'roadworthy'
+  | 'insurance';
+
+export type DriverVerificationDocument = {
+  id: string;
+  kind: DriverDocumentKind;
+  label: string;
+  required: boolean;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: string;
+  reviewNote: string;
+  uploadedAt: string;
+  reviewedAt: string | null;
+  updatedAt: string;
+};
+
+export type DriverVerification = {
+  documents: DriverVerificationDocument[];
+  requiredCount: number;
+  uploadedRequiredCount: number;
+  approvedRequiredCount: number;
+  missingKinds: DriverDocumentKind[];
+  needsAttentionKinds: DriverDocumentKind[];
+  readyToApprove: boolean;
+};
+
 export type MobileDriver = {
   id: string;
   initials?: string;
@@ -283,6 +315,7 @@ export type MobileDriver = {
   checks: string;
   status: string;
   submittedAt?: string;
+  verification?: DriverVerification;
 };
 
 export type MobileDriverTrip = {
@@ -319,6 +352,28 @@ export async function submitDriverApplication(
 ) {
   return request<{ driver: MobileDriver }>(
     '/api/mobile/driver',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function uploadDriverDocument(
+  session: string,
+  input: {
+    kind: DriverDocumentKind;
+    fileName: string;
+    contentType: string;
+    fileData: string;
+  }
+) {
+  return request<{
+    document: DriverVerificationDocument;
+    verification: DriverVerification & { checks: string; status: string };
+  }>(
+    '/api/mobile/driver/documents',
     {
       method: 'POST',
       body: JSON.stringify(input),
