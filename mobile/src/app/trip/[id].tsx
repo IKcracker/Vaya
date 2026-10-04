@@ -43,15 +43,13 @@ export default function TripDetailScreen() {
   );
 
   const [trip, setTrip] = useState<PublicTrip | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(Boolean(id));
+  const [error, setError] = useState<string | null>(
+    id ? null : 'Trip reference is missing.'
+  );
 
   useEffect(() => {
-    if (!id) {
-      setError('Trip reference is missing.');
-      setLoading(false);
-      return;
-    }
+    if (!id) return;
 
     let active = true;
 
