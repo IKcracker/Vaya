@@ -361,3 +361,28 @@ export async function updateDriverTripStatus(
     session
   );
 }
+
+
+export async function updateDriverTripDetails(
+  session: string,
+  tripId: string,
+  input: {
+    from: string;
+    to: string;
+    departureAt: string;
+    seats: number;
+    fare: number;
+  }
+) {
+  return request<{ trip: MobileDriverTrip }>(
+    `/api/mobile/driver/trips/${encodeURIComponent(tripId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        action: 'update_details',
+        ...input,
+      }),
+    },
+    session
+  );
+}
