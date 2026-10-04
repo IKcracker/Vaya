@@ -5,7 +5,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const statuses = new Set(["Awaiting payment", "Confirmed", "Completed", "Cancelled"]);
-const paymentStatuses = new Set(["Pending", "Paid", "Refunded"]);
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!isDatabaseConfigured()) return Response.json({ error: "Database is not configured" }, { status: 503 });
@@ -25,7 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { id } = await params;
   const body = await request.json().catch(() => null);
 
-  const update: { seats?: number; amountCents?: number; paymentStatus?: string; status?: string } = {};
+  const update: { seats?: number; amountCents?: number; status?: string } = {};
   if (body?.seats !== undefined) {
     const seats = Number(body.seats);
     if (!Number.isInteger(seats) || seats < 1 || seats > 8) return Response.json({ error: "Invalid seat count" }, { status: 400 });
@@ -36,7 +35,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!Number.isFinite(amount) || amount < 0) return Response.json({ error: "Invalid amount" }, { status: 400 });
     update.amountCents = Math.round(amount * 100);
   }
-  if (typeof body?.paymentStatus === "string" && paymentStatuses.has(body.paymentStatus)) update.paymentStatus = body.paymentStatus;
   if (typeof body?.status === "string" && statuses.has(body.status)) update.status = body.status;
 
   if (!Object.keys(update).length) return Response.json({ error: "No valid booking updates supplied" }, { status: 400 });
