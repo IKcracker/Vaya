@@ -247,3 +247,112 @@ export async function createPublicBooking(input: {
     };
   });
 }
+
+
+export async function ensurePassengerForAuthUser(input: {
+  name: string;
+  email: string;
+  city: string;
+}) {
+  const db = getDb();
+  const email = input.email.trim().toLowerCase();
+
+  let [passenger] = await db
+    .select()
+    .from(passengers)
+    .where(eq(passengers.email, email))
+    .limit(1);
+
+  if (!passenger) {
+    [passenger] = await db
+      .insert(passengers)
+      .values({
+        name: input.name.trim(),
+        email,
+        city: input.city.trim(),
+        status: "Active",
+      })
+      .returning();
+
+    await db.insert(activityLogs).values({
+      eventType: "passenger_created",
+      title: "Passenger account created",
+      detail: `${passenger.name} · ${passenger.city}`,
+      metadata: { passengerId: passenger.id, source: "mobile_auth" },
+    });
+  }
+
+  return {
+    id: passenger.id,
+    name: passenger.name,
+    email: passenger.email,
+    phone: passenger.phone ?? "",
+    city: passenger.city,
+    status: passenger.status,
+  };
+}
+
+export async function getPassengerAccountByEmail(email: string) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [passenger] = await db
+    .select()
+    .from(passengers)
+    .where(eq(passengers.email, normalized))
+    .limit(1);
+
+  if (!passenger) return null;
+
+  return {
+    id: passenger.id,
+    name: passenger.name,
+    email: passenger.email,
+    phone: passenger.phone ?? "",
+    city: passenger.city,
+    status: passenger.status,
+    tripsCount: passenger.tripsCount,
+    joinedAt: passenger.joinedAt.toISOString(),
+  };
+}
+
+export async function getPassengerTripsByEmail(email: string) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const rows = await db
+    .select({
+      bookingId: bookings.publicId,
+      bookingStatus: bookings.status,
+      paymentStatus: bookings.paymentStatus,
+      seats: bookings.seats,
+      amountCents: bookings.amountCents,
+      createdAt: bookings.createdAt,
+      tripId: trips.publicId,
+      fromCity: trips.fromCity,
+      toCity: trips.toCity,
+      departureAt: trips.departureAt,
+      driverName: trips.driverName,
+      tripStatus: trips.status,
+    })
+    .from(bookings)
+    .innerJoin(passengers, eq(bookings.passengerId, passengers.id))
+    .innerJoin(trips, eq(bookings.tripId, trips.id))
+    .where(eq(passengers.email, normalized))
+    .orderBy(desc(bookings.createdAt));
+
+  return rows.map((row) => ({
+    id: row.bookingId,
+    route: `${row.fromCity} → ${row.toCity}`,
+    tripId: row.tripId,
+    driver: row.driverName,
+    departureAt: row.departureAt.toISOString(),
+    seats: row.seats,
+    amountCents: row.amountCents,
+    amount: money(row.amountCents),
+    bookingStatus: row.bookingStatus,
+    paymentStatus: row.paymentStatus,
+    tripStatus: row.tripStatus,
+    createdAt: row.createdAt.toISOString(),
+  }));
+}
