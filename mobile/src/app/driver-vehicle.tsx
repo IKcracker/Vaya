@@ -79,7 +79,7 @@ export default function DriverVehicleScreen() {
         <View style={styles.warning}>
           <Text style={styles.warningTitle}>The replacement car must be verified.</Text>
           <Text style={styles.warningText}>
-            Your ID and driver's licence approval stay intact. Vehicle registration,
+            Your ID and driving licence approval stay intact. Vehicle registration,
             roadworthy and insurance documents are cleared and must be uploaded again.
             New trip publishing stays locked until Vaya approves the replacement vehicle.
           </Text>
