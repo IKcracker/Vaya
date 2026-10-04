@@ -17,7 +17,12 @@ function loginUrl(request: NextRequest, reason?: string) {
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  if (pathname === "/admin/login" || pathname.startsWith("/api/auth/")) {
+  if (
+    pathname === "/admin/login" ||
+    pathname === "/admin/forgot-password" ||
+    pathname === "/admin/reset-password" ||
+    pathname.startsWith("/api/auth/")
+  ) {
     return NextResponse.next();
   }
 
