@@ -6,12 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "node scripts/seed.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@neondatabase/serverless": "^1.2.0",
+    "@next/env": "^16.3.8",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
+    "drizzle-orm": "^0.45.3",
     "lucide-react": "^1.51.0",
     "next": "16.3.8",
     "react": "19.2.8",
@@ -24,6 +31,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",

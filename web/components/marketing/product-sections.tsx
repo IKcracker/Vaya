@@ -512,6 +512,7 @@ export function ProductSections() {
                 <a href="#routes" className="transition hover:text-[#1877F2]">Routes</a>
                 <a href="#safety" className="transition hover:text-[#1877F2]">Safety</a>
                 <a href="#download" className="transition hover:text-[#1877F2]">Mobile app</a>
+                <Link href="/admin" className="transition hover:text-[#1877F2]">Admin</Link>
               </div>
             </div>
           </div>

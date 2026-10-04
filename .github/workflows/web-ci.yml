@@ -39,6 +39,15 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Verify database migrations
+        run: |
+          npm run db:generate
+          if [ -n "$(git status --porcelain -- drizzle)" ]; then
+            echo "Drizzle migrations are stale. Run npm run db:generate and commit the result."
+            git status --short -- drizzle
+            exit 1
+          fi
+
       - name: Build
         run: npm run build
         env:
