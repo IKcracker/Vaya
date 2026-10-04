@@ -17,6 +17,7 @@ export function AdminLoginForm() {
   const [error, setError] = useState<string | null>(null);
 
   const reason = searchParams.get("reason");
+  const reset = searchParams.get("reset");
   const requestedNext = searchParams.get("next");
   const next =
     requestedNext && requestedNext.startsWith("/admin")
@@ -103,6 +104,12 @@ export function AdminLoginForm() {
                 Use an account with Vaya admin access.
               </p>
 
+              {reset === "success" ? (
+                <div className="mt-5 rounded-lg border border-[#ABEFC6] bg-[#ECFDF3] px-4 py-3 text-xs leading-5 text-[#027A48]">
+                  Your password has been set. You can sign in now.
+                </div>
+              ) : null}
+
               {reason === "forbidden" ? (
                 <div className="mt-5 rounded-lg border border-[#FEDF89] bg-[#FFFAEB] px-4 py-3 text-xs leading-5 text-[#B54708]">
                   Your account is signed in but does not have admin access.
@@ -154,6 +161,14 @@ export function AdminLoginForm() {
                       {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Link
+                    href="/admin/forgot-password"
+                    className="text-xs font-semibold text-[#1877F2] transition hover:text-[#166FE5] hover:underline hover:underline-offset-4">
+                    Forgot or need to set your password?
+                  </Link>
                 </div>
 
                 <Button
