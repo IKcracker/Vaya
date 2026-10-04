@@ -22,6 +22,17 @@ export type PassengerAccount = {
   joinedAt?: string;
 };
 
+export type PassengerPayment = {
+  reference: string;
+  bookingId: string;
+  amountCents: number;
+  amount: string;
+  method: string;
+  status: string;
+  route: string;
+  createdAt: string;
+};
+
 export type PassengerTrip = {
   id: string;
   route: string;
@@ -138,6 +149,54 @@ export async function fetchPassengerProfile(session: string) {
     user: AuthUser;
     passenger: PassengerAccount | null;
   }>('/api/mobile/me', undefined, session);
+}
+
+export async function updatePassengerProfile(
+  session: string,
+  input: { name: string; phone: string; city: string }
+) {
+  return request<{
+    user: AuthUser;
+    passenger: PassengerAccount;
+  }>(
+    '/api/mobile/me',
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function fetchPassengerPayments(session: string) {
+  return request<{ payments: PassengerPayment[] }>(
+    '/api/mobile/me/payments',
+    undefined,
+    session
+  );
+}
+
+export async function submitPassengerSafetyReport(
+  session: string,
+  input: { subject: string; note: string; tripId?: string | null }
+) {
+  return request<{
+    safetyCase: {
+      id: string;
+      subject: string;
+      status: string;
+      priority: string;
+      trip: string;
+      createdAt: string;
+    };
+  }>(
+    '/api/mobile/me/safety',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+    session
+  );
 }
 
 export async function fetchPassengerTrips(session: string) {
