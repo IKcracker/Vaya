@@ -1,8 +1,8 @@
 import { neon } from "@neondatabase/serverless";
-import nextEnv from "@next/env";
+import { loadEnvConfig } from "@next/env";
 import { fileURLToPath } from "node:url";
 
-nextEnv.loadEnvConfig(fileURLToPath(new URL("../", import.meta.url)));
+loadEnvConfig(fileURLToPath(new URL("../", import.meta.url)));
 
 const connectionString =
   process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
