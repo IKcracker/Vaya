@@ -261,3 +261,97 @@ export async function verifyPassengerPayment(
     session
   );
 }
+
+
+export type MobileDriver = {
+  id: string;
+  initials?: string;
+  name: string;
+  email: string;
+  phone?: string;
+  location: string;
+  vehicle?: string;
+  vehicleMake?: string;
+  vehicleModel?: string;
+  vehicleYear?: number;
+  checks: string;
+  status: string;
+  submittedAt?: string;
+};
+
+export type MobileDriverTrip = {
+  id: string;
+  route: string;
+  from: string;
+  to: string;
+  departureAt: string;
+  seatCapacity: number;
+  seatsBooked: number;
+  availableSeats: number;
+  fareCents: number;
+  fare: string;
+  status: string;
+};
+
+export async function fetchMobileDriver(session: string) {
+  return request<{
+    driver: MobileDriver | null;
+    trips: MobileDriverTrip[];
+  }>('/api/mobile/driver', undefined, session);
+}
+
+export async function submitDriverApplication(
+  session: string,
+  input: {
+    name: string;
+    phone?: string;
+    location: string;
+    vehicleMake: string;
+    vehicleModel: string;
+    vehicleYear: number;
+  }
+) {
+  return request<{ driver: MobileDriver }>(
+    '/api/mobile/driver',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function publishDriverTrip(
+  session: string,
+  input: {
+    from: string;
+    to: string;
+    departureAt: string;
+    seats: number;
+    fare: number;
+  }
+) {
+  return request<{ trip: MobileDriverTrip }>(
+    '/api/mobile/driver/trips',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function updateDriverTripStatus(
+  session: string,
+  tripId: string,
+  status: 'Scheduled' | 'On schedule' | 'Boarding' | 'Completed' | 'Cancelled'
+) {
+  return request<{ trip: { id: string; status: string } }>(
+    `/api/mobile/driver/trips/${encodeURIComponent(tripId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    },
+    session
+  );
+}
