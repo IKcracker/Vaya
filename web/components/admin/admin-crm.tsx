@@ -18,7 +18,6 @@ import {
   Route,
   Search,
   ShieldAlert,
-  SlidersHorizontal,
   UserCheck,
   Users,
   WalletCards,
@@ -416,11 +415,6 @@ export function AdminCrm() {
   const [createTripOpen, setCreateTripOpen] = useState(false);
   const [addPassengerOpen, setAddPassengerOpen] = useState(false);
   const [createSafetyOpen, setCreateSafetyOpen] = useState(false);
-  const [recordDetail, setRecordDetail] = useState<{
-    title: string;
-    subtitle?: string;
-    fields: Array<[string, string]>;
-  } | null>(null);
   const [activityLog, setActivityLog] = useState(initialActivity);
 
   const current = modules.find((item) => item.key === active) ?? modules[0];
@@ -716,9 +710,6 @@ export function AdminCrm() {
     setCreateSafetyOpen(false);
   };
 
-  const openDetails = (title: string, subtitle: string | undefined, fields: Array<[string, string]>) => {
-    setRecordDetail({ title, subtitle, fields });
-  };
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] text-[#101828] lg:grid lg:grid-cols-[252px_minmax(0,1fr)]">
@@ -857,14 +848,14 @@ export function AdminCrm() {
 
         <div className="p-4 sm:p-6 lg:p-8">
           {active === "overview" ? (
-            <Overview driverRows={driverRecords} tripRows={tripRecords} safetyRows={safetyRecords} activityLog={activityLog} onOpenDrivers={() => setModule("drivers")} onOpenSafety={() => setModule("safety")} onReviewDriver={openDriverReview} onViewTrip={(trip) => openDetails(trip.id, trip.route, [["Driver", trip.driver], ["Departure", `${trip.date} · ${trip.departure}`], ["Occupancy", trip.occupancy], ["Fare", trip.fare], ["Status", trip.status]])} />
+            <Overview driverRows={driverRecords} tripRows={tripRecords} safetyRows={safetyRecords} activityLog={activityLog} onOpenDrivers={() => setModule("drivers")} onOpenSafety={() => setModule("safety")} onReviewDriver={openDriverReview} />
           ) : null}
           {active === "drivers" ? <DriversView rows={filteredDrivers} onReview={openDriverReview} /> : null}
-          {active === "trips" ? <TripsView rows={filteredTrips} onCreate={() => setCreateTripOpen(true)} onView={(trip) => openDetails(trip.id, trip.route, [["Driver", trip.driver], ["Departure", `${trip.date} · ${trip.departure}`], ["Occupancy", trip.occupancy], ["Fare", trip.fare], ["Status", trip.status]])} /> : null}
-          {active === "bookings" ? <BookingsView rows={filteredBookings} onView={(booking) => openDetails(booking.id, booking.passenger, [["Trip", booking.trip], ["Seats", booking.seat], ["Amount", booking.amount], ["Payment", booking.payment], ["Status", booking.status]])} /> : null}
-          {active === "passengers" ? <PassengersView rows={filteredPassengers} onAdd={() => setAddPassengerOpen(true)} onView={(passenger) => openDetails(passenger.name, passenger.contact, [["Home city", passenger.city], ["Trips", passenger.trips], ["Joined", passenger.joined], ["Status", passenger.status]])} /> : null}
-          {active === "payments" ? <PaymentsView rows={filteredPayments} onView={(payment) => openDetails(payment.ref, payment.customer, [["Booking", payment.booking], ["Amount", payment.amount], ["Method", payment.method], ["Date", payment.date], ["Status", payment.status]])} /> : null}
-          {active === "safety" ? <SafetyView rows={filteredSafety} onCreate={() => setCreateSafetyOpen(true)} onView={(item) => openDetails(item.id, item.subject, [["Trip", item.trip], ["Priority", item.priority], ["Owner", item.owner], ["Created", item.created], ["Status", item.status]])} /> : null}
+          {active === "trips" ? <TripsView rows={filteredTrips} onCreate={() => setCreateTripOpen(true)} /> : null}
+          {active === "bookings" ? <BookingsView rows={filteredBookings} /> : null}
+          {active === "passengers" ? <PassengersView rows={filteredPassengers} onAdd={() => setAddPassengerOpen(true)} /> : null}
+          {active === "payments" ? <PaymentsView rows={filteredPayments} /> : null}
+          {active === "safety" ? <SafetyView rows={filteredSafety} onCreate={() => setCreateSafetyOpen(true)} /> : null}
         </div>
       </main>
 
@@ -877,7 +868,6 @@ export function AdminCrm() {
       <CreateTripDialog open={createTripOpen} onOpenChange={setCreateTripOpen} onSubmit={createTrip} />
       <AddPassengerDialog open={addPassengerOpen} onOpenChange={setAddPassengerOpen} onSubmit={addPassenger} />
       <CreateSafetyDialog open={createSafetyOpen} onOpenChange={setCreateSafetyOpen} onSubmit={createSafetyCase} />
-      <RecordDetailsDialog detail={recordDetail} onOpenChange={(open) => !open && setRecordDetail(null)} />
     </div>
   );
 }
@@ -913,7 +903,6 @@ function Overview({
   onOpenDrivers,
   onOpenSafety,
   onReviewDriver,
-  onViewTrip,
 }: {
   driverRows: typeof drivers;
   tripRows: typeof trips;
@@ -922,7 +911,6 @@ function Overview({
   onOpenDrivers: () => void;
   onOpenSafety: () => void;
   onReviewDriver: (driver: (typeof drivers)[number]) => void;
-  onViewTrip: (trip: (typeof trips)[number]) => void;
 }) {
   const overviewStats = [
     { ...stats[0], value: String(driverRows.filter((driver) => driver.status !== "Approved").length), note: `${driverRows.filter((driver) => driver.status === "Ready").length} ready for approval` },
@@ -1054,7 +1042,7 @@ function Overview({
           </div>
           <Badge variant="success">Live</Badge>
         </CardHeader>
-        <TripsTable rows={tripRows} onView={onViewTrip} />
+        <TripsTable rows={tripRows} />
       </Card>
 
       <Card className="mt-6 shadow-none">
@@ -1185,7 +1173,7 @@ function DriversView({ rows, onReview }: { rows: typeof drivers; onReview: (driv
   );
 }
 
-function TripsView({ rows, onCreate, onView }: { rows: typeof trips; onCreate: () => void; onView: (trip: (typeof trips)[number]) => void }) {
+function TripsView({ rows, onCreate }: { rows: typeof trips; onCreate: () => void }) {
   return (
     <>
       <PageHeading
@@ -1202,13 +1190,13 @@ function TripsView({ rows, onCreate, onView }: { rows: typeof trips; onCreate: (
           </div>
           
         </CardHeader>
-        {rows.length ? <TripsTable rows={rows} onView={onView} /> : <EmptyState label="trips" />}
+        {rows.length ? <TripsTable rows={rows} /> : <EmptyState label="trips" />}
       </Card>
     </>
   );
 }
 
-function TripsTable({ rows, onView }: { rows: typeof trips; onView: (trip: (typeof trips)[number]) => void }) {
+function TripsTable({ rows }: { rows: typeof trips }) {
   return (
     <Table>
       <TableHeader>
@@ -1242,7 +1230,7 @@ function TripsTable({ rows, onView }: { rows: typeof trips; onView: (trip: (type
   );
 }
 
-function BookingsView({ rows, onView }: { rows: typeof bookings; onView: (booking: (typeof bookings)[number]) => void }) {
+function BookingsView({ rows }: { rows: typeof bookings }) {
   return (
     <>
       <PageHeading
@@ -1291,7 +1279,7 @@ function BookingsView({ rows, onView }: { rows: typeof bookings; onView: (bookin
   );
 }
 
-function PassengersView({ rows, onAdd, onView }: { rows: typeof passengers; onAdd: () => void; onView: (passenger: (typeof passengers)[number]) => void }) {
+function PassengersView({ rows, onAdd }: { rows: typeof passengers; onAdd: () => void }) {
   return (
     <>
       <PageHeading
@@ -1339,7 +1327,7 @@ function PassengersView({ rows, onAdd, onView }: { rows: typeof passengers; onAd
   );
 }
 
-function PaymentsView({ rows, onView }: { rows: typeof payments; onView: (payment: (typeof payments)[number]) => void }) {
+function PaymentsView({ rows }: { rows: typeof payments }) {
   return (
     <>
       <PageHeading
@@ -1393,7 +1381,7 @@ function PaymentsView({ rows, onView }: { rows: typeof payments; onView: (paymen
   );
 }
 
-function SafetyView({ rows, onCreate, onView }: { rows: typeof safetyCases; onCreate: () => void; onView: (item: (typeof safetyCases)[number]) => void }) {
+function SafetyView({ rows, onCreate }: { rows: typeof safetyCases; onCreate: () => void }) {
   return (
     <>
       <PageHeading
@@ -1700,36 +1688,3 @@ function CreateSafetyDialog({
     </Dialog>
   );
 }
-
-function RecordDetailsDialog({
-  detail,
-  onOpenChange,
-}: {
-  detail: { title: string; subtitle?: string; fields: Array<[string, string]> } | null;
-  onOpenChange: (open: boolean) => void;
-}) {
-  return (
-    <Dialog open={Boolean(detail)} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{detail?.title ?? "Record details"}</DialogTitle>
-          {detail?.subtitle ? <DialogDescription>{detail.subtitle}</DialogDescription> : null}
-        </DialogHeader>
-        <div className="p-5">
-          <div className="divide-y divide-[#EAECF0] rounded-lg border border-[#EAECF0]">
-            {detail?.fields.map(([label, value]) => (
-              <div key={label} className="grid gap-1 px-4 py-3 sm:grid-cols-[130px_1fr] sm:gap-4">
-                <div className="text-[11px] font-semibold text-[#667085]">{label}</div>
-                <div className="text-sm font-medium text-[#101828]">{value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="button" onClick={() => onOpenChange(false)} className="bg-[#1877F2] hover:bg-[#166FE5]">Done</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
