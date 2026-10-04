@@ -231,7 +231,9 @@ export async function saveDriverDocumentByEmail(
   });
 
   const verification = await syncDriverVerificationState(driver.id, {
-    forceReview: true,
+    forceReview: REQUIRED_DRIVER_DOCUMENTS.some(
+      (document) => document.kind === input.kind
+    ),
   });
 
   return {
