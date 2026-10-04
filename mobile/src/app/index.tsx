@@ -186,7 +186,14 @@ export default function HomeScreen() {
             </View>
           ) : nextTrip ? (
             <Pressable
-              onPress={() => router.push('/trips')}
+              onPress={() =>
+                nextTrip.paymentStatus === 'Paid'
+                  ? router.push('/trips')
+                  : router.push({
+                      pathname: '/payment/[id]',
+                      params: { id: nextTrip.id },
+                    })
+              }
               style={({ pressed }) => [styles.nextTrip, pressed && styles.routePressed]}>
               <View style={styles.nextTripTop}>
                 <View style={{ flex: 1 }}>
