@@ -21,7 +21,7 @@ const corridors = [
 
 function openSearch(from: string, to: string) {
   router.push({
-    pathname: '/search-results',
+    pathname: '/search',
     params: { from, to },
   });
 }
