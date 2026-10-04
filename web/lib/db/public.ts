@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, gte, ilike, lt, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, lt, ne, or, sql } from "drizzle-orm";
 import { getDb } from "./index";
 import { activityLogs, bookings, drivers, passengers, trips } from "./schema";
 
