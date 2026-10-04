@@ -29,9 +29,9 @@ export default function BookingScreen() {
     Number(typeof params.seats === 'string' ? params.seats : '1') || 1
   );
 
-  const [name, setName] = useState('Zack Moropane');
-  const [email, setEmail] = useState('zack@example.com');
-  const [city, setCity] = useState('Johannesburg');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [city, setCity] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [booking, setBooking] = useState<PublicBooking | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,16 +94,14 @@ export default function BookingScreen() {
           </View>
 
           <Pressable
-            onPress={() => router.replace('/trips')}
+            onPress={() => router.replace('/')}
             style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-            <Text style={styles.primaryText}>View my trips</Text>
+            <Text style={styles.primaryText}>Back to Ride</Text>
           </Pressable>
 
-          <Pressable
-            onPress={() => router.replace('/')}
-            style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
-            <Text style={styles.secondaryText}>Back to Ride</Text>
-          </Pressable>
+          <Text style={styles.successFootnote}>
+            Passenger sign-in and synced trip history are the next mobile slice.
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -322,17 +320,13 @@ const styles = StyleSheet.create({
   },
   primaryDisabled: { backgroundColor: '#B7D5FA' },
   primaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
-  secondary: {
-    marginTop: 10,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: LINE,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: SURFACE,
+  successFootnote: {
+    color: MUTED,
+    fontSize: 9,
+    lineHeight: 15,
+    textAlign: 'center',
+    marginTop: 12,
   },
-  secondaryText: { color: TEXT, fontSize: 12, fontWeight: '900' },
   successPage: {
     flex: 1,
     paddingHorizontal: 20,
