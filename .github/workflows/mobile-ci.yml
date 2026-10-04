@@ -1,0 +1,40 @@
+name: Mobile CI
+
+on:
+  push:
+    branches:
+      - mobile-app
+    paths:
+      - "mobile/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/mobile-ci.yml"
+  pull_request:
+    paths:
+      - "mobile/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/mobile-ci.yml"
+
+jobs:
+  verify-mobile:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Expo lint
+        run: npm run lint --workspace mobile
+
+      - name: TypeScript
+        run: npx tsc --noEmit -p mobile/tsconfig.json
