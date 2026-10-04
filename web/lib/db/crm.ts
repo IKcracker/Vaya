@@ -834,6 +834,35 @@ export async function updatePayment(
     .returning();
   if (!payment) return null;
 
+  if (input.status === "Settled") {
+    await db
+      .update(bookings)
+      .set({
+        paymentStatus: "Paid",
+        status: "Confirmed",
+        updatedAt: new Date(),
+      })
+      .where(eq(bookings.id, payment.bookingId));
+  } else if (input.status === "Refunded") {
+    await db
+      .update(bookings)
+      .set({
+        paymentStatus: "Refunded",
+        status: "Cancelled",
+        updatedAt: new Date(),
+      })
+      .where(eq(bookings.id, payment.bookingId));
+  } else if (input.status === "Pending") {
+    await db
+      .update(bookings)
+      .set({
+        paymentStatus: "Pending",
+        status: "Awaiting payment",
+        updatedAt: new Date(),
+      })
+      .where(eq(bookings.id, payment.bookingId));
+  }
+
   const changedFields = Object.keys(input);
   await db.insert(activityLogs).values({
     eventType: "payment_updated",
