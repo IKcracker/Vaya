@@ -4,7 +4,6 @@ import {
   pgTable,
   text,
   timestamp,
-  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -40,9 +39,7 @@ export const driverDocuments = pgTable("driver_documents", {
   uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  uniqueIndex("driver_documents_driver_kind_unique").on(table.driverId, table.kind),
-]);
+});
 
 export const passengers = pgTable("passengers", {
   id: uuid("id").defaultRandom().primaryKey(),
