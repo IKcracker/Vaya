@@ -560,3 +560,257 @@ export async function failMobilePayment(reference: string) {
 
   return payment;
 }
+
+
+export async function getMobileDriverByEmail(email: string) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [driver] = await db
+    .select()
+    .from(drivers)
+    .where(eq(drivers.email, normalized))
+    .limit(1);
+
+  if (!driver) return null;
+
+  const driverTrips = await db
+    .select()
+    .from(trips)
+    .where(eq(trips.driverId, driver.id))
+    .orderBy(desc(trips.departureAt));
+
+  return {
+    driver: {
+      id: driver.id,
+      initials: driver.initials,
+      name: driver.name,
+      email: driver.email ?? "",
+      phone: driver.phone ?? "",
+      location: driver.location,
+      vehicleMake: driver.vehicleMake,
+      vehicleModel: driver.vehicleModel,
+      vehicleYear: driver.vehicleYear,
+      vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}`,
+      checks: driver.checks,
+      status: driver.status,
+      submittedAt: driver.submittedAt.toISOString(),
+    },
+    trips: driverTrips.map((trip) => ({
+      id: trip.publicId,
+      route: `${trip.fromCity} → ${trip.toCity}`,
+      from: trip.fromCity,
+      to: trip.toCity,
+      departureAt: trip.departureAt.toISOString(),
+      seatCapacity: trip.seatCapacity,
+      seatsBooked: trip.seatsBooked,
+      availableSeats: Math.max(0, trip.seatCapacity - trip.seatsBooked),
+      fareCents: trip.fareCents,
+      fare: money(trip.fareCents),
+      status: trip.status,
+    })),
+  };
+}
+
+export async function createMobileDriverApplication(input: {
+  name: string;
+  email: string;
+  phone?: string;
+  location: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleYear: number;
+}) {
+  const db = getDb();
+  const email = input.email.trim().toLowerCase();
+
+  const [existing] = await db
+    .select()
+    .from(drivers)
+    .where(eq(drivers.email, email))
+    .limit(1);
+
+  if (existing) {
+    throw new Error("DRIVER_ALREADY_EXISTS");
+  }
+
+  const initials =
+    input.name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((value) => value[0])
+      .join("")
+      .slice(0, 4)
+      .toUpperCase() || "VD";
+
+  const [driver] = await db
+    .insert(drivers)
+    .values({
+      initials,
+      name: input.name.trim(),
+      email,
+      phone: input.phone?.trim() || null,
+      location: input.location.trim(),
+      vehicleMake: input.vehicleMake.trim(),
+      vehicleModel: input.vehicleModel.trim(),
+      vehicleYear: input.vehicleYear,
+      checks: "Identity, licence and vehicle review pending",
+      status: "Review",
+    })
+    .returning();
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_application",
+    title: "Driver application submitted",
+    detail: `${driver.name} · ${driver.location}`,
+    metadata: {
+      driverId: driver.id,
+      email,
+      source: "mobile",
+    },
+  });
+
+  return {
+    id: driver.id,
+    name: driver.name,
+    email: driver.email ?? "",
+    location: driver.location,
+    vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}`,
+    checks: driver.checks,
+    status: driver.status,
+  };
+}
+
+export async function createMobileDriverTrip(
+  email: string,
+  input: {
+    from: string;
+    to: string;
+    departureAt: Date;
+    seats: number;
+    fareCents: number;
+  }
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [driver] = await db
+    .select()
+    .from(drivers)
+    .where(eq(drivers.email, normalized))
+    .limit(1);
+
+  if (!driver) throw new Error("DRIVER_NOT_FOUND");
+  if (driver.status !== "Approved") throw new Error("DRIVER_NOT_APPROVED");
+
+  const publicId = `VY-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+
+  const [trip] = await db
+    .insert(trips)
+    .values({
+      publicId,
+      fromCity: input.from.trim(),
+      toCity: input.to.trim(),
+      driverId: driver.id,
+      driverName: driver.name,
+      departureAt: input.departureAt,
+      seatCapacity: input.seats,
+      seatsBooked: 0,
+      fareCents: input.fareCents,
+      status: "Scheduled",
+    })
+    .returning();
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_trip_created",
+    title: "Driver published a trip",
+    detail: `${trip.publicId} · ${trip.fromCity} → ${trip.toCity}`,
+    metadata: {
+      driverId: driver.id,
+      tripId: trip.id,
+      publicId: trip.publicId,
+      source: "mobile",
+    },
+  });
+
+  return {
+    id: trip.publicId,
+    route: `${trip.fromCity} → ${trip.toCity}`,
+    departureAt: trip.departureAt.toISOString(),
+    seatCapacity: trip.seatCapacity,
+    seatsBooked: trip.seatsBooked,
+    fareCents: trip.fareCents,
+    fare: money(trip.fareCents),
+    status: trip.status,
+  };
+}
+
+export async function updateMobileDriverTripStatus(
+  email: string,
+  publicId: string,
+  status: "Scheduled" | "On schedule" | "Boarding" | "Completed" | "Cancelled"
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [driver] = await db
+    .select()
+    .from(drivers)
+    .where(eq(drivers.email, normalized))
+    .limit(1);
+
+  if (!driver) throw new Error("DRIVER_NOT_FOUND");
+  if (driver.status !== "Approved") throw new Error("DRIVER_NOT_APPROVED");
+
+  const [trip] = await db
+    .update(trips)
+    .set({
+      status,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(trips.publicId, publicId),
+        eq(trips.driverId, driver.id)
+      )
+    )
+    .returning();
+
+  if (!trip) throw new Error("TRIP_NOT_FOUND");
+
+  if (status === "Cancelled") {
+    await db
+      .update(bookings)
+      .set({ status: "Cancelled", updatedAt: new Date() })
+      .where(eq(bookings.tripId, trip.id));
+  } else if (status === "Completed") {
+    await db
+      .update(bookings)
+      .set({ status: "Completed", updatedAt: new Date() })
+      .where(
+        and(
+          eq(bookings.tripId, trip.id),
+          ne(bookings.status, "Cancelled")
+        )
+      );
+  }
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_trip_status",
+    title: `Trip ${status.toLowerCase()}`,
+    detail: `${trip.publicId} · ${trip.fromCity} → ${trip.toCity}`,
+    metadata: {
+      driverId: driver.id,
+      tripId: trip.id,
+      publicId: trip.publicId,
+      status,
+      source: "mobile",
+    },
+  });
+
+  return {
+    id: trip.publicId,
+    status: trip.status,
+  };
+}
