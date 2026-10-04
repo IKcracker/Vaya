@@ -41,7 +41,16 @@ await sql`
     ('ZN', 'Zanele Nkosi', 'zanele.nkosi@vaya.demo', '073 555 1010', 'Pretoria, Gauteng', 'Kia', 'Sonet', 2024, 'All checks complete', 'Approved', '2026-09-05T13:20:00+02:00', '2026-09-27T11:05:00+02:00'),
     ('MT', 'Mandla Tshabalala', 'mandla.tshabalala@vaya.demo', '074 555 1011', 'Kimberley, Northern Cape', 'Toyota', 'Urban Cruiser', 2022, 'All checks complete', 'Approved', '2026-08-30T07:45:00+02:00', '2026-09-26T17:15:00+02:00'),
     ('SM', 'Sipho Mthembu', 'sipho.mthembu@vaya.demo', '076 555 1012', 'Gqeberha, Eastern Cape', 'Renault', 'Triber', 2021, 'All checks complete', 'Suspended', '2026-08-10T12:00:00+02:00', '2026-10-01T10:30:00+02:00')
-  ON CONFLICT (email) DO NOTHING
+  ON CONFLICT (email) DO UPDATE SET
+    phone = EXCLUDED.phone,
+    location = EXCLUDED.location,
+    vehicle_make = EXCLUDED.vehicle_make,
+    vehicle_model = EXCLUDED.vehicle_model,
+    vehicle_year = EXCLUDED.vehicle_year,
+    checks = EXCLUDED.checks,
+    status = EXCLUDED.status,
+    submitted_at = EXCLUDED.submitted_at,
+    updated_at = EXCLUDED.updated_at
 `;
 
 await sql`
@@ -68,7 +77,12 @@ await sql`
     ('Nomsa Mokoena', 'nomsa.mokoena@example.com', '073 600 2010', 'Kimberley', 0, 'Active', '2026-09-18T17:00:00+02:00', '2026-10-02T14:10:00+02:00'),
     ('Tebogo Moremi', 'tebogo.moremi@example.com', '074 600 2011', 'Johannesburg', 0, 'Active', '2026-09-22T18:15:00+02:00', '2026-10-03T20:10:00+02:00'),
     ('Andile Mthethwa', 'andile.mthethwa@example.com', '076 600 2012', 'Durban', 0, 'Suspended', '2026-08-28T15:00:00+02:00', '2026-10-01T09:45:00+02:00')
-  ON CONFLICT (email) DO NOTHING
+  ON CONFLICT (email) DO UPDATE SET
+    phone = EXCLUDED.phone,
+    city = EXCLUDED.city,
+    status = EXCLUDED.status,
+    joined_at = EXCLUDED.joined_at,
+    updated_at = EXCLUDED.updated_at
 `;
 
 await sql`
@@ -86,7 +100,19 @@ await sql`
     created_at,
     updated_at
   )
-  SELECT *
+  SELECT
+    seed.public_id,
+    seed.from_city,
+    seed.to_city,
+    d.id,
+    seed.driver_name,
+    seed.departure_at,
+    seed.seat_capacity,
+    seed.seats_booked,
+    seed.fare_cents,
+    seed.status,
+    seed.created_at,
+    seed.updated_at
   FROM (
     VALUES
       ('VY-1048', 'Johannesburg', 'Durban', 'lebo.mokoena@vaya.demo', 'Lebo Mokoena', '2026-10-09T06:30:00+02:00'::timestamptz, 4, 3, 28000, 'On schedule', '2026-10-01T08:00:00+02:00'::timestamptz, '2026-10-03T20:00:00+02:00'::timestamptz),
@@ -116,7 +142,15 @@ await sql`
     updated_at
   )
   LEFT JOIN drivers d ON d.email = seed.driver_email
-  ON CONFLICT (public_id) DO NOTHING
+  ON CONFLICT (public_id) DO UPDATE SET
+    driver_id = EXCLUDED.driver_id,
+    driver_name = EXCLUDED.driver_name,
+    departure_at = EXCLUDED.departure_at,
+    seat_capacity = EXCLUDED.seat_capacity,
+    seats_booked = EXCLUDED.seats_booked,
+    fare_cents = EXCLUDED.fare_cents,
+    status = EXCLUDED.status,
+    updated_at = EXCLUDED.updated_at
 `;
 
 await sql`
