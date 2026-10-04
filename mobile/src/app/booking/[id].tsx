@@ -1,17 +1,17 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { createBooking, PublicBooking } from '@/lib/api';
+import { createAuthenticatedBooking } from '@/lib/auth';
+import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
 const BLUE = '#1877F2';
 const BG = '#F5F7FA';
@@ -19,6 +19,19 @@ const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
 const LINE = '#E4E7EC';
+
+type CreatedBooking = {
+  id: string;
+  status: string;
+  paymentStatus: string;
+  seats: number;
+  amount: string;
+  trip: {
+    id: string;
+    route: string;
+    departureAt: string;
+  };
+};
 
 export default function BookingScreen() {
   const router = useRouter();
@@ -29,37 +42,21 @@ export default function BookingScreen() {
     Number(typeof params.seats === 'string' ? params.seats : '1') || 1
   );
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [city, setCity] = useState('');
+  const { loading, session, passenger } = usePassengerAuth();
   const [submitting, setSubmitting] = useState(false);
-  const [booking, setBooking] = useState<PublicBooking | null>(null);
+  const [booking, setBooking] = useState<CreatedBooking | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = useMemo(
-    () =>
-      tripId.length > 0 &&
-      name.trim().length > 1 &&
-      city.trim().length > 1 &&
-      /^\S+@\S+\.\S+$/.test(email.trim()),
-    [city, email, name, tripId]
-  );
-
   async function confirmBooking() {
-    if (!canSubmit || submitting) return;
+    if (!session || !passenger || !tripId || submitting) return;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      const response = await createBooking({
+      const response = await createAuthenticatedBooking(session, {
         tripId,
         seats,
-        passenger: {
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          city: city.trim(),
-        },
       });
 
       setBooking(response.booking);
@@ -70,6 +67,63 @@ export default function BookingScreen() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centerState}>
+          <ActivityIndicator color={BLUE} />
+          <Text style={styles.stateTitle}>Checking your account</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!session) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centerState}>
+          <View style={styles.authIcon}>
+            <Text style={styles.authIconText}>✓</Text>
+          </View>
+          <Text style={styles.stateTitle}>Sign in to book this ride</Text>
+          <Text style={styles.stateText}>
+            Your passenger account is used for the booking and future trip history.
+          </Text>
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/auth',
+                params: {
+                  next: `/booking/${encodeURIComponent(tripId)}?seats=${seats}`,
+                },
+              })
+            }
+            style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
+            <Text style={styles.primaryText}>Sign in or create account</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!passenger) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centerState}>
+          <Text style={styles.stateTitle}>Passenger profile required</Text>
+          <Text style={styles.stateText}>
+            Your Neon Auth account is signed in, but no passenger profile is linked to this email yet.
+          </Text>
+          <Pressable
+            onPress={() => router.replace('/profile')}
+            style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
+            <Text style={styles.primaryText}>Open profile</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   if (booking) {
@@ -94,14 +148,10 @@ export default function BookingScreen() {
           </View>
 
           <Pressable
-            onPress={() => router.replace('/')}
+            onPress={() => router.replace('/trips')}
             style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-            <Text style={styles.primaryText}>Back to Ride</Text>
+            <Text style={styles.primaryText}>View my trips</Text>
           </Pressable>
-
-          <Text style={styles.successFootnote}>
-            Passenger sign-in and synced trip history are the next mobile slice.
-          </Text>
         </View>
       </SafeAreaView>
     );
@@ -111,7 +161,6 @@ export default function BookingScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView
         contentContainerStyle={styles.page}
-        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Pressable
@@ -136,41 +185,27 @@ export default function BookingScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Passenger details</Text>
-        <View style={styles.formCard}>
-          <Field label="Full name">
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-              style={styles.input}
-              placeholder="Full name"
-              placeholderTextColor="#98A2B3"
-            />
-          </Field>
-
-          <Field label="Email">
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              style={styles.input}
-              placeholder="name@example.com"
-              placeholderTextColor="#98A2B3"
-            />
-          </Field>
-
-          <Field label="Home city">
-            <TextInput
-              value={city}
-              onChangeText={setCity}
-              autoCapitalize="words"
-              style={styles.input}
-              placeholder="Johannesburg"
-              placeholderTextColor="#98A2B3"
-            />
-          </Field>
+        <Text style={styles.sectionTitle}>Passenger account</Text>
+        <View style={styles.accountCard}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {passenger.name
+                .split(' ')
+                .filter(Boolean)
+                .map((value) => value[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase()}
+            </Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.accountName}>{passenger.name}</Text>
+            <Text style={styles.accountEmail}>{passenger.email}</Text>
+            <Text style={styles.accountCity}>{passenger.city}</Text>
+          </View>
+          <View style={styles.secureBadge}>
+            <Text style={styles.secureText}>Signed in</Text>
+          </View>
         </View>
 
         {error ? (
@@ -183,18 +218,17 @@ export default function BookingScreen() {
         <View style={styles.note}>
           <Text style={styles.noteTitle}>Seat availability is checked again</Text>
           <Text style={styles.noteText}>
-            Vaya only confirms the booking if the requested seats are still
-            available when you submit.
+            Vaya confirms the booking only if the requested seats are still available. Fare and passenger identity are controlled by the server.
           </Text>
         </View>
 
         <Pressable
-          disabled={!canSubmit || submitting}
+          disabled={submitting || !tripId}
           onPress={() => void confirmBooking()}
           style={({ pressed }) => [
             styles.primary,
-            (!canSubmit || submitting) && styles.primaryDisabled,
-            pressed && canSubmit && !submitting && styles.pressed,
+            (submitting || !tripId) && styles.primaryDisabled,
+            pressed && !submitting && tripId && styles.pressed,
           ]}>
           {submitting ? (
             <ActivityIndicator color="#FFFFFF" />
@@ -204,21 +238,6 @@ export default function BookingScreen() {
         </Pressable>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      {children}
-    </View>
   );
 }
 
@@ -235,6 +254,30 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   page: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 40 },
   pressed: { opacity: 0.72 },
+  centerState: {
+    flex: 1,
+    paddingHorizontal: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#E7F3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authIconText: { color: BLUE, fontSize: 20, fontWeight: '900' },
+  stateTitle: { color: TEXT, fontSize: 18, fontWeight: '900', marginTop: 14 },
+  stateText: {
+    color: MUTED,
+    fontSize: 11,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginTop: 6,
+    maxWidth: 310,
+  },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   back: {
     width: 40,
@@ -271,27 +314,35 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 10,
   },
-  formCard: {
+  accountCard: {
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: LINE,
     borderRadius: 16,
     padding: 15,
-    gap: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
   },
-  field: { gap: 6 },
-  label: { color: MUTED, fontSize: 9, fontWeight: '800' },
-  input: {
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 11,
-    paddingHorizontal: 12,
-    color: TEXT,
-    fontSize: 13,
-    fontWeight: '700',
-    backgroundColor: '#F9FAFB',
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E7F3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  avatarText: { color: BLUE, fontSize: 11, fontWeight: '900' },
+  accountName: { color: TEXT, fontSize: 13, fontWeight: '900' },
+  accountEmail: { color: MUTED, fontSize: 9, marginTop: 3 },
+  accountCity: { color: MUTED, fontSize: 9, marginTop: 2 },
+  secureBadge: {
+    backgroundColor: '#ECFDF3',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  secureText: { color: '#027A48', fontSize: 8, fontWeight: '900' },
   errorCard: {
     marginTop: 14,
     borderRadius: 14,
@@ -313,6 +364,8 @@ const styles = StyleSheet.create({
   primary: {
     marginTop: 18,
     height: 50,
+    minWidth: 210,
+    paddingHorizontal: 18,
     borderRadius: 12,
     backgroundColor: BLUE,
     alignItems: 'center',
@@ -320,13 +373,6 @@ const styles = StyleSheet.create({
   },
   primaryDisabled: { backgroundColor: '#B7D5FA' },
   primaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
-  successFootnote: {
-    color: MUTED,
-    fontSize: 9,
-    lineHeight: 15,
-    textAlign: 'center',
-    marginTop: 12,
-  },
   successPage: {
     flex: 1,
     paddingHorizontal: 20,
