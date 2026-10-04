@@ -6,6 +6,7 @@ import { getDriverVerificationSummary } from "./driver-documents";
 import {
   activityLogs,
   bookings,
+  driverDocuments,
   drivers,
   passengers,
   payments,
@@ -34,6 +35,8 @@ function publicTripShape(row: {
   vehicleMake: string | null;
   vehicleModel: string | null;
   vehicleYear: number | null;
+  vehicleRegistration: string | null;
+  vehicleColor: string | null;
   driverLocation: string | null;
 }) {
   const availableSeats = Math.max(0, row.seatCapacity - row.seatsBooked);
@@ -109,9 +112,11 @@ export async function searchPublicTrips(input: {
       fareCents: trips.fareCents,
       status: trips.status,
       driverStatus: drivers.status,
-      vehicleMake: drivers.vehicleMake,
-      vehicleModel: drivers.vehicleModel,
-      vehicleYear: drivers.vehicleYear,
+      vehicleMake: trips.vehicleMake,
+      vehicleModel: trips.vehicleModel,
+      vehicleYear: trips.vehicleYear,
+      vehicleRegistration: trips.vehicleRegistration,
+      vehicleColor: trips.vehicleColor,
       driverLocation: drivers.location,
     })
     .from(trips)
@@ -139,9 +144,11 @@ export async function getPublicTrip(publicId: string) {
       fareCents: trips.fareCents,
       status: trips.status,
       driverStatus: drivers.status,
-      vehicleMake: drivers.vehicleMake,
-      vehicleModel: drivers.vehicleModel,
-      vehicleYear: drivers.vehicleYear,
+      vehicleMake: trips.vehicleMake,
+      vehicleModel: trips.vehicleModel,
+      vehicleYear: trips.vehicleYear,
+      vehicleRegistration: trips.vehicleRegistration,
+      vehicleColor: trips.vehicleColor,
       driverLocation: drivers.location,
     })
     .from(trips)
