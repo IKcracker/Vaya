@@ -1,7 +1,7 @@
 import {
-  copyAuthCookies,
   getPassengerAuthBaseUrl,
   isPassengerAuthConfigured,
+  sessionCookieFromHeaders,
   type PassengerAuthUser,
 } from "@/lib/passenger-auth";
 import { ensurePassengerForAuthUser } from "@/lib/db/public";
@@ -60,14 +60,20 @@ export async function POST(request: Request) {
     city,
   });
 
-  const headers = new Headers({
-    "content-type": "application/json",
-    "cache-control": "no-store",
-  });
-  copyAuthCookies(upstream.headers, headers);
+  const session = sessionCookieFromHeaders(upstream.headers);
 
-  return new Response(JSON.stringify({ user: payload.user, passenger }), {
-    status: 201,
-    headers,
-  });
+  if (!session) {
+    return Response.json(
+      { error: "Account created but no mobile session was returned" },
+      { status: 502 }
+    );
+  }
+
+  return Response.json(
+    { user: payload.user, passenger, session },
+    {
+      status: 201,
+      headers: { "Cache-Control": "no-store" },
+    }
+  );
 }
