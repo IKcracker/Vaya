@@ -184,3 +184,80 @@ export async function passengerSignOut(session: string | null) {
 
   await storeSession(null);
 }
+
+
+export type PassengerBookingDetail = {
+  id: string;
+  databaseId: string;
+  status: string;
+  paymentStatus: string;
+  amountCents: number;
+  amount: string;
+  passenger: PassengerAccount;
+  trip: {
+    id: string;
+    route: string;
+    departureAt: string;
+  };
+  payments: Array<{
+    reference: string;
+    amountCents: number;
+    amount: string;
+    method: string;
+    status: string;
+    createdAt: string;
+  }>;
+};
+
+export async function fetchPassengerBooking(
+  session: string,
+  bookingId: string
+) {
+  return request<{ booking: PassengerBookingDetail }>(
+    `/api/mobile/bookings/${encodeURIComponent(bookingId)}`,
+    undefined,
+    session
+  );
+}
+
+export async function initializePassengerPayment(
+  session: string,
+  bookingId: string
+) {
+  return request<{
+    payment: {
+      reference: string;
+      amount: string;
+      amountCents: number;
+      authorizationUrl: string;
+      accessCode: string;
+      status: string;
+    };
+  }>(
+    '/api/mobile/payments/initialize',
+    {
+      method: 'POST',
+      body: JSON.stringify({ bookingId }),
+    },
+    session
+  );
+}
+
+export async function verifyPassengerPayment(
+  session: string,
+  reference: string
+) {
+  const params = new URLSearchParams({ reference });
+
+  return request<{
+    payment: {
+      reference: string;
+      status: string;
+      bookingId: string;
+    };
+  }>(
+    `/api/mobile/payments/verify?${params.toString()}`,
+    undefined,
+    session
+  );
+}
