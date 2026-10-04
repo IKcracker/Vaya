@@ -371,6 +371,8 @@ export type MobileDriver = {
   vehicleMake?: string;
   vehicleModel?: string;
   vehicleYear?: number;
+  vehicleRegistration?: string;
+  vehicleColor?: string;
   checks: string;
   status: string;
   submittedAt?: string;
@@ -389,6 +391,9 @@ export type MobileDriverTrip = {
   fareCents: number;
   fare: string;
   status: string;
+  vehicle?: string;
+  vehicleRegistration?: string;
+  vehicleColor?: string;
 };
 
 export async function fetchMobileDriver(session: string) {
@@ -407,12 +412,34 @@ export async function submitDriverApplication(
     vehicleMake: string;
     vehicleModel: string;
     vehicleYear: number;
+    vehicleRegistration: string;
+    vehicleColor: string;
   }
 ) {
   return request<{ driver: MobileDriver }>(
     '/api/mobile/driver',
     {
       method: 'POST',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function updateDriverVehicle(
+  session: string,
+  input: {
+    vehicleMake: string;
+    vehicleModel: string;
+    vehicleYear: number;
+    vehicleRegistration: string;
+    vehicleColor: string;
+  }
+) {
+  return request<{ driver: MobileDriver }>(
+    '/api/mobile/driver',
+    {
+      method: 'PATCH',
       body: JSON.stringify(input),
     },
     session

@@ -6,6 +6,7 @@ import { getDriverVerificationSummary } from "./driver-documents";
 import {
   activityLogs,
   bookings,
+  driverDocuments,
   drivers,
   passengers,
   payments,
@@ -34,6 +35,8 @@ function publicTripShape(row: {
   vehicleMake: string | null;
   vehicleModel: string | null;
   vehicleYear: number | null;
+  vehicleRegistration: string | null;
+  vehicleColor: string | null;
   driverLocation: string | null;
 }) {
   const availableSeats = Math.max(0, row.seatCapacity - row.seatsBooked);
@@ -51,6 +54,8 @@ function publicTripShape(row: {
         row.vehicleMake && row.vehicleModel
           ? `${row.vehicleMake} ${row.vehicleModel}${row.vehicleYear ? ` · ${row.vehicleYear}` : ""}`
           : "Vehicle details pending",
+      vehicleRegistration: row.vehicleRegistration ?? "",
+      vehicleColor: row.vehicleColor ?? "",
     },
     departureAt: row.departureAt.toISOString(),
     seatCapacity: row.seatCapacity,
@@ -109,9 +114,11 @@ export async function searchPublicTrips(input: {
       fareCents: trips.fareCents,
       status: trips.status,
       driverStatus: drivers.status,
-      vehicleMake: drivers.vehicleMake,
-      vehicleModel: drivers.vehicleModel,
-      vehicleYear: drivers.vehicleYear,
+      vehicleMake: trips.vehicleMake,
+      vehicleModel: trips.vehicleModel,
+      vehicleYear: trips.vehicleYear,
+      vehicleRegistration: trips.vehicleRegistration,
+      vehicleColor: trips.vehicleColor,
       driverLocation: drivers.location,
     })
     .from(trips)
@@ -139,9 +146,11 @@ export async function getPublicTrip(publicId: string) {
       fareCents: trips.fareCents,
       status: trips.status,
       driverStatus: drivers.status,
-      vehicleMake: drivers.vehicleMake,
-      vehicleModel: drivers.vehicleModel,
-      vehicleYear: drivers.vehicleYear,
+      vehicleMake: trips.vehicleMake,
+      vehicleModel: trips.vehicleModel,
+      vehicleYear: trips.vehicleYear,
+      vehicleRegistration: trips.vehicleRegistration,
+      vehicleColor: trips.vehicleColor,
       driverLocation: drivers.location,
     })
     .from(trips)
@@ -775,7 +784,9 @@ export async function getMobileDriverByEmail(email: string) {
       vehicleMake: driver.vehicleMake,
       vehicleModel: driver.vehicleModel,
       vehicleYear: driver.vehicleYear,
-      vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}`,
+      vehicleRegistration: driver.vehicleRegistration ?? "",
+      vehicleColor: driver.vehicleColor ?? "",
+      vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}${driver.vehicleRegistration ? ` · ${driver.vehicleRegistration}` : ""}`,
       checks: driver.checks,
       status: driver.status,
       submittedAt: driver.submittedAt.toISOString(),
@@ -813,6 +824,8 @@ export async function createMobileDriverApplication(input: {
   vehicleMake: string;
   vehicleModel: string;
   vehicleYear: number;
+  vehicleRegistration: string;
+  vehicleColor: string;
 }) {
   const db = getDb();
   const email = input.email.trim().toLowerCase();
@@ -848,6 +861,8 @@ export async function createMobileDriverApplication(input: {
       vehicleMake: input.vehicleMake.trim(),
       vehicleModel: input.vehicleModel.trim(),
       vehicleYear: input.vehicleYear,
+      vehicleRegistration: input.vehicleRegistration.trim().toUpperCase(),
+      vehicleColor: input.vehicleColor.trim(),
       checks: "0/4 required documents uploaded",
       status: "Needs info",
     })
@@ -869,7 +884,12 @@ export async function createMobileDriverApplication(input: {
     name: driver.name,
     email: driver.email ?? "",
     location: driver.location,
-    vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}`,
+    vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}${driver.vehicleRegistration ? ` · ${driver.vehicleRegistration}` : ""}`,
+    vehicleMake: driver.vehicleMake,
+    vehicleModel: driver.vehicleModel,
+    vehicleYear: driver.vehicleYear,
+    vehicleRegistration: driver.vehicleRegistration ?? "",
+    vehicleColor: driver.vehicleColor ?? "",
     checks: driver.checks,
     status: driver.status,
     verification: {
@@ -886,6 +906,98 @@ export async function createMobileDriverApplication(input: {
       needsAttentionKinds: [],
       readyToApprove: false,
     },
+  };
+}
+
+export async function updateMobileDriverVehicle(
+  email: string,
+  input: {
+    vehicleMake: string;
+    vehicleModel: string;
+    vehicleYear: number;
+    vehicleRegistration: string;
+    vehicleColor: string;
+  }
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [driver] = await db
+    .select()
+    .from(drivers)
+    .where(eq(drivers.email, normalized))
+    .limit(1);
+
+  if (!driver) throw new Error("DRIVER_NOT_FOUND");
+  if (driver.status === "Suspended" || driver.status === "Removed") {
+    throw new Error("DRIVER_BLOCKED");
+  }
+
+  const previousVehicle = [
+    driver.vehicleMake,
+    driver.vehicleModel,
+    String(driver.vehicleYear),
+    driver.vehicleRegistration ?? "",
+  ].filter(Boolean).join(" · ");
+
+  const [updated] = await db
+    .update(drivers)
+    .set({
+      vehicleMake: input.vehicleMake.trim(),
+      vehicleModel: input.vehicleModel.trim(),
+      vehicleYear: input.vehicleYear,
+      vehicleRegistration: input.vehicleRegistration.trim().toUpperCase(),
+      vehicleColor: input.vehicleColor.trim(),
+      status: "Needs info",
+      checks: "Vehicle documents require verification",
+      updatedAt: new Date(),
+    })
+    .where(eq(drivers.id, driver.id))
+    .returning();
+
+  await db
+    .delete(driverDocuments)
+    .where(
+      and(
+        eq(driverDocuments.driverId, driver.id),
+        or(
+          eq(driverDocuments.kind, "vehicle_registration"),
+          eq(driverDocuments.kind, "roadworthy"),
+          eq(driverDocuments.kind, "insurance")
+        )
+      )
+    );
+
+  const verification = await getDriverVerificationSummary(driver.id);
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_vehicle_changed",
+    title: "Driver changed vehicle",
+    detail: [updated.vehicleMake, updated.vehicleModel, String(updated.vehicleYear)].join(" · "),
+    metadata: {
+      driverId: driver.id,
+      previousVehicle,
+      vehicleRegistration: updated.vehicleRegistration,
+      source: "mobile",
+    },
+  });
+
+  return {
+    id: updated.id,
+    vehicleMake: updated.vehicleMake,
+    vehicleModel: updated.vehicleModel,
+    vehicleYear: updated.vehicleYear,
+    vehicleRegistration: updated.vehicleRegistration ?? "",
+    vehicleColor: updated.vehicleColor ?? "",
+    vehicle: [
+      updated.vehicleMake,
+      updated.vehicleModel,
+      String(updated.vehicleYear),
+      updated.vehicleRegistration ?? "",
+    ].filter(Boolean).join(" · "),
+    status: updated.status,
+    checks: updated.checks,
+    verification,
   };
 }
 
@@ -921,6 +1033,11 @@ export async function createMobileDriverTrip(
       toCity: input.to.trim(),
       driverId: driver.id,
       driverName: driver.name,
+      vehicleMake: driver.vehicleMake,
+      vehicleModel: driver.vehicleModel,
+      vehicleYear: driver.vehicleYear,
+      vehicleRegistration: driver.vehicleRegistration,
+      vehicleColor: driver.vehicleColor,
       departureAt: input.departureAt,
       seatCapacity: input.seats,
       seatsBooked: 0,

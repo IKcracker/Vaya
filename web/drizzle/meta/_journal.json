@@ -15,6 +15,13 @@
       "when": 1791152400000,
       "tag": "0001_driver_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791154200000,
+      "tag": "0002_driver_vehicle_identity",
+      "breakpoints": true
     }
   ]
 }

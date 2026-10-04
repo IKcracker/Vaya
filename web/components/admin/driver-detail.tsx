@@ -83,6 +83,8 @@ type DriverRecord = {
   vehicleMake: string;
   vehicleModel: string;
   vehicleYear: number;
+  vehicleRegistration: string;
+  vehicleColor: string;
   vehicle: string;
   checks: string;
   status: string;
@@ -465,10 +467,12 @@ export function DriverDetail({
                 <CardTitle>Vehicle</CardTitle>
                 <CardDescription>Current vehicle linked to this driver record.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 p-5 sm:grid-cols-3">
+              <CardContent className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-5">
                 <Metric label="Make" value={driver.vehicleMake} />
                 <Metric label="Model" value={driver.vehicleModel} />
                 <Metric label="Year" value={String(driver.vehicleYear)} />
+                <Metric label="Registration" value={driver.vehicleRegistration || "Not provided"} />
+                <Metric label="Colour" value={driver.vehicleColor || "Not provided"} />
               </CardContent>
             </Card>
 

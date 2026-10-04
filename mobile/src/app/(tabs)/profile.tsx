@@ -195,13 +195,26 @@ export default function ProfileScreen() {
             ) : null}
           </View>
 
-          <Pressable
-            onPress={() => router.push('/explore')}
-            style={({ pressed }) => [styles.driverButton, pressed && styles.pressed]}>
-            <Text style={styles.driverButtonText}>
-              {driver ? 'Open driver mode' : 'Apply to become a driver'}
-            </Text>
-          </Pressable>
+          {driver ? (
+            <View style={styles.driverActions}>
+              <Pressable
+                onPress={() => router.push('/driver-vehicle')}
+                style={({ pressed }) => [styles.vehicleButton, pressed && styles.pressed]}>
+                <Text style={styles.vehicleButtonText}>Manage vehicle</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => router.push('/explore')}
+                style={({ pressed }) => [styles.driverButton, styles.driverButtonFlex, pressed && styles.pressed]}>
+                <Text style={styles.driverButtonText}>Open driver mode</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              onPress={() => router.push('/explore')}
+              style={({ pressed }) => [styles.driverButton, pressed && styles.pressed]}>
+              <Text style={styles.driverButtonText}>Apply to become a driver</Text>
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.securityCard}>
@@ -311,7 +324,11 @@ const styles = StyleSheet.create({
   driverCopy: { color: '#A9B6CA', fontSize: 9, lineHeight: 15, marginTop: 4 },
   driverStatus: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5 },
   driverStatusText: { fontSize: 8, fontWeight: '900' },
+  driverActions: { marginTop: 14, flexDirection: 'row', gap: 8 },
+  vehicleButton: { flex: 1, height: 42, borderRadius: 10, borderWidth: 1, borderColor: '#34517F', alignItems: 'center', justifyContent: 'center' },
+  vehicleButtonText: { color: '#D7E6FF', fontSize: 10, fontWeight: '900' },
   driverButton: { marginTop: 14, height: 42, borderRadius: 10, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
+  driverButtonFlex: { flex: 1, marginTop: 0 },
   driverButtonText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
   securityCard: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#ECFDF3', borderRadius: 14, padding: 13 },
   securityDot: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#12B76A', alignItems: 'center', justifyContent: 'center' },
