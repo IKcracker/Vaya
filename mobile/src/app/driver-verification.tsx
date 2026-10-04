@@ -49,22 +49,38 @@ export default function DriverVerificationScreen() {
 
   const refreshKey = typeof params.refresh === 'string' ? params.refresh : '';
 
-  async function load() {
+  async function refreshDriver() {
     if (!session) return;
-    setError(null);
 
     try {
       const response = await fetchMobileDriver(session);
       setDriver(response.driver);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to load verification');
-    } finally {
-      setLoading(false);
     }
   }
 
   useEffect(() => {
-    void load();
+    if (!session) return;
+
+    let active = true;
+
+    fetchMobileDriver(session)
+      .then((response) => {
+        if (!active) return;
+        setDriver(response.driver);
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setError(reason instanceof Error ? reason.message : 'Unable to load verification');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [refreshKey, session]);
 
   const documents = useMemo(
@@ -88,7 +104,7 @@ export default function DriverVerificationScreen() {
         fileData: selected.fileData,
       });
 
-      await load();
+      await refreshDriver();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to upload document');
     } finally {
