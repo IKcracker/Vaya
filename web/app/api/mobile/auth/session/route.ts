@@ -1,4 +1,4 @@
-import { getPassengerSession } from "@/lib/passenger-auth";
+import { getMobileSessionCookie, getPassengerSession } from "@/lib/passenger-auth";
 import { getPassengerAccountByEmail } from "@/lib/db/public";
 import { isDatabaseConfigured } from "@/lib/db";
 
@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const session = await getPassengerSession(request.headers.get("cookie") ?? "");
+  const session = await getPassengerSession(getMobileSessionCookie(request));
 
   if (session.status === "unconfigured") {
     return Response.json({ error: "Passenger authentication is not configured" }, { status: 503 });
