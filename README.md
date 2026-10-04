@@ -120,3 +120,32 @@ Neon Auth setup for the target branch:
 6. Copy the branch's Neon Auth base URL into `NEON_AUTH_BASE_URL`.
 
 The public landing-page footer includes an **Admin** link. Unauthenticated users are redirected to `/admin/login`.
+
+## Mobile payments
+
+Vaya mobile checkout uses Paystack from the Next.js backend. The Expo app never receives the Paystack secret key.
+
+Required backend environment variables:
+
+```env
+PAYSTACK_SECRET_KEY="sk_test_or_live_..."
+PAYSTACK_CALLBACK_URL="https://your-vaya-domain/payment/callback"
+```
+
+Paystack dashboard setup:
+
+1. Use a South African Paystack account with ZAR enabled.
+2. Set the webhook URL to:
+   `https://your-vaya-domain/api/payments/paystack/webhook`
+3. Set `PAYSTACK_CALLBACK_URL` to the public HTTPS Vaya callback page.
+4. Use a test secret key while validating checkout, then switch the deployment environment to the live secret key only when ready for production.
+
+Payment lifecycle:
+
+- Vaya creates the booking first as `Awaiting payment`.
+- The backend initializes Paystack using the booking amount and passenger email.
+- The app opens Paystack's hosted checkout page.
+- Vaya verifies the transaction reference, amount, and ZAR currency server-side.
+- Paystack `charge.success` webhooks are signature-verified using HMAC SHA-512.
+- Only a verified successful transaction changes the Vaya payment to `Settled` and the booking to `Paid / Confirmed`.
+- Pending or failed checkout attempts can be retried without creating a second booking.
