@@ -1,6 +1,6 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { getDb } from "./index";
 import {
   activityLogs,
@@ -329,12 +329,19 @@ export async function createTrip(input: {
   const publicId = `VY-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
   const departureAt = new Date(`${input.date}T${input.departure}:00+02:00`);
 
+  const [driver] = await db
+    .select()
+    .from(drivers)
+    .where(eq(drivers.name, input.driver))
+    .limit(1);
+
   const [trip] = await db
     .insert(trips)
     .values({
       publicId,
       fromCity: input.from,
       toCity: input.to,
+      driverId: driver?.id ?? null,
       driverName: input.driver,
       departureAt,
       seatCapacity: input.seats,
@@ -389,12 +396,17 @@ export async function createSafetyCase(input: {
 }) {
   const db = getDb();
   const publicId = `SAFE-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+  const tripPublicId = input.trip.match(/VY-[A-Z0-9-]+/i)?.[0] ?? "";
+  const [linkedTrip] = tripPublicId
+    ? await db.select().from(trips).where(eq(trips.publicId, tripPublicId)).limit(1)
+    : [];
 
   const [item] = await db
     .insert(safetyCases)
     .values({
       publicId,
       subject: input.subject,
+      tripId: linkedTrip?.id ?? null,
       tripLabel: input.trip,
       priority: input.priority,
       owner: input.owner || "Unassigned",
@@ -647,6 +659,18 @@ export async function updateTrip(
     .returning();
   if (!trip) return null;
 
+  if (input.status === "Cancelled") {
+    await db
+      .update(bookings)
+      .set({ status: "Cancelled", updatedAt: new Date() })
+      .where(eq(bookings.tripId, trip.id));
+  } else if (input.status === "Completed") {
+    await db
+      .update(bookings)
+      .set({ status: "Completed", updatedAt: new Date() })
+      .where(and(eq(bookings.tripId, trip.id), ne(bookings.status, "Cancelled")));
+  }
+
   const changedFields = Object.keys(input);
   await db.insert(activityLogs).values({
     eventType: "trip_updated",
@@ -747,6 +771,26 @@ export async function updateBooking(
     .where(eq(bookings.publicId, publicId))
     .returning();
   if (!booking) return null;
+
+  const [occupancy] = await db
+    .select({
+      seatsBooked: sql<number>`coalesce(sum(${bookings.seats}), 0)::int`,
+    })
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.tripId, booking.tripId),
+        ne(bookings.status, "Cancelled")
+      )
+    );
+
+  await db
+    .update(trips)
+    .set({
+      seatsBooked: Number(occupancy?.seatsBooked ?? 0),
+      updatedAt: new Date(),
+    })
+    .where(eq(trips.id, booking.tripId));
 
   const changedFields = Object.keys(input);
   await db.insert(activityLogs).values({
@@ -852,7 +896,7 @@ export async function updatePayment(
         updatedAt: new Date(),
       })
       .where(eq(bookings.id, payment.bookingId));
-  } else if (input.status === "Pending") {
+  } else if (input.status === "Pending" || input.status === "Failed") {
     await db
       .update(bookings)
       .set({
