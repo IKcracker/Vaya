@@ -42,7 +42,7 @@ export default function BookingScreen() {
     Number(typeof params.seats === 'string' ? params.seats : '1') || 1
   );
 
-  const { loading, session, passenger } = usePassengerAuth();
+  const { loading, session, passenger, refresh } = usePassengerAuth();
   const [submitting, setSubmitting] = useState(false);
   const [booking, setBooking] = useState<CreatedBooking | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +60,7 @@ export default function BookingScreen() {
       });
 
       setBooking(response.booking);
+      await refresh();
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : 'Unable to create booking'
