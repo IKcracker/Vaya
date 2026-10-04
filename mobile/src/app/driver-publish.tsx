@@ -30,6 +30,7 @@ export default function PublishDriverTripScreen() {
   const [time, setTime] = useState('');
   const [seats, setSeats] = useState('3');
   const [fare, setFare] = useState('');
+  const [now] = useState(() => Date.now());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +47,7 @@ export default function PublishDriverTripScreen() {
     from.trim().toLowerCase() !== to.trim().toLowerCase() &&
     departureAt !== null &&
     !Number.isNaN(departureAt.getTime()) &&
-    departureAt.getTime() > Date.now() &&
+    departureAt.getTime() > now &&
     Number.isInteger(seatCount) &&
     seatCount >= 1 &&
     seatCount <= 8 &&
