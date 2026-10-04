@@ -54,6 +54,8 @@ function publicTripShape(row: {
         row.vehicleMake && row.vehicleModel
           ? `${row.vehicleMake} ${row.vehicleModel}${row.vehicleYear ? ` · ${row.vehicleYear}` : ""}`
           : "Vehicle details pending",
+      vehicleRegistration: row.vehicleRegistration ?? "",
+      vehicleColor: row.vehicleColor ?? "",
     },
     departureAt: row.departureAt.toISOString(),
     seatCapacity: row.seatCapacity,
@@ -782,7 +784,9 @@ export async function getMobileDriverByEmail(email: string) {
       vehicleMake: driver.vehicleMake,
       vehicleModel: driver.vehicleModel,
       vehicleYear: driver.vehicleYear,
-      vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}`,
+      vehicleRegistration: driver.vehicleRegistration ?? "",
+      vehicleColor: driver.vehicleColor ?? "",
+      vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}${driver.vehicleRegistration ? ` · ${driver.vehicleRegistration}` : ""}`,
       checks: driver.checks,
       status: driver.status,
       submittedAt: driver.submittedAt.toISOString(),
@@ -820,6 +824,8 @@ export async function createMobileDriverApplication(input: {
   vehicleMake: string;
   vehicleModel: string;
   vehicleYear: number;
+  vehicleRegistration: string;
+  vehicleColor: string;
 }) {
   const db = getDb();
   const email = input.email.trim().toLowerCase();
@@ -855,6 +861,8 @@ export async function createMobileDriverApplication(input: {
       vehicleMake: input.vehicleMake.trim(),
       vehicleModel: input.vehicleModel.trim(),
       vehicleYear: input.vehicleYear,
+      vehicleRegistration: input.vehicleRegistration.trim().toUpperCase(),
+      vehicleColor: input.vehicleColor.trim(),
       checks: "0/4 required documents uploaded",
       status: "Needs info",
     })
@@ -876,7 +884,12 @@ export async function createMobileDriverApplication(input: {
     name: driver.name,
     email: driver.email ?? "",
     location: driver.location,
-    vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}`,
+    vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}${driver.vehicleRegistration ? ` · ${driver.vehicleRegistration}` : ""}`,
+    vehicleMake: driver.vehicleMake,
+    vehicleModel: driver.vehicleModel,
+    vehicleYear: driver.vehicleYear,
+    vehicleRegistration: driver.vehicleRegistration ?? "",
+    vehicleColor: driver.vehicleColor ?? "",
     checks: driver.checks,
     status: driver.status,
     verification: {
@@ -928,6 +941,11 @@ export async function createMobileDriverTrip(
       toCity: input.to.trim(),
       driverId: driver.id,
       driverName: driver.name,
+      vehicleMake: driver.vehicleMake,
+      vehicleModel: driver.vehicleModel,
+      vehicleYear: driver.vehicleYear,
+      vehicleRegistration: driver.vehicleRegistration,
+      vehicleColor: driver.vehicleColor,
       departureAt: input.departureAt,
       seatCapacity: input.seats,
       seatsBooked: 0,
