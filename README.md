@@ -91,3 +91,32 @@ When `DATABASE_URL` is absent, the Admin CRM explicitly falls back to preview mo
 
 Set `DATABASE_URL` in the deployment environment before enabling production CRM use. Keep `DATABASE_URL_UNPOOLED` available only where migrations run; the runtime application does not need the direct connection. Apply migrations and seed only the environments that need seed data. Database credentials must never use a `NEXT_PUBLIC_` prefix.
 
+## Admin authentication
+
+The Admin CRM is protected with Neon Auth (managed Better Auth).
+
+Required environment variables in `web/.env.local` and the production deployment:
+
+```env
+NEON_AUTH_BASE_URL="https://your-neon-auth-base-url"
+ADMIN_EMAILS="admin@vaya.co.za"
+```
+
+Access rules:
+
+- `/admin/login` is public.
+- `/admin/**` requires a valid Neon Auth session.
+- `/api/admin/**` returns `401` when signed out and `403` when the signed-in account is not an administrator.
+- An account is authorized when its email appears in `ADMIN_EMAILS` or Neon Auth gives it the `admin` role.
+- Admin pages are marked `noindex`.
+
+Neon Auth setup for the target branch:
+
+1. Provision Neon Auth with the Better Auth provider on the same Neon branch used by the CRM.
+2. Allow `http://localhost:3000` for local development.
+3. Add the production Vaya domain to Neon Auth trusted domains before deploying.
+4. Create the administrator user in Neon Auth.
+5. Either assign the `admin` role or add the account email to `ADMIN_EMAILS`.
+6. Copy the branch's Neon Auth base URL into `NEON_AUTH_BASE_URL`.
+
+The public landing-page footer includes an **Admin** link. Unauthenticated users are redirected to `/admin/login`.
