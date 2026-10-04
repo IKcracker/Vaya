@@ -214,6 +214,14 @@ export async function createPublicBooking(input: {
       })
       .returning();
 
+    await tx
+      .update(passengers)
+      .set({
+        tripsCount: sql`${passengers.tripsCount} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(passengers.id, passenger.id));
+
     await tx.insert(activityLogs).values({
       eventType: "booking_created",
       title: "Booking created",
