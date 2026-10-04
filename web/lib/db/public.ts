@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, gte, ilike, lt, ne, or, sql } from "drizzle-orm";
 import { getDb } from "./index";
+import { getDriverVerificationSummary } from "./driver-documents";
 import { activityLogs, bookings, drivers, passengers, payments, trips } from "./schema";
 
 const PUBLIC_TRIP_STATUSES = ["Scheduled", "On schedule", "Boarding", "Full"];
@@ -574,11 +575,14 @@ export async function getMobileDriverByEmail(email: string) {
 
   if (!driver) return null;
 
-  const driverTrips = await db
-    .select()
-    .from(trips)
-    .where(eq(trips.driverId, driver.id))
-    .orderBy(desc(trips.departureAt));
+  const [driverTrips, verification] = await Promise.all([
+    db
+      .select()
+      .from(trips)
+      .where(eq(trips.driverId, driver.id))
+      .orderBy(desc(trips.departureAt)),
+    getDriverVerificationSummary(driver.id),
+  ]);
 
   return {
     driver: {
@@ -595,6 +599,15 @@ export async function getMobileDriverByEmail(email: string) {
       checks: driver.checks,
       status: driver.status,
       submittedAt: driver.submittedAt.toISOString(),
+      verification: {
+        documents: verification.documents,
+        requiredCount: verification.requiredCount,
+        uploadedRequiredCount: verification.uploadedRequiredCount,
+        approvedRequiredCount: verification.approvedRequiredCount,
+        missingKinds: verification.missingKinds,
+        needsAttentionKinds: verification.needsAttentionKinds,
+        readyToApprove: verification.readyToApprove,
+      },
     },
     trips: driverTrips.map((trip) => ({
       id: trip.publicId,
@@ -655,8 +668,8 @@ export async function createMobileDriverApplication(input: {
       vehicleMake: input.vehicleMake.trim(),
       vehicleModel: input.vehicleModel.trim(),
       vehicleYear: input.vehicleYear,
-      checks: "Identity, licence and vehicle review pending",
-      status: "Review",
+      checks: "0/4 required documents uploaded",
+      status: "Needs info",
     })
     .returning();
 
@@ -679,6 +692,20 @@ export async function createMobileDriverApplication(input: {
     vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}`,
     checks: driver.checks,
     status: driver.status,
+    verification: {
+      documents: [],
+      requiredCount: 4,
+      uploadedRequiredCount: 0,
+      approvedRequiredCount: 0,
+      missingKinds: [
+        "identity",
+        "drivers_license",
+        "vehicle_registration",
+        "roadworthy",
+      ],
+      needsAttentionKinds: [],
+      readyToApprove: false,
+    },
   };
 }
 
