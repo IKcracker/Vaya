@@ -34,6 +34,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AdminSignOutButton } from "@/components/admin/admin-sign-out-button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -787,15 +788,19 @@ export function AdminCrm() {
             </CardContent>
           </Card>
 
-          <div className="mt-4 flex items-center gap-3 rounded-lg p-2">
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-[#101828] text-[11px] font-bold text-white">
-              VA
+          <div className="mt-4 rounded-lg border border-[#EAECF0] bg-[#F9FAFB] p-2">
+            <div className="flex items-center gap-3 p-2">
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-[#101828] text-[11px] font-bold text-white">
+                VA
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-xs font-semibold text-[#101828]">Vaya Administrator</div>
+                <div className="truncate text-[10px] text-[#98A2B3]">Operations team</div>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-semibold text-[#101828]">Vaya Administrator</div>
-              <div className="truncate text-[10px] text-[#98A2B3]">Operations team</div>
+            <div className="mt-1 border-t border-[#EAECF0] pt-1">
+              <AdminSignOutButton />
             </div>
-            <MoreHorizontal className="size-4 text-[#98A2B3]" />
           </div>
         </div>
       </aside>
