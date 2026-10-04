@@ -77,3 +77,20 @@ export function copyAuthCookies(source: Headers, target: Headers) {
     target.append("set-cookie", cookie);
   }
 }
+
+
+export function sessionCookieFromHeaders(headers: Headers) {
+  const enhanced = headers as Headers & { getSetCookie?: () => string[] };
+  const setCookies = enhanced.getSetCookie?.() ?? [];
+  const values = setCookies.length ? setCookies : [headers.get("set-cookie") ?? ""].filter(Boolean);
+
+  const cookiePairs = values
+    .map((value) => value.split(";")[0]?.trim())
+    .filter(Boolean);
+
+  return cookiePairs.join("; ");
+}
+
+export function getMobileSessionCookie(request: Request) {
+  return request.headers.get("x-vaya-session")?.trim() ?? "";
+}
