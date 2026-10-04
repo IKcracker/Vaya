@@ -344,6 +344,17 @@ await sql`
   WHERE p.id = summary.passenger_id
 `;
 
+
+await sql`
+  UPDATE activity_logs a
+  SET metadata =
+    COALESCE(a.metadata, '{}'::jsonb) ||
+    jsonb_build_object('driverId', d.id)
+  FROM drivers d
+  WHERE a.metadata->>'driverEmail' = d.email
+    AND NOT (a.metadata ? 'driverId')
+`;
+
 const counts = await sql`
   SELECT
     (SELECT COUNT(*)::int FROM drivers WHERE status <> 'Removed') AS drivers,
