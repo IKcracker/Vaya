@@ -1200,7 +1200,7 @@ function TripsView({ rows, onCreate, onView }: { rows: typeof trips; onCreate: (
             <CardTitle>Trip board</CardTitle>
             <CardDescription>{rows.length} trips shown</CardDescription>
           </div>
-          <Button variant="outline" size="sm"><SlidersHorizontal /> Filters</Button>
+          
         </CardHeader>
         {rows.length ? <TripsTable rows={rows} onView={onView} /> : <EmptyState label="trips" />}
       </Card>
@@ -1226,7 +1226,7 @@ function TripsTable({ rows, onView }: { rows: typeof trips; onView: (trip: (type
         {rows.map((trip) => (
           <TableRow key={trip.id}>
             <TableCell>
-              <div className="font-semibold text-[#101828]">{trip.route}</div>
+              <Link href={`/admin/trips/${trip.id}`} className="font-semibold text-[#101828] transition hover:text-[#1877F2] hover:underline hover:underline-offset-4">{trip.route}</Link>
               <div className="mt-0.5 text-[11px] text-[#98A2B3]">{trip.id}</div>
             </TableCell>
             <TableCell>{trip.driver}</TableCell>
@@ -1234,7 +1234,7 @@ function TripsTable({ rows, onView }: { rows: typeof trips; onView: (trip: (type
             <TableCell>{trip.occupancy}</TableCell>
             <TableCell className="font-semibold text-[#101828]">{trip.fare}</TableCell>
             <TableCell><Badge variant={statusVariant(trip.status)}>{trip.status}</Badge></TableCell>
-            <TableCell className="text-right"><TableActions onClick={() => onView(trip)} label={`View ${trip.id}`} /></TableCell>
+            <TableCell className="text-right"><Button variant="outline" size="sm" render={<Link href={`/admin/trips/${trip.id}`} />}>View trip</Button></TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -1273,14 +1273,14 @@ function BookingsView({ rows, onView }: { rows: typeof bookings; onView: (bookin
             <TableBody>
               {rows.map((booking) => (
                 <TableRow key={booking.id}>
-                  <TableCell className="font-semibold text-[#101828]">{booking.id}</TableCell>
+                  <TableCell><Link href={`/admin/bookings/${booking.id}`} className="font-semibold text-[#101828] transition hover:text-[#1877F2] hover:underline hover:underline-offset-4">{booking.id}</Link></TableCell>
                   <TableCell>{booking.passenger}</TableCell>
                   <TableCell>{booking.trip}</TableCell>
                   <TableCell>{booking.seat}</TableCell>
                   <TableCell className="font-semibold text-[#101828]">{booking.amount}</TableCell>
                   <TableCell><Badge variant={statusVariant(booking.payment)}>{booking.payment}</Badge></TableCell>
                   <TableCell><Badge variant={statusVariant(booking.status)}>{booking.status}</Badge></TableCell>
-                  <TableCell className="text-right"><TableActions onClick={() => onView(booking)} label={`View ${booking.id}`} /></TableCell>
+                  <TableCell className="text-right"><Button variant="outline" size="sm" render={<Link href={`/admin/bookings/${booking.id}`} />}>View booking</Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1321,14 +1321,14 @@ function PassengersView({ rows, onAdd, onView }: { rows: typeof passengers; onAd
               {rows.map((passenger) => (
                 <TableRow key={passenger.contact}>
                   <TableCell>
-                    <div className="font-semibold text-[#101828]">{passenger.name}</div>
+                    <Link href={`/admin/passengers/${passenger.id}`} className="font-semibold text-[#101828] transition hover:text-[#1877F2] hover:underline hover:underline-offset-4">{passenger.name}</Link>
                     <div className="mt-0.5 text-[11px] text-[#98A2B3]">{passenger.contact}</div>
                   </TableCell>
                   <TableCell>{passenger.city}</TableCell>
                   <TableCell>{passenger.trips}</TableCell>
                   <TableCell>{passenger.joined}</TableCell>
                   <TableCell><Badge variant={statusVariant(passenger.status)}>{passenger.status}</Badge></TableCell>
-                  <TableCell className="text-right"><TableActions onClick={() => onView(passenger)} label={`View ${passenger.name}`} /></TableCell>
+                  <TableCell className="text-right"><Button variant="outline" size="sm" render={<Link href={`/admin/passengers/${passenger.id}`} />}>View passenger</Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1375,14 +1375,14 @@ function PaymentsView({ rows, onView }: { rows: typeof payments; onView: (paymen
             <TableBody>
               {rows.map((payment) => (
                 <TableRow key={payment.ref}>
-                  <TableCell className="font-semibold text-[#101828]">{payment.ref}</TableCell>
+                  <TableCell><Link href={`/admin/payments/${payment.ref}`} className="font-semibold text-[#101828] transition hover:text-[#1877F2] hover:underline hover:underline-offset-4">{payment.ref}</Link></TableCell>
                   <TableCell>{payment.booking}</TableCell>
                   <TableCell>{payment.customer}</TableCell>
                   <TableCell className="font-semibold text-[#101828]">{payment.amount}</TableCell>
                   <TableCell>{payment.method}</TableCell>
                   <TableCell>{payment.date}</TableCell>
                   <TableCell><Badge variant={statusVariant(payment.status)}>{payment.status}</Badge></TableCell>
-                  <TableCell className="text-right"><TableActions onClick={() => onView(payment)} label={`View ${payment.ref}`} /></TableCell>
+                  <TableCell className="text-right"><Button variant="outline" size="sm" render={<Link href={`/admin/payments/${payment.ref}`} />}>View payment</Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1408,7 +1408,7 @@ function SafetyView({ rows, onCreate, onView }: { rows: typeof safetyCases; onCr
             <CardTitle>Case queue</CardTitle>
             <CardDescription>{rows.length} cases shown</CardDescription>
           </div>
-          <Button variant="outline" size="sm"><SlidersHorizontal /> Filters</Button>
+          
         </CardHeader>
         {rows.length ? (
           <Table>
@@ -1427,7 +1427,7 @@ function SafetyView({ rows, onCreate, onView }: { rows: typeof safetyCases; onCr
               {rows.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>
-                    <div className="font-semibold text-[#101828]">{item.subject}</div>
+                    <Link href={`/admin/safety/${item.id}`} className="font-semibold text-[#101828] transition hover:text-[#1877F2] hover:underline hover:underline-offset-4">{item.subject}</Link>
                     <div className="mt-0.5 text-[11px] text-[#98A2B3]">{item.id}</div>
                   </TableCell>
                   <TableCell>{item.trip}</TableCell>
@@ -1435,7 +1435,7 @@ function SafetyView({ rows, onCreate, onView }: { rows: typeof safetyCases; onCr
                   <TableCell>{item.owner}</TableCell>
                   <TableCell>{item.created}</TableCell>
                   <TableCell><Badge variant={statusVariant(item.status)}>{item.status}</Badge></TableCell>
-                  <TableCell className="text-right"><TableActions onClick={() => onView(item)} label={`View ${item.id}`} /></TableCell>
+                  <TableCell className="text-right"><Button variant="outline" size="sm" render={<Link href={`/admin/safety/${item.id}`} />}>View case</Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>
