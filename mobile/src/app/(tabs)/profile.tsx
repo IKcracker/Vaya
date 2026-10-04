@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
@@ -9,26 +10,20 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { fetchMobileDriver, MobileDriver } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
 const BLUE = '#1877F2';
+const NAVY = '#0B1730';
 const BG = '#F5F7FA';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
 const LINE = '#E4E7EC';
 
-const sections = [
-  ['Personal details', 'Name, phone number and home city'],
-  ['Payments', 'Saved payment methods and refunds'],
-  ['Safety', 'Emergency contacts and reporting'],
-  ['Notifications', 'Trip updates and reminders'],
-  ['Help & support', 'Get assistance with Vaya'],
-];
-
 function initials(name: string) {
   return name
-    .split(' ')
+    .split(/\s+/)
     .filter(Boolean)
     .map((value) => value[0])
     .join('')
@@ -36,9 +31,45 @@ function initials(name: string) {
     .toUpperCase();
 }
 
+function joinedLabel(value?: string) {
+  if (!value) return 'Vaya member';
+
+  return `Member since ${new Intl.DateTimeFormat('en-ZA', {
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value))}`;
+}
+
+function driverTone(status?: string) {
+  if (status === 'Approved') return { bg: '#ECFDF3', text: '#027A48' };
+  if (status === 'Rejected' || status === 'Suspended') {
+    return { bg: '#FFF1F0', text: '#B42318' };
+  }
+  return { bg: '#FFFAEB', text: '#B54708' };
+}
+
 export default function ProfileScreen() {
   const router = useRouter();
   const { loading, session, user, passenger, signOut } = usePassengerAuth();
+  const [driver, setDriver] = useState<MobileDriver | null>(null);
+
+  useEffect(() => {
+    if (!session) return;
+
+    let active = true;
+
+    fetchMobileDriver(session)
+      .then((response) => {
+        if (active) setDriver(response.driver);
+      })
+      .catch(() => {
+        if (active) setDriver(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [session]);
 
   if (loading) {
     return (
@@ -55,10 +86,12 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.centerState}>
-          <View style={styles.avatarLarge}><Text style={styles.avatarText}>V</Text></View>
-          <Text style={styles.stateTitle}>Your Vaya profile</Text>
+          <View style={styles.avatarLarge}>
+            <Text style={styles.avatarText}>V</Text>
+          </View>
+          <Text style={styles.stateTitle}>Your Vaya account</Text>
           <Text style={styles.stateText}>
-            Sign in to keep bookings, contact details and travel history synced.
+            Sign in to manage your details, trips, payments and driver profile.
           </Text>
           <Pressable
             onPress={() => router.push({ pathname: '/auth', params: { next: '/profile' } })}
@@ -72,74 +105,115 @@ export default function ProfileScreen() {
 
   const displayName = passenger?.name || user?.name || 'Vaya Passenger';
   const email = passenger?.email || user?.email || '';
+  const tone = driverTone(driver?.status);
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
-        <Text style={styles.eyebrow}>ACCOUNT</Text>
-
-        <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials(displayName) || 'VP'}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{displayName}</Text>
-            <Text style={styles.contact}>{email}</Text>
-          </View>
-        </View>
-
-        <View style={styles.verifiedCard}>
-          <View style={styles.verifiedIcon}>
-            <Text style={styles.verifiedIconText}>✓</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.verifiedTitle}>Signed in securely</Text>
-            <Text style={styles.verifiedCopy}>
-              Your Neon Auth session is stored securely on this device.
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Passenger details</Text>
-        <View style={styles.summaryGrid}>
-          <Info label="Home city" value={passenger?.city || 'Not set'} />
-          <Info label="Phone" value={passenger?.phone || 'Not set'} />
-          <Info label="Account status" value={passenger?.status || 'Profile incomplete'} />
-          <Info label="Trips" value={String(passenger?.tripsCount ?? 0)} />
-        </View>
-
-        <Text style={styles.sectionTitle}>Account settings</Text>
-        <View style={styles.settingsCard}>
-          {sections.map(([title, note], index) => (
-            <Pressable
-              key={title}
-              style={({ pressed }) => [
-                styles.settingRow,
-                index < sections.length - 1 && styles.border,
-                pressed && styles.pressed,
-              ]}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.settingTitle}>{title}</Text>
-                <Text style={styles.settingNote}>{note}</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Text style={[styles.sectionTitle, { marginTop: 26 }]}>Driver mode</Text>
-        <View style={styles.driverCard}>
+        <View style={styles.topRow}>
           <View>
-            <Text style={styles.driverTitle}>Already going somewhere?</Text>
-            <Text style={styles.driverCopy}>
-              Publish your route, seats and fare for passengers going the same way.
-            </Text>
+            <Text style={styles.eyebrow}>PROFILE</Text>
+            <Text style={styles.pageTitle}>Account</Text>
           </View>
+          <Pressable
+            onPress={() => router.push('/profile-edit')}
+            style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}>
+            <Text style={styles.editButtonText}>Edit</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials(displayName) || 'VP'}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.name}>{displayName}</Text>
+              <Text style={styles.contact}>{email}</Text>
+              <Text style={styles.memberSince}>{joinedLabel(passenger?.joinedAt)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.stats}>
+            <Stat label="Trips" value={String(passenger?.tripsCount ?? 0)} />
+            <Stat label="Home" value={passenger?.city || 'Not set'} />
+            <Stat label="Status" value={passenger?.status || 'Active'} />
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Your account</Text>
+        <View style={styles.actionCard}>
+          <AccountRow
+            title="Personal details"
+            note={passenger?.phone ? `${passenger.phone} · ${passenger.city}` : 'Add your phone number and home city'}
+            icon="👤"
+            onPress={() => router.push('/profile-edit')}
+          />
+          <AccountRow
+            title="Trips"
+            note="Upcoming bookings and travel history"
+            icon="🎫"
+            onPress={() => router.push('/trips')}
+          />
+          <AccountRow
+            title="Payments"
+            note="Payment attempts, references and settled transactions"
+            icon="💳"
+            onPress={() => router.push('/profile-payments')}
+          />
+          <AccountRow
+            title="Safety"
+            note="Report a trip or travel safety concern"
+            icon="🛡"
+            onPress={() => router.push('/profile-safety')}
+            last
+          />
+        </View>
+
+        <Text style={styles.sectionTitle}>Driver mode</Text>
+        <View style={styles.driverCard}>
+          <View style={styles.driverTop}>
+            <View style={styles.driverIcon}>
+              <Text style={styles.driverIconText}>↗</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.driverTitle}>
+                {driver ? 'Driver profile' : 'Drive with Vaya'}
+              </Text>
+              <Text style={styles.driverCopy}>
+                {driver
+                  ? driver.vehicle || driver.checks
+                  : 'Apply once, verify your documents and publish routes you are already travelling.'}
+              </Text>
+            </View>
+            {driver ? (
+              <View style={[styles.driverStatus, { backgroundColor: tone.bg }]}>
+                <Text style={[styles.driverStatusText, { color: tone.text }]}>
+                  {driver.status}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
           <Pressable
             onPress={() => router.push('/explore')}
             style={({ pressed }) => [styles.driverButton, pressed && styles.pressed]}>
-            <Text style={styles.driverButtonText}>Open driver mode</Text>
+            <Text style={styles.driverButtonText}>
+              {driver ? 'Open driver mode' : 'Apply to become a driver'}
+            </Text>
           </Pressable>
+        </View>
+
+        <View style={styles.securityCard}>
+          <View style={styles.securityDot}>
+            <Text style={styles.securityDotText}>✓</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.securityTitle}>Signed in securely</Text>
+            <Text style={styles.securityCopy}>
+              Your authenticated Vaya session is stored securely on this device.
+            </Text>
+          </View>
         </View>
 
         <Pressable
@@ -152,12 +226,45 @@ export default function ProfileScreen() {
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.infoCard}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+    <View style={styles.stat}>
+      <Text style={styles.statValue} numberOfLines={1}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
     </View>
+  );
+}
+
+function AccountRow({
+  title,
+  note,
+  icon,
+  onPress,
+  last,
+}: {
+  title: string;
+  note: string;
+  icon: string;
+  onPress: () => void;
+  last?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.actionRow,
+        !last && styles.actionBorder,
+        pressed && styles.pressed,
+      ]}>
+      <View style={styles.actionIcon}>
+        <Text style={styles.actionIconText}>{icon}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.actionTitle}>{title}</Text>
+        <Text style={styles.actionNote}>{note}</Text>
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
   );
 }
 
@@ -165,123 +272,52 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   page: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 120 },
   pressed: { opacity: 0.7 },
-  centerState: {
-    flex: 1,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  centerState: { flex: 1, paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center' },
   stateTitle: { color: TEXT, fontSize: 18, fontWeight: '900', marginTop: 14 },
-  stateText: {
-    color: MUTED,
-    fontSize: 11,
-    lineHeight: 18,
-    textAlign: 'center',
-    marginTop: 6,
-    maxWidth: 300,
-  },
-  primary: {
-    marginTop: 18,
-    height: 48,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: BLUE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  stateText: { color: MUTED, fontSize: 11, lineHeight: 18, textAlign: 'center', marginTop: 6, maxWidth: 300 },
+  primary: { marginTop: 18, height: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
   primaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
-  eyebrow: { color: BLUE, fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
-  profileHeader: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: '#E7F3FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarLarge: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#E7F3FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: BLUE, fontSize: 16, fontWeight: '900' },
-  name: { color: TEXT, fontSize: 21, fontWeight: '900', letterSpacing: -0.3 },
-  contact: { color: MUTED, fontSize: 11, marginTop: 4 },
-  verifiedCard: {
-    marginTop: 24,
-    flexDirection: 'row',
-    gap: 11,
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: '#ECFDF3',
-  },
-  verifiedIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#12B76A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  verifiedIconText: { color: '#FFFFFF', fontWeight: '900' },
-  verifiedTitle: { color: TEXT, fontSize: 12, fontWeight: '900' },
-  verifiedCopy: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 3 },
-  sectionTitle: {
-    color: TEXT,
-    fontSize: 18,
-    fontWeight: '900',
-    marginTop: 24,
-    marginBottom: 10,
-  },
-  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  infoCard: {
-    width: '48%',
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 14,
-    padding: 13,
-  },
-  infoLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },
-  infoValue: { color: TEXT, fontSize: 11, fontWeight: '900', marginTop: 5 },
-  settingsCard: {
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  settingRow: { flexDirection: 'row', alignItems: 'center', padding: 15 },
-  border: { borderBottomWidth: 1, borderBottomColor: LINE },
-  settingTitle: { color: TEXT, fontSize: 13, fontWeight: '900' },
-  settingNote: { color: MUTED, fontSize: 10, marginTop: 4 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
+  pageTitle: { color: TEXT, fontSize: 28, fontWeight: '900', letterSpacing: -0.6, marginTop: 2 },
+  editButton: { borderWidth: 1, borderColor: LINE, backgroundColor: SURFACE, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 8 },
+  editButtonText: { color: BLUE, fontSize: 10, fontWeight: '900' },
+  profileCard: { marginTop: 18, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 18, overflow: 'hidden' },
+  profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 16 },
+  avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  avatarLarge: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: BLUE, fontSize: 17, fontWeight: '900' },
+  name: { color: TEXT, fontSize: 20, fontWeight: '900', letterSpacing: -0.3 },
+  contact: { color: MUTED, fontSize: 10, marginTop: 4 },
+  memberSince: { color: '#98A2B3', fontSize: 9, marginTop: 4 },
+  stats: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: LINE, backgroundColor: '#FAFBFC' },
+  stat: { flex: 1, paddingHorizontal: 10, paddingVertical: 13, alignItems: 'center' },
+  statValue: { color: TEXT, fontSize: 11, fontWeight: '900', maxWidth: '100%' },
+  statLabel: { color: MUTED, fontSize: 8, fontWeight: '700', marginTop: 3 },
+  sectionTitle: { color: TEXT, fontSize: 17, fontWeight: '900', marginTop: 24, marginBottom: 9 },
+  actionCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, overflow: 'hidden' },
+  actionRow: { minHeight: 67, flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13 },
+  actionBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
+  actionIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: '#F2F4F7', alignItems: 'center', justifyContent: 'center' },
+  actionIconText: { fontSize: 16 },
+  actionTitle: { color: TEXT, fontSize: 12, fontWeight: '900' },
+  actionNote: { color: MUTED, fontSize: 9, lineHeight: 14, marginTop: 3 },
   chevron: { color: '#98A2B3', fontSize: 22 },
-  driverCard: { backgroundColor: '#0B1730', borderRadius: 18, padding: 16 },
-  driverTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
-  driverCopy: { color: '#A9B6CA', fontSize: 11, lineHeight: 17, marginTop: 5 },
-  driverButton: {
-    marginTop: 15,
-    height: 42,
-    borderRadius: 11,
-    backgroundColor: BLUE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  driverButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
-  signOut: {
-    height: 46,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 26,
-    backgroundColor: '#FFF8F7',
-  },
-  signOutText: { color: '#B42318', fontSize: 12, fontWeight: '900' },
+  driverCard: { backgroundColor: NAVY, borderRadius: 18, padding: 15 },
+  driverTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  driverIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#15284A', alignItems: 'center', justifyContent: 'center' },
+  driverIconText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900' },
+  driverTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  driverCopy: { color: '#A9B6CA', fontSize: 9, lineHeight: 15, marginTop: 4 },
+  driverStatus: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5 },
+  driverStatusText: { fontSize: 8, fontWeight: '900' },
+  driverButton: { marginTop: 14, height: 42, borderRadius: 10, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
+  driverButtonText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+  securityCard: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#ECFDF3', borderRadius: 14, padding: 13 },
+  securityDot: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#12B76A', alignItems: 'center', justifyContent: 'center' },
+  securityDotText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  securityTitle: { color: TEXT, fontSize: 10, fontWeight: '900' },
+  securityCopy: { color: MUTED, fontSize: 9, lineHeight: 14, marginTop: 3 },
+  signOut: { height: 46, borderRadius: 12, borderWidth: 1, borderColor: '#FECACA', alignItems: 'center', justifyContent: 'center', marginTop: 22, backgroundColor: '#FFF8F7' },
+  signOutText: { color: '#B42318', fontSize: 11, fontWeight: '900' },
 });
