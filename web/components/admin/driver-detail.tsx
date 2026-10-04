@@ -61,7 +61,6 @@ type DriverDocument = {
   uploadedAt: string;
   reviewedAt: string | null;
   updatedAt: string;
-  verification: DriverVerification;
 };
 
 type DriverVerification = {
@@ -89,6 +88,7 @@ type DriverRecord = {
   status: string;
   submittedAt: string;
   updatedAt: string;
+  verification: DriverVerification;
 };
 
 type DriverTrip = {
