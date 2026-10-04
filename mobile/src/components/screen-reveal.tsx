@@ -1,4 +1,4 @@
-import { PropsWithChildren, useEffect, useRef } from 'react';
+import { PropsWithChildren, useEffect, useState } from 'react';
 import { Animated, Easing, StyleProp, ViewStyle } from 'react-native';
 
 type ScreenRevealProps = PropsWithChildren<{
@@ -7,17 +7,28 @@ type ScreenRevealProps = PropsWithChildren<{
 }>;
 
 export function ScreenReveal({ children, delay = 0, style }: ScreenRevealProps) {
-  const progress = useRef(new Animated.Value(0)).current;
+  const [progress] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    Animated.timing(progress, {
+    const animation = Animated.timing(progress, {
       toValue: 1,
       duration: 520,
       delay,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
-    }).start();
+    });
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
   }, [delay, progress]);
+
+  const translateY = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [18, 0],
+  });
 
   return (
     <Animated.View
@@ -25,14 +36,7 @@ export function ScreenReveal({ children, delay = 0, style }: ScreenRevealProps) 
         style,
         {
           opacity: progress,
-          transform: [
-            {
-              translateY: progress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [18, 0],
-              }),
-            },
-          ],
+          transform: [{ translateY }],
         },
       ]}>
       {children}
