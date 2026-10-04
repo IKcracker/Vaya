@@ -1,5 +1,5 @@
 import {
-  copyAuthCookies,
+  getMobileSessionCookie,
   getPassengerAuthBaseUrl,
   isPassengerAuthConfigured,
 } from "@/lib/passenger-auth";
@@ -17,21 +17,18 @@ export async function POST(request: Request) {
     headers: {
       accept: "application/json",
       "content-type": "application/json",
-      cookie: request.headers.get("cookie") ?? "",
+      cookie: getMobileSessionCookie(request),
       origin: new URL(request.url).origin,
     },
     body: "{}",
     cache: "no-store",
   });
 
-  const headers = new Headers({
-    "content-type": "application/json",
-    "cache-control": "no-store",
-  });
-  copyAuthCookies(upstream.headers, headers);
-
-  return new Response(JSON.stringify({ ok: upstream.ok }), {
-    status: upstream.ok ? 200 : upstream.status,
-    headers,
-  });
+  return Response.json(
+    { ok: upstream.ok },
+    {
+      status: upstream.ok ? 200 : upstream.status,
+      headers: { "Cache-Control": "no-store" },
+    }
+  );
 }
