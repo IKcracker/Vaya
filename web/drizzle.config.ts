@@ -1,7 +1,7 @@
 import { defineConfig } from "drizzle-kit";
-import nextEnv from "@next/env";
+import { loadEnvConfig } from "@next/env";
 
-nextEnv.loadEnvConfig(process.cwd());
+loadEnvConfig(process.cwd());
 
 export default defineConfig({
   schema: "./lib/db/schema.ts",
