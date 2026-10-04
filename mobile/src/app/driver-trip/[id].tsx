@@ -146,6 +146,10 @@ export default function DriverTripScreen() {
   }
 
   const active = trip.status !== 'Completed' && trip.status !== 'Cancelled';
+  const editable =
+    trip.status !== 'Boarding' &&
+    trip.status !== 'Completed' &&
+    trip.status !== 'Cancelled';
   const expected = 'R' + ((trip.fareCents * trip.seatsBooked) / 100).toFixed(0);
 
   return (
@@ -178,6 +182,28 @@ export default function DriverTripScreen() {
             <Metric label="Expected" value={expected} dark />
           </View>
         </View>
+
+        {editable ? (
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/driver-trip-edit/[id]',
+                params: { id: trip.id },
+              })
+            }
+            style={({ pressed }) => [
+              styles.editTripButton,
+              pressed && styles.pressed,
+            ]}>
+            <View>
+              <Text style={styles.editTripTitle}>Edit trip</Text>
+              <Text style={styles.editTripText}>
+                Route, departure, seat capacity and fare
+              </Text>
+            </View>
+            <Text style={styles.editTripArrow}>›</Text>
+          </Pressable>
+        ) : null}
 
         <Text style={styles.sectionTitle}>Capacity</Text>
         <View style={styles.capacityCard}>
@@ -293,6 +319,22 @@ const styles = StyleSheet.create({
   metricLabelDark: { color: '#8FA0B8' },
   metricValue: { color: TEXT, fontSize: 14, fontWeight: '900', marginTop: 4 },
   metricValueDark: { color: '#FFFFFF' },
+  editTripButton: {
+    marginTop: 14,
+    minHeight: 62,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#9DC5FA',
+    backgroundColor: '#EEF5FF',
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  editTripTitle: { color: TEXT, fontSize: 12, fontWeight: '900' },
+  editTripText: { color: MUTED, fontSize: 9, marginTop: 3 },
+  editTripArrow: { color: BLUE, fontSize: 24, fontWeight: '700' },
   sectionTitle: { color: TEXT, fontSize: 17, fontWeight: '900', marginTop: 24, marginBottom: 10 },
   capacityCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, padding: 16, flexDirection: 'row', justifyContent: 'space-between' },
   capacityNumber: { color: BLUE, fontSize: 28, fontWeight: '900' },
