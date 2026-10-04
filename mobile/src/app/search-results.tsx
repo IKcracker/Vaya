@@ -70,9 +70,6 @@ export default function SearchResultsScreen() {
   useEffect(() => {
     let active = true;
 
-    setLoading(true);
-    setError(null);
-
     searchTrips({ from, to, date, passengers })
       .then((response) => {
         if (active) {
