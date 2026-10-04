@@ -1,6 +1,7 @@
 import {
   getMobileSessionCookie,
   getPassengerAuthBaseUrl,
+  getPassengerAuthOrigin,
   isPassengerAuthConfigured,
 } from "@/lib/passenger-auth";
 
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
       accept: "application/json",
       "content-type": "application/json",
       cookie: getMobileSessionCookie(request),
-      origin: new URL(request.url).origin,
+      origin: getPassengerAuthOrigin(),
     },
     body: "{}",
     cache: "no-store",

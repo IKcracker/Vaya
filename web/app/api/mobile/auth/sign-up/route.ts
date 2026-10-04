@@ -1,5 +1,6 @@
 import {
   getPassengerAuthBaseUrl,
+  getPassengerAuthOrigin,
   isPassengerAuthConfigured,
   sessionCookieFromHeaders,
   type PassengerAuthUser,
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
     headers: {
       "content-type": "application/json",
       accept: "application/json",
-      origin: new URL(request.url).origin,
+      origin: getPassengerAuthOrigin(),
     },
     body: JSON.stringify({ name, email, password }),
     cache: "no-store",

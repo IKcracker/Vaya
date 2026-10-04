@@ -1,3 +1,5 @@
+import { getSiteUrl } from "./site-url";
+
 export type PassengerAuthUser = {
   id?: string;
   name?: string;
@@ -21,6 +23,10 @@ export function isPassengerAuthConfigured() {
 
 export function getPassengerAuthBaseUrl() {
   return authBaseUrl();
+}
+
+export function getPassengerAuthOrigin() {
+  return getSiteUrl().origin;
 }
 
 export async function getPassengerSession(
