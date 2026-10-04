@@ -9,6 +9,8 @@ import {
   Ban,
   CarFront,
   Clock3,
+  ExternalLink,
+  FileText,
   Mail,
   MapPin,
   Pencil,
@@ -45,6 +47,32 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+type DriverDocument = {
+  id: string;
+  kind: string;
+  label: string;
+  required: boolean;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: string;
+  reviewNote: string;
+  uploadedAt: string;
+  reviewedAt: string | null;
+  updatedAt: string;
+  verification: DriverVerification;
+};
+
+type DriverVerification = {
+  documents: DriverDocument[];
+  requiredCount: number;
+  uploadedRequiredCount: number;
+  approvedRequiredCount: number;
+  missingKinds: string[];
+  needsAttentionKinds: string[];
+  readyToApprove: boolean;
+};
 
 type DriverRecord = {
   id: string;
@@ -148,6 +176,64 @@ export function DriverDetail({
     }
   }
 
+  async function reviewDocument(
+    documentId: string,
+    status: "Approved" | "Needs info" | "Rejected"
+  ) {
+    let reviewNote = "";
+
+    if (status === "Needs info" || status === "Rejected") {
+      const note = window.prompt(
+        status === "Needs info"
+          ? "Tell the driver what must be corrected or re-uploaded:"
+          : "Add the reason this document was rejected:"
+      );
+      if (note === null) return;
+      reviewNote = note.trim();
+      if (!reviewNote) {
+        setMessage("A review note is required for this action.");
+        return;
+      }
+    }
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch(
+        `/api/admin/drivers/${driver.id}/documents/${documentId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status, reviewNote }),
+        }
+      );
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setMessage(payload?.error ?? "Unable to review document");
+        return;
+      }
+
+      setDriver((current) => ({
+        ...current,
+        status: payload.verification.status,
+        checks: payload.verification.checks,
+        updatedAt: new Date().toISOString(),
+        verification: {
+          ...payload.verification,
+          documents: current.verification.documents.map((document) =>
+            document.id === payload.document.id ? payload.document : document
+          ),
+        },
+      }));
+      setMessage(`${payload.document.label} updated to ${status}.`);
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function updateStatus(status: string) {
     const ok = await patchDriver({ status });
     if (ok) setMessage(`Driver status updated to ${status}.`);
@@ -244,7 +330,15 @@ export function DriverDetail({
               <Ban />
               Suspend
             </Button>
-            <Button className="bg-[#1877F2] hover:bg-[#166FE5]" onClick={() => void updateStatus("Approved")} disabled={saving}>
+            <Button
+              className="bg-[#1877F2] hover:bg-[#166FE5]"
+              onClick={() => void updateStatus("Approved")}
+              disabled={saving || !driver.verification.readyToApprove}
+              title={
+                driver.verification.readyToApprove
+                  ? "Approve driver"
+                  : "Approve all required documents first"
+              }>
               <UserCheck />
               Approve
             </Button>
@@ -276,6 +370,93 @@ export function DriverDetail({
                     </div>
                   );
                 })}
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-none">
+              <CardHeader className="border-b border-[#EAECF0]">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <CardTitle>Verification documents</CardTitle>
+                    <CardDescription>
+                      Review each attachment before approving this driver.
+                    </CardDescription>
+                  </div>
+                  <Badge variant={driver.verification.readyToApprove ? "success" : "warning"}>
+                    {driver.verification.approvedRequiredCount}/{driver.verification.requiredCount} required approved
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {driver.verification.documents.length ? (
+                  <div className="divide-y divide-[#EAECF0]">
+                    {driver.verification.documents.map((document) => (
+                      <div key={document.id} className="p-5">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <FileText className="size-4 text-[#667085]" />
+                              <div className="text-sm font-semibold text-[#101828]">
+                                {document.label}
+                              </div>
+                              <Badge variant={statusVariant(document.status)}>
+                                {document.status}
+                              </Badge>
+                              {document.required ? (
+                                <Badge variant="secondary">Required</Badge>
+                              ) : null}
+                            </div>
+                            <div className="mt-2 truncate text-xs text-[#667085]">
+                              {document.fileName} · {(document.sizeBytes / 1024 / 1024).toFixed(2)} MB
+                            </div>
+                            {document.reviewNote ? (
+                              <div className="mt-3 rounded-lg border border-[#FEDF89] bg-[#FFFAEB] px-3 py-2 text-xs leading-5 text-[#93370D]">
+                                {document.reviewNote}
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              variant="outline"
+                              render={
+                                <a
+                                  href={`/api/admin/drivers/${driver.id}/documents/${document.id}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                />
+                              }>
+                              <ExternalLink />
+                              View
+                            </Button>
+                            <Button
+                              variant="outline"
+                              disabled={saving}
+                              onClick={() => void reviewDocument(document.id, "Needs info")}>
+                              Request info
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              disabled={saving}
+                              onClick={() => void reviewDocument(document.id, "Rejected")}>
+                              Reject
+                            </Button>
+                            <Button
+                              className="bg-[#1877F2] hover:bg-[#166FE5]"
+                              disabled={saving || document.status === "Approved"}
+                              onClick={() => void reviewDocument(document.id, "Approved")}>
+                              <ShieldCheck />
+                              Approve
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-5 text-sm text-[#667085]">
+                    No verification documents have been uploaded yet. The driver cannot be approved.
+                  </div>
+                )}
               </CardContent>
             </Card>
 
