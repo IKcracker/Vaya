@@ -25,6 +25,7 @@ export default function RootLayout() {
           <Stack.Screen name="driver-application" />
           <Stack.Screen name="driver-publish" />
           <Stack.Screen name="driver-trip/[id]" />
+          <Stack.Screen name="driver-trip-edit/[id]" />
         </Stack>
       </ThemeProvider>
     </PassengerAuthProvider>
