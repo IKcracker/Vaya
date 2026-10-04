@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, gte, ilike, lt, ne, or, sql } from "drizzle-orm";
 import { getDb } from "./index";
-import { activityLogs, bookings, drivers, passengers, trips } from "./schema";
+import { activityLogs, bookings, drivers, passengers, payments, trips } from "./schema";
 
 const PUBLIC_TRIP_STATUSES = ["Scheduled", "On schedule", "Boarding", "Full"];
 
@@ -363,4 +363,200 @@ export async function getPassengerTripsByEmail(email: string) {
     tripStatus: row.tripStatus,
     createdAt: row.createdAt.toISOString(),
   }));
+}
+
+
+export async function getPassengerBookingForPayment(
+  bookingPublicId: string,
+  email: string
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [row] = await db
+    .select({
+      bookingId: bookings.id,
+      bookingPublicId: bookings.publicId,
+      bookingStatus: bookings.status,
+      paymentStatus: bookings.paymentStatus,
+      amountCents: bookings.amountCents,
+      passengerId: passengers.id,
+      passengerName: passengers.name,
+      passengerEmail: passengers.email,
+      tripId: trips.publicId,
+      fromCity: trips.fromCity,
+      toCity: trips.toCity,
+      departureAt: trips.departureAt,
+    })
+    .from(bookings)
+    .innerJoin(passengers, eq(bookings.passengerId, passengers.id))
+    .innerJoin(trips, eq(bookings.tripId, trips.id))
+    .where(
+      and(
+        eq(bookings.publicId, bookingPublicId),
+        eq(passengers.email, normalized)
+      )
+    )
+    .limit(1);
+
+  if (!row) return null;
+
+  const paymentRows = await db
+    .select()
+    .from(payments)
+    .where(eq(payments.bookingId, row.bookingId))
+    .orderBy(desc(payments.createdAt));
+
+  return {
+    id: row.bookingPublicId,
+    databaseId: row.bookingId,
+    status: row.bookingStatus,
+    paymentStatus: row.paymentStatus,
+    amountCents: row.amountCents,
+    amount: money(row.amountCents),
+    passenger: {
+      id: row.passengerId,
+      name: row.passengerName,
+      email: row.passengerEmail,
+    },
+    trip: {
+      id: row.tripId,
+      route: `${row.fromCity} → ${row.toCity}`,
+      departureAt: row.departureAt.toISOString(),
+    },
+    payments: paymentRows.map((payment) => ({
+      reference: payment.publicId,
+      amountCents: payment.amountCents,
+      amount: money(payment.amountCents),
+      method: payment.method,
+      status: payment.status,
+      createdAt: payment.createdAt.toISOString(),
+    })),
+  };
+}
+
+export async function createPendingMobilePayment(input: {
+  bookingDatabaseId: string;
+  reference: string;
+  amountCents: number;
+}) {
+  const db = getDb();
+
+  const [payment] = await db
+    .insert(payments)
+    .values({
+      publicId: input.reference,
+      bookingId: input.bookingDatabaseId,
+      amountCents: input.amountCents,
+      method: "Paystack",
+      status: "Pending",
+    })
+    .returning();
+
+  await db.insert(activityLogs).values({
+    eventType: "payment_initialized",
+    title: "Payment initialized",
+    detail: `${payment.publicId} · ${money(payment.amountCents)}`,
+    metadata: {
+      paymentId: payment.id,
+      payment: payment.publicId,
+      bookingId: input.bookingDatabaseId,
+    },
+  });
+
+  return payment;
+}
+
+export async function getMobilePayment(reference: string) {
+  const db = getDb();
+
+  const [row] = await db
+    .select({
+      id: payments.id,
+      publicId: payments.publicId,
+      amountCents: payments.amountCents,
+      status: payments.status,
+      bookingDatabaseId: bookings.id,
+      bookingPublicId: bookings.publicId,
+      bookingStatus: bookings.status,
+      paymentStatus: bookings.paymentStatus,
+      passengerEmail: passengers.email,
+      tripPublicId: trips.publicId,
+    })
+    .from(payments)
+    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+    .innerJoin(passengers, eq(bookings.passengerId, passengers.id))
+    .innerJoin(trips, eq(bookings.tripId, trips.id))
+    .where(eq(payments.publicId, reference))
+    .limit(1);
+
+  return row ?? null;
+}
+
+export async function settleMobilePayment(reference: string) {
+  const db = getDb();
+
+  return db.transaction(async (tx) => {
+    const [payment] = await tx
+      .update(payments)
+      .set({ status: "Settled" })
+      .where(eq(payments.publicId, reference))
+      .returning();
+
+    if (!payment) return null;
+
+    const [booking] = await tx
+      .update(bookings)
+      .set({
+        paymentStatus: "Paid",
+        status: "Confirmed",
+        updatedAt: new Date(),
+      })
+      .where(eq(bookings.id, payment.bookingId))
+      .returning();
+
+    await tx.insert(activityLogs).values({
+      eventType: "payment_settled",
+      title: "Payment settled",
+      detail: `${payment.publicId} · ${money(payment.amountCents)}`,
+      metadata: {
+        paymentId: payment.id,
+        payment: payment.publicId,
+        bookingId: payment.bookingId,
+        booking: booking?.publicId,
+      },
+    });
+
+    return { payment, booking };
+  });
+}
+
+export async function failMobilePayment(reference: string) {
+  const db = getDb();
+
+  const [payment] = await db
+    .update(payments)
+    .set({ status: "Failed" })
+    .where(
+      and(
+        eq(payments.publicId, reference),
+        ne(payments.status, "Settled")
+      )
+    )
+    .returning();
+
+  if (!payment) return null;
+
+  await db.insert(activityLogs).values({
+    eventType: "payment_failed",
+    title: "Payment failed",
+    detail: payment.publicId,
+    metadata: {
+      paymentId: payment.id,
+      payment: payment.publicId,
+      bookingId: payment.bookingId,
+    },
+  });
+
+  return payment;
 }
