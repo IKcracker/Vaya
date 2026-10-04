@@ -60,6 +60,7 @@ function formatDeparture(value: string) {
 export default function HomeScreen() {
   const { loading: authLoading, session, passenger, user } = usePassengerAuth();
   const [trips, setTrips] = useState<PassengerTrip[]>([]);
+  const [now] = useState(() => Date.now());
   const [tripsLoading, setTripsLoading] = useState(Boolean(session));
 
   useEffect(() => {
@@ -84,11 +85,11 @@ export default function HomeScreen() {
     () =>
       trips.find(
         (trip) =>
-          new Date(trip.departureAt).getTime() > Date.now() &&
+          new Date(trip.departureAt).getTime() > now &&
           trip.bookingStatus !== 'Cancelled' &&
           trip.tripStatus !== 'Cancelled'
       ) ?? null,
-    [trips]
+    [now, trips]
   );
 
   const displayName = passenger?.name || user?.name || '';
