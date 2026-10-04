@@ -3,6 +3,7 @@ export type AdminAuthUser = {
   name?: string;
   email?: string;
   role?: string | string[] | null;
+  roles?: string[] | null;
 };
 
 export type AdminAuthResult =
@@ -32,11 +33,14 @@ export function isAdminUser(user: AdminAuthUser | null | undefined) {
     return true;
   }
 
-  const roles = Array.isArray(user.role)
-    ? user.role
-    : typeof user.role === "string"
-      ? user.role.split(",").map((role) => role.trim())
-      : [];
+  const roles = [
+    ...(Array.isArray(user.roles) ? user.roles : []),
+    ...(Array.isArray(user.role)
+      ? user.role
+      : typeof user.role === "string"
+        ? user.role.split(",").map((role) => role.trim())
+        : []),
+  ];
 
   return roles.some((role) => role.toLowerCase() === "admin");
 }
