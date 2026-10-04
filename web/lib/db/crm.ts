@@ -125,7 +125,7 @@ export async function getAdminDashboard() {
       payment: booking.paymentStatus,
       status: booking.status,
     })),
-    passengers: passengerRows.map((passenger) => ({
+    passengers: passengerRows.filter((passenger) => passenger.status !== "Removed").map((passenger) => ({
       id: passenger.id,
       name: passenger.name,
       contact: passenger.email,
