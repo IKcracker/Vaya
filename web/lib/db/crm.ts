@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { getDb } from "./index";
+import { getDriverVerificationSummary } from "./driver-documents";
 import {
   activityLogs,
   bookings,
@@ -164,6 +165,13 @@ export async function getAdminDashboard() {
 
 export async function updateDriverStatus(id: string, status: string) {
   const db = getDb();
+
+  if (status === "Approved") {
+    const verification = await getDriverVerificationSummary(id);
+    if (!verification.readyToApprove) {
+      throw new Error("DRIVER_VERIFICATION_INCOMPLETE");
+    }
+  }
   const [driver] = await db
     .update(drivers)
     .set({ status, updatedAt: new Date() })
@@ -194,7 +202,7 @@ export async function getDriverDetails(id: string) {
 
   if (!driver) return null;
 
-  const [driverTrips, activity] = await Promise.all([
+  const [driverTrips, activity, verification] = await Promise.all([
     db
       .select()
       .from(trips)
@@ -202,6 +210,7 @@ export async function getDriverDetails(id: string) {
       .orderBy(desc(trips.departureAt))
       .limit(20),
     db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(100),
+    getDriverVerificationSummary(driver.id),
   ]);
 
   return {
@@ -220,6 +229,7 @@ export async function getDriverDetails(id: string) {
       status: driver.status,
       submittedAt: driver.submittedAt.toISOString(),
       updatedAt: driver.updatedAt.toISOString(),
+      verification,
     },
     trips: driverTrips.map((trip) => ({
       id: trip.publicId,

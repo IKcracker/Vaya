@@ -24,6 +24,23 @@ export const drivers = pgTable("drivers", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const driverDocuments = pgTable("driver_documents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  driverId: uuid("driver_id")
+    .references(() => drivers.id, { onDelete: "cascade" })
+    .notNull(),
+  kind: varchar("kind", { length: 60 }).notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  contentType: varchar("content_type", { length: 120 }).notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  fileData: text("file_data").notNull(),
+  status: varchar("status", { length: 40 }).notNull().default("Review"),
+  reviewNote: text("review_note"),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const passengers = pgTable("passengers", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),

@@ -112,6 +112,19 @@ export async function PATCH(
     }
     return Response.json({ driver });
   } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === "DRIVER_VERIFICATION_INCOMPLETE"
+    ) {
+      return Response.json(
+        {
+          error:
+            "Approve every required driver document before approving the driver.",
+        },
+        { status: 409 }
+      );
+    }
+
     console.error("Driver update failed", error);
     return Response.json({ error: "Unable to update driver" }, { status: 500 });
   }

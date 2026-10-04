@@ -191,6 +191,20 @@ export default function DriverScreen() {
             <Text style={styles.reviewChecks}>{driver.checks}</Text>
           </View>
 
+          <Pressable
+            onPress={() => router.push('/driver-verification')}
+            style={({ pressed }) => [styles.verificationButton, pressed && styles.pressed]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.verificationButtonTitle}>Verification documents</Text>
+              <Text style={styles.verificationButtonMeta}>
+                {driver.verification
+                  ? `${driver.verification.uploadedRequiredCount}/${driver.verification.requiredCount} uploaded · ${driver.verification.approvedRequiredCount} approved`
+                  : driver.checks}
+              </Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </Pressable>
+
           <View style={styles.notice}>
             <Text style={styles.noticeTitle}>
               {driver.status === 'Rejected'
@@ -393,6 +407,9 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: LINE, marginVertical: 15 },
   reviewLabel: { color: MUTED, fontSize: 9, fontWeight: '800' },
   reviewChecks: { color: TEXT, fontSize: 11, fontWeight: '800', marginTop: 5, lineHeight: 17 },
+  verificationButton: { marginTop: 14, minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 14, padding: 14 },
+  verificationButtonTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
+  verificationButtonMeta: { color: MUTED, fontSize: 9, lineHeight: 14, marginTop: 3 },
   notice: { marginTop: 14, backgroundColor: '#FFFAEB', borderRadius: 14, padding: 14 },
   noticeTitle: { color: '#B54708', fontSize: 11, fontWeight: '900' },
   noticeText: { color: '#7A2E0E', fontSize: 10, lineHeight: 16, marginTop: 4 },
