@@ -199,14 +199,14 @@ export type PassengerBookingDetail = {
     route: string;
     departureAt: string;
   };
-  payments: Array<{
+  payments: {
     reference: string;
     amountCents: number;
     amount: string;
     method: string;
     status: string;
     createdAt: string;
-  }>;
+  }[];
 };
 
 export async function fetchPassengerBooking(
