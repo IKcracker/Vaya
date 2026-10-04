@@ -40,6 +40,8 @@ export default function DriverApplicationScreen() {
   const [vehicleMake, setVehicleMake] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
   const [vehicleYear, setVehicleYear] = useState('');
+  const [vehicleRegistration, setVehicleRegistration] = useState('');
+  const [vehicleColor, setVehicleColor] = useState('');
   const [documents, setDocuments] = useState<
     Partial<Record<DriverDocumentKind, PickedDriverDocument>>
   >({});
@@ -61,6 +63,8 @@ export default function DriverApplicationScreen() {
     location.trim().length >= 2 &&
     vehicleMake.trim().length >= 2 &&
     vehicleModel.trim().length >= 1 &&
+    vehicleRegistration.trim().length >= 2 &&
+    vehicleColor.trim().length >= 2 &&
     Number.isInteger(year) &&
     year >= 1980 &&
     year <= 2100 &&
@@ -97,6 +101,8 @@ export default function DriverApplicationScreen() {
         vehicleMake: vehicleMake.trim(),
         vehicleModel: vehicleModel.trim(),
         vehicleYear: year,
+        vehicleRegistration: vehicleRegistration.trim().toUpperCase(),
+        vehicleColor: vehicleColor.trim(),
       });
 
       for (const requirement of DRIVER_DOCUMENT_REQUIREMENTS) {
@@ -206,6 +212,12 @@ export default function DriverApplicationScreen() {
           </Field>
           <Field label="Year">
             <TextInput value={vehicleYear} onChangeText={setVehicleYear} keyboardType="number-pad" maxLength={4} style={styles.input} placeholder="2022" placeholderTextColor="#98A2B3" />
+          </Field>
+          <Field label="Registration number">
+            <TextInput value={vehicleRegistration} onChangeText={setVehicleRegistration} autoCapitalize="characters" style={styles.input} placeholder="AB 12 CD GP" placeholderTextColor="#98A2B3" />
+          </Field>
+          <Field label="Vehicle colour">
+            <TextInput value={vehicleColor} onChangeText={setVehicleColor} autoCapitalize="words" style={styles.input} placeholder="White" placeholderTextColor="#98A2B3" />
           </Field>
         </View>
 
