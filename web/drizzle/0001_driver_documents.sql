@@ -14,5 +14,3 @@ CREATE TABLE "driver_documents" (
 );
 --> statement-breakpoint
 ALTER TABLE "driver_documents" ADD CONSTRAINT "driver_documents_driver_id_drivers_id_fk" FOREIGN KEY ("driver_id") REFERENCES "public"."drivers"("id") ON DELETE cascade ON UPDATE no action;
---> statement-breakpoint
-CREATE UNIQUE INDEX "driver_documents_driver_kind_unique" ON "driver_documents" USING btree ("driver_id","kind");
