@@ -814,3 +814,100 @@ export async function updateMobileDriverTripStatus(
     status: trip.status,
   };
 }
+
+
+export async function updateMobileDriverTripDetails(
+  email: string,
+  publicId: string,
+  input: {
+    from: string;
+    to: string;
+    departureAt: Date;
+    seats: number;
+    fareCents: number;
+  }
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [driver] = await db
+    .select()
+    .from(drivers)
+    .where(eq(drivers.email, normalized))
+    .limit(1);
+
+  if (!driver) throw new Error("DRIVER_NOT_FOUND");
+  if (driver.status !== "Approved") throw new Error("DRIVER_NOT_APPROVED");
+
+  const [existing] = await db
+    .select()
+    .from(trips)
+    .where(
+      and(
+        eq(trips.publicId, publicId),
+        eq(trips.driverId, driver.id)
+      )
+    )
+    .limit(1);
+
+  if (!existing) throw new Error("TRIP_NOT_FOUND");
+
+  if (existing.status === "Completed" || existing.status === "Cancelled") {
+    throw new Error("TRIP_CLOSED");
+  }
+
+  if (existing.status === "Boarding") {
+    throw new Error("TRIP_LOCKED");
+  }
+
+  if (input.seats < existing.seatsBooked) {
+    throw new Error("SEAT_CAPACITY_TOO_LOW");
+  }
+
+  const [trip] = await db
+    .update(trips)
+    .set({
+      fromCity: input.from.trim(),
+      toCity: input.to.trim(),
+      departureAt: input.departureAt,
+      seatCapacity: input.seats,
+      fareCents: input.fareCents,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(trips.publicId, publicId),
+        eq(trips.driverId, driver.id)
+      )
+    )
+    .returning();
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_trip_updated",
+    title: "Driver updated trip",
+    detail: `${trip.publicId} · ${trip.fromCity} → ${trip.toCity}`,
+    metadata: {
+      driverId: driver.id,
+      tripId: trip.id,
+      publicId: trip.publicId,
+      source: "mobile",
+      departureAt: trip.departureAt.toISOString(),
+      seatCapacity: trip.seatCapacity,
+      fareCents: trip.fareCents,
+    },
+  });
+
+  return {
+    id: trip.publicId,
+    route: `${trip.fromCity} → ${trip.toCity}`,
+    from: trip.fromCity,
+    to: trip.toCity,
+    departureAt: trip.departureAt.toISOString(),
+    seatCapacity: trip.seatCapacity,
+    seatsBooked: trip.seatsBooked,
+    availableSeats: Math.max(0, trip.seatCapacity - trip.seatsBooked),
+    fareCents: trip.fareCents,
+    fare: money(trip.fareCents),
+    status: trip.status,
+  };
+}
