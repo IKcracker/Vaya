@@ -1,3 +1,5 @@
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 
 export type PublicTrip = {
@@ -39,7 +41,56 @@ export type PublicBooking = {
   };
 };
 
-function defaultApiUrl() {
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+
+function extractHost(value?: string | null) {
+  if (!value) return null;
+
+  try {
+    const parsed = new URL(
+      value.includes('://') ? value : `http://${value}`
+    );
+    return parsed.hostname || null;
+  } catch {
+    return null;
+  }
+}
+
+function expoDevelopmentHost() {
+  return (
+    extractHost(Constants.expoConfig?.hostUri) ||
+    extractHost(Constants.linkingUri)
+  );
+}
+
+function configuredApiUrl() {
+  const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
+  const developmentHost = expoDevelopmentHost();
+
+  if (configured) {
+    try {
+      const url = new URL(configured);
+
+      if (
+        Platform.OS !== 'web' &&
+        Device.isDevice &&
+        developmentHost &&
+        LOOPBACK_HOSTS.has(url.hostname)
+      ) {
+        url.hostname = developmentHost;
+        return url.toString();
+      }
+    } catch {
+      return configured;
+    }
+
+    return configured;
+  }
+
+  if (Platform.OS !== 'web' && Device.isDevice && developmentHost) {
+    return `http://${developmentHost}:3000`;
+  }
+
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:3000';
   }
@@ -47,9 +98,23 @@ function defaultApiUrl() {
   return 'http://localhost:3000';
 }
 
-export const API_URL = (
-  process.env.EXPO_PUBLIC_API_URL?.trim() || defaultApiUrl()
-).replace(/\/$/, '');
+export const API_URL = configuredApiUrl().replace(/\/$/, '');
+
+export function normalizeConnectionError(error: unknown) {
+  if (
+    error instanceof Error &&
+    (error.name === 'AbortError' ||
+      /could not connect|network request failed|fetch failed|network error/i.test(
+        error.message
+      ))
+  ) {
+    return new Error(
+      'Vaya can’t reach the server. Make sure the backend is running and your phone is on the same Wi-Fi/network as your computer, then try again.'
+    );
+  }
+
+  return error instanceof Error ? error : new Error('Something went wrong.');
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
@@ -74,11 +139,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
     return payload as T;
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('The Vaya service took too long to respond.');
-    }
-
-    throw error;
+    throw normalizeConnectionError(error);
   } finally {
     clearTimeout(timeout);
   }
