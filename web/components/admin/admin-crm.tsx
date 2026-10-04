@@ -1231,13 +1231,39 @@ function TripsTable({ rows }: { rows: typeof trips }) {
 }
 
 function BookingsView({ rows }: { rows: typeof bookings }) {
+  const exportBookings = () => {
+    const escapeCsv = (value: string) => `"${value.replaceAll('"', '""')}"`;
+    const csv = [
+      ["Booking", "Passenger", "Trip", "Seats", "Amount", "Payment", "Status"],
+      ...rows.map((booking) => [
+        booking.id,
+        booking.passenger,
+        booking.trip,
+        booking.seat,
+        booking.amount,
+        booking.payment,
+        booking.status,
+      ]),
+    ]
+      .map((row) => row.map((cell) => escapeCsv(String(cell))).join(","))
+      .join("\n");
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" })
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "vaya-bookings.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <PageHeading
         eyebrow="Customer operations"
         title="Bookings"
         description="Track seat reservations, passenger payment state and booking fulfilment."
-        action={<Button variant="outline" className="h-9"><Download /> Export bookings</Button>}
+        action={<Button variant="outline" className="h-9" onClick={exportBookings}><Download /> Export bookings</Button>}
       />
       <Card className="overflow-hidden shadow-none">
         <CardHeader className="border-b border-[#EAECF0]">
@@ -1328,18 +1354,67 @@ function PassengersView({ rows, onAdd }: { rows: typeof passengers; onAdd: () =>
 }
 
 function PaymentsView({ rows }: { rows: typeof payments }) {
+  const parseAmount = (value: string) =>
+    Number(value.replace(/[^0-9.-]+/g, "")) || 0;
+  const settledTotal = rows
+    .filter((payment) => payment.status === "Settled")
+    .reduce((sum, payment) => sum + parseAmount(payment.amount), 0);
+  const pendingRows = rows.filter((payment) => payment.status === "Pending");
+  const pendingTotal = pendingRows.reduce(
+    (sum, payment) => sum + parseAmount(payment.amount),
+    0
+  );
+  const refundedRows = rows.filter((payment) => payment.status === "Refunded");
+  const refundedTotal = refundedRows.reduce(
+    (sum, payment) => sum + parseAmount(payment.amount),
+    0
+  );
+  const money = (value: number) =>
+    new Intl.NumberFormat("en-ZA", {
+      style: "currency",
+      currency: "ZAR",
+      maximumFractionDigits: 0,
+    }).format(value);
+
+  const exportPayments = () => {
+    const escapeCsv = (value: string) => `"${value.replaceAll('"', '""')}"`;
+    const csv = [
+      ["Reference", "Booking", "Customer", "Amount", "Method", "Date", "Status"],
+      ...rows.map((payment) => [
+        payment.ref,
+        payment.booking,
+        payment.customer,
+        payment.amount,
+        payment.method,
+        payment.date,
+        payment.status,
+      ]),
+    ]
+      .map((row) => row.map((cell) => escapeCsv(String(cell))).join(","))
+      .join("\n");
+
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" })
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "vaya-payments.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <PageHeading
         eyebrow="Finance operations"
         title="Payments"
         description="Monitor booking collections, settlement status and payment references."
-        action={<Button variant="outline" className="h-9"><Download /> Export payments</Button>}
+        action={<Button variant="outline" className="h-9" onClick={exportPayments}><Download /> Export payments</Button>}
       />
       <section className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Card className="shadow-none"><CardContent className="p-5"><div className="text-[11px] font-semibold text-[#667085]">Collected today</div><div className="mt-2 text-2xl font-bold tracking-[-.03em]">R24,860</div><Badge variant="success" className="mt-3">Settled</Badge></CardContent></Card>
-        <Card className="shadow-none"><CardContent className="p-5"><div className="text-[11px] font-semibold text-[#667085]">Pending</div><div className="mt-2 text-2xl font-bold tracking-[-.03em]">R1,460</div><Badge variant="warning" className="mt-3">6 payments</Badge></CardContent></Card>
-        <Card className="shadow-none"><CardContent className="p-5"><div className="text-[11px] font-semibold text-[#667085]">Refund requests</div><div className="mt-2 text-2xl font-bold tracking-[-.03em]">R640</div><Badge variant="secondary" className="mt-3">2 requests</Badge></CardContent></Card>
+        <Card className="shadow-none"><CardContent className="p-5"><div className="text-[11px] font-semibold text-[#667085]">Settled payments</div><div className="mt-2 text-2xl font-bold tracking-[-.03em]">{money(settledTotal)}</div><Badge variant="success" className="mt-3">{rows.filter((payment) => payment.status === "Settled").length} settled</Badge></CardContent></Card>
+        <Card className="shadow-none"><CardContent className="p-5"><div className="text-[11px] font-semibold text-[#667085]">Pending</div><div className="mt-2 text-2xl font-bold tracking-[-.03em]">{money(pendingTotal)}</div><Badge variant="warning" className="mt-3">{pendingRows.length} payments</Badge></CardContent></Card>
+        <Card className="shadow-none"><CardContent className="p-5"><div className="text-[11px] font-semibold text-[#667085]">Refunded</div><div className="mt-2 text-2xl font-bold tracking-[-.03em]">{money(refundedTotal)}</div><Badge variant="secondary" className="mt-3">{refundedRows.length} refunds</Badge></CardContent></Card>
       </section>
       <Card className="overflow-hidden shadow-none">
         <CardHeader className="border-b border-[#EAECF0]">
