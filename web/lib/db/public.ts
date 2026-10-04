@@ -3,7 +3,15 @@ import "server-only";
 import { and, asc, desc, eq, gte, ilike, lt, ne, or, sql } from "drizzle-orm";
 import { getDb } from "./index";
 import { getDriverVerificationSummary } from "./driver-documents";
-import { activityLogs, bookings, drivers, passengers, payments, trips } from "./schema";
+import {
+  activityLogs,
+  bookings,
+  drivers,
+  passengers,
+  payments,
+  safetyCases,
+  trips,
+} from "./schema";
 
 const PUBLIC_TRIP_STATUSES = ["Scheduled", "On schedule", "Boarding", "Full"];
 
@@ -322,6 +330,178 @@ export async function getPassengerAccountByEmail(email: string) {
     status: passenger.status,
     tripsCount: passenger.tripsCount,
     joinedAt: passenger.joinedAt.toISOString(),
+  };
+}
+
+export async function updatePassengerAccountByEmail(
+  email: string,
+  input: {
+    name: string;
+    phone?: string | null;
+    city: string;
+  }
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [passenger] = await db
+    .update(passengers)
+    .set({
+      name: input.name.trim(),
+      phone: input.phone?.trim() || null,
+      city: input.city.trim(),
+      updatedAt: new Date(),
+    })
+    .where(eq(passengers.email, normalized))
+    .returning();
+
+  if (!passenger) return null;
+
+  await db.insert(activityLogs).values({
+    eventType: "passenger_profile_updated",
+    title: "Passenger profile updated",
+    detail: passenger.name,
+    metadata: {
+      passengerId: passenger.id,
+      source: "mobile",
+      fields: ["name", "phone", "city"],
+    },
+  });
+
+  return {
+    id: passenger.id,
+    name: passenger.name,
+    email: passenger.email,
+    phone: passenger.phone ?? "",
+    city: passenger.city,
+    status: passenger.status,
+    tripsCount: passenger.tripsCount,
+    joinedAt: passenger.joinedAt.toISOString(),
+  };
+}
+
+export async function getPassengerPaymentsByEmail(email: string) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const rows = await db
+    .select({
+      reference: payments.publicId,
+      bookingId: bookings.publicId,
+      amountCents: payments.amountCents,
+      method: payments.method,
+      status: payments.status,
+      createdAt: payments.createdAt,
+      fromCity: trips.fromCity,
+      toCity: trips.toCity,
+    })
+    .from(payments)
+    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+    .innerJoin(passengers, eq(bookings.passengerId, passengers.id))
+    .innerJoin(trips, eq(bookings.tripId, trips.id))
+    .where(eq(passengers.email, normalized))
+    .orderBy(desc(payments.createdAt));
+
+  return rows.map((row) => ({
+    reference: row.reference,
+    bookingId: row.bookingId,
+    amountCents: row.amountCents,
+    amount: money(row.amountCents),
+    method: row.method,
+    status: row.status,
+    route: `${row.fromCity} → ${row.toCity}`,
+    createdAt: row.createdAt.toISOString(),
+  }));
+}
+
+export async function createMobileSafetyCaseByEmail(
+  email: string,
+  input: {
+    tripId?: string | null;
+    subject: string;
+    note: string;
+  }
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [passenger] = await db
+    .select()
+    .from(passengers)
+    .where(eq(passengers.email, normalized))
+    .limit(1);
+
+  if (!passenger) throw new Error("PASSENGER_NOT_FOUND");
+
+  let linkedTrip:
+    | {
+        id: string;
+        publicId: string;
+        fromCity: string;
+        toCity: string;
+      }
+    | undefined;
+
+  if (input.tripId) {
+    [linkedTrip] = await db
+      .select({
+        id: trips.id,
+        publicId: trips.publicId,
+        fromCity: trips.fromCity,
+        toCity: trips.toCity,
+      })
+      .from(bookings)
+      .innerJoin(trips, eq(bookings.tripId, trips.id))
+      .where(
+        and(
+          eq(bookings.passengerId, passenger.id),
+          eq(trips.publicId, input.tripId)
+        )
+      )
+      .limit(1);
+
+    if (!linkedTrip) throw new Error("TRIP_NOT_FOUND");
+  }
+
+  const publicId = `SAFE-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+  const tripLabel = linkedTrip
+    ? `${linkedTrip.publicId} · ${linkedTrip.fromCity} → ${linkedTrip.toCity}`
+    : `Passenger · ${passenger.name}`;
+
+  const [safetyCase] = await db
+    .insert(safetyCases)
+    .values({
+      publicId,
+      subject: input.subject.trim(),
+      tripId: linkedTrip?.id ?? null,
+      tripLabel,
+      priority: "High",
+      owner: "Unassigned",
+      note: input.note.trim(),
+      status: "Open",
+    })
+    .returning();
+
+  await db.insert(activityLogs).values({
+    eventType: "mobile_safety_case_created",
+    title: "Passenger safety report submitted",
+    detail: `${safetyCase.publicId} · ${passenger.name}`,
+    metadata: {
+      safetyCaseId: safetyCase.id,
+      publicId: safetyCase.publicId,
+      passengerId: passenger.id,
+      tripId: linkedTrip?.id ?? null,
+      source: "mobile",
+    },
+  });
+
+  return {
+    id: safetyCase.publicId,
+    subject: safetyCase.subject,
+    status: safetyCase.status,
+    priority: safetyCase.priority,
+    trip: tripLabel,
+    createdAt: safetyCase.createdAt.toISOString(),
   };
 }
 
