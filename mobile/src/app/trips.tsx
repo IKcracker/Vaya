@@ -160,10 +160,15 @@ export default function TripsScreen() {
                   <Pressable
                     key={trip.id}
                     onPress={() =>
-                      router.push({
-                        pathname: '/trip/[id]',
-                        params: { id: trip.tripId, passengers: String(trip.seats) },
-                      })
+                      trip.paymentStatus === 'Paid'
+                        ? router.push({
+                            pathname: '/trip/[id]',
+                            params: { id: trip.tripId, passengers: String(trip.seats) },
+                          })
+                        : router.push({
+                            pathname: '/payment/[id]',
+                            params: { id: trip.id },
+                          })
                     }
                     style={({ pressed }) => [styles.upcomingCard, pressed && styles.pressed]}>
                     <View style={styles.statusRow}>
@@ -194,8 +199,15 @@ export default function TripsScreen() {
                     </View>
 
                     <View style={styles.paymentRow}>
-                      <Text style={styles.paymentLabel}>Payment</Text>
-                      <Text style={styles.paymentValue}>{trip.paymentStatus}</Text>
+                      <View>
+                        <Text style={styles.paymentLabel}>Payment</Text>
+                        <Text style={styles.paymentValue}>{trip.paymentStatus}</Text>
+                      </View>
+                      {trip.paymentStatus !== 'Paid' ? (
+                        <View style={styles.payBadge}>
+                          <Text style={styles.payBadgeText}>Pay now ›</Text>
+                        </View>
+                      ) : null}
                     </View>
                   </Pressable>
                 );
@@ -357,7 +369,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   paymentLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },
-  paymentValue: { color: TEXT, fontSize: 10, fontWeight: '900' },
+  paymentValue: { color: TEXT, fontSize: 10, fontWeight: '900', marginTop: 3 },
+  payBadge: {
+    borderRadius: 9,
+    backgroundColor: '#E7F3FF',
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  payBadgeText: { color: BLUE, fontSize: 9, fontWeight: '900' },
   emptyCard: {
     borderWidth: 1,
     borderColor: LINE,
