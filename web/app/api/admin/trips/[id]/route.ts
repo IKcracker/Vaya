@@ -57,6 +57,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!Object.keys(update).length) return Response.json({ error: "No valid trip updates supplied" }, { status: 400 });
 
   try {
+    if (update.seatCapacity !== undefined) {
+      const current = await getTripDetails(id);
+      if (!current) return Response.json({ error: "Trip not found" }, { status: 404 });
+      if (update.seatCapacity < current.trip.seatsBooked) {
+        return Response.json(
+          { error: `Seat capacity cannot be below ${current.trip.seatsBooked} booked seats` },
+          { status: 409 }
+        );
+      }
+    }
+
     const trip = await updateTrip(id, update);
     if (!trip) return Response.json({ error: "Trip not found" }, { status: 404 });
     return Response.json({ trip });
