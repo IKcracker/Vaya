@@ -483,6 +483,7 @@ export default function PublishDriverTripScreen() {
                   }
                   is24Hour
                   accentColor={BLUE}
+                  themeVariant="light"
                   locale="en_ZA"
                   timeZoneName="Africa/Johannesburg"
                   style={styles.nativePicker}
