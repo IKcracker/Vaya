@@ -46,6 +46,7 @@ export default function TripsScreen() {
   const router = useRouter();
   const { loading: authLoading, session } = usePassengerAuth();
   const [trips, setTrips] = useState<PassengerTrip[]>([]);
+  const [now] = useState(() => Date.now());
   const [loading, setLoading] = useState(Boolean(session));
   const [error, setError] = useState<string | null>(null);
 
@@ -75,7 +76,6 @@ export default function TripsScreen() {
   }, [session]);
 
   const { upcoming, history } = useMemo(() => {
-    const now = Date.now();
     const future: PassengerTrip[] = [];
     const past: PassengerTrip[] = [];
 
@@ -93,7 +93,7 @@ export default function TripsScreen() {
     }
 
     return { upcoming: future, history: past };
-  }, [trips]);
+  }, [now, trips]);
 
   if (authLoading) {
     return (
