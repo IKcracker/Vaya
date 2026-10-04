@@ -149,9 +149,20 @@ export default function BookingScreen() {
           </View>
 
           <Pressable
-            onPress={() => router.replace('/trips')}
+            onPress={() =>
+              router.replace({
+                pathname: '/payment/[id]',
+                params: { id: booking.id },
+              })
+            }
             style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-            <Text style={styles.primaryText}>View my trips</Text>
+            <Text style={styles.primaryText}>Pay now · {booking.amount}</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.replace('/trips')}
+            style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
+            <Text style={styles.secondaryText}>Pay later</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -374,6 +385,19 @@ const styles = StyleSheet.create({
   },
   primaryDisabled: { backgroundColor: '#B7D5FA' },
   primaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  secondary: {
+    marginTop: 10,
+    height: 48,
+    minWidth: 210,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: LINE,
+    backgroundColor: SURFACE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryText: { color: TEXT, fontSize: 12, fontWeight: '900' },
   successPage: {
     flex: 1,
     paddingHorizontal: 20,
