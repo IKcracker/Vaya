@@ -45,6 +45,10 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const kind = typeof body?.kind === "string" ? body.kind : "";
+  const vehicleId =
+    typeof body?.vehicleId === "string" && body.vehicleId.trim()
+      ? body.vehicleId.trim()
+      : null;
   const fileName =
     typeof body?.fileName === "string" ? body.fileName.trim().slice(0, 255) : "";
   const contentType =
@@ -69,6 +73,7 @@ export async function POST(request: Request) {
   try {
     const result = await saveDriverDocumentByEmail(auth.user.email, {
       kind,
+      vehicleId,
       fileName,
       contentType,
       sizeBytes: validated.sizeBytes,
@@ -82,6 +87,14 @@ export async function POST(request: Request) {
         { error: "Submit your driver application before uploading documents" },
         { status: 409 }
       );
+    }
+
+    if (error instanceof Error && error.message === "VEHICLE_REQUIRED") {
+      return Response.json({ error: "Choose the vehicle this document belongs to" }, { status: 400 });
+    }
+
+    if (error instanceof Error && error.message === "VEHICLE_NOT_FOUND") {
+      return Response.json({ error: "Vehicle not found" }, { status: 404 });
     }
 
     console.error("Driver document upload failed", error);
