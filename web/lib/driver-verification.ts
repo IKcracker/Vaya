@@ -41,10 +41,9 @@ export function isPersonalDriverDocumentKind(
 
 export function isVehicleDriverDocumentKind(
   value: string
-): value =
-  value is
-    | (typeof VEHICLE_REQUIRED_DOCUMENTS)[number]["kind"]
-    | (typeof VEHICLE_OPTIONAL_DOCUMENTS)[number]["kind"] {
+): value is
+  | (typeof VEHICLE_REQUIRED_DOCUMENTS)[number]["kind"]
+  | (typeof VEHICLE_OPTIONAL_DOCUMENTS)[number]["kind"] {
   return [...VEHICLE_REQUIRED_DOCUMENTS, ...VEHICLE_OPTIONAL_DOCUMENTS].some(
     (item) => item.kind === value
   );
