@@ -22,13 +22,18 @@ async function authEmail(request: Request) {
   return { email: auth.user.email };
 }
 
-function vehicleInput(body: any) {
+function vehicleInput(body: unknown) {
+  const value =
+    body && typeof body === "object" && !Array.isArray(body)
+      ? (body as Record<string, unknown>)
+      : {};
+
   return {
-    vehicleMake: typeof body?.vehicleMake === "string" ? body.vehicleMake.trim() : "",
-    vehicleModel: typeof body?.vehicleModel === "string" ? body.vehicleModel.trim() : "",
-    vehicleYear: Number(body?.vehicleYear),
-    vehicleRegistration: typeof body?.vehicleRegistration === "string" ? body.vehicleRegistration.trim() : "",
-    vehicleColor: typeof body?.vehicleColor === "string" ? body.vehicleColor.trim() : "",
+    vehicleMake: typeof value.vehicleMake === "string" ? value.vehicleMake.trim() : "",
+    vehicleModel: typeof value.vehicleModel === "string" ? value.vehicleModel.trim() : "",
+    vehicleYear: Number(value.vehicleYear),
+    vehicleRegistration: typeof value.vehicleRegistration === "string" ? value.vehicleRegistration.trim() : "",
+    vehicleColor: typeof value.vehicleColor === "string" ? value.vehicleColor.trim() : "",
   };
 }
 
