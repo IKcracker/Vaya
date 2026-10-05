@@ -1,4 +1,5 @@
 import {
+  boolean,
   integer,
   jsonb,
   pgTable,
@@ -26,11 +27,29 @@ export const drivers = pgTable("drivers", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const driverVehicles = pgTable("driver_vehicles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  driverId: uuid("driver_id")
+    .references(() => drivers.id, { onDelete: "cascade" })
+    .notNull(),
+  make: varchar("make", { length: 100 }).notNull(),
+  model: varchar("model", { length: 100 }).notNull(),
+  year: integer("year").notNull(),
+  registration: varchar("registration", { length: 30 }).notNull(),
+  color: varchar("color", { length: 60 }).notNull(),
+  status: varchar("status", { length: 40 }).notNull().default("Needs info"),
+  checks: varchar("checks", { length: 180 }).notNull().default("0/2 required documents uploaded"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const driverDocuments = pgTable("driver_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
   driverId: uuid("driver_id")
     .references(() => drivers.id, { onDelete: "cascade" })
     .notNull(),
+  vehicleId: uuid("vehicle_id").references(() => driverVehicles.id, { onDelete: "cascade" }),
   kind: varchar("kind", { length: 60 }).notNull(),
   fileName: varchar("file_name", { length: 255 }).notNull(),
   contentType: varchar("content_type", { length: 120 }).notNull(),
@@ -64,6 +83,7 @@ export const trips = pgTable("trips", {
   fromCity: varchar("from_city", { length: 120 }).notNull(),
   toCity: varchar("to_city", { length: 120 }).notNull(),
   driverId: uuid("driver_id").references(() => drivers.id, { onDelete: "set null" }),
+  vehicleId: uuid("vehicle_id").references(() => driverVehicles.id, { onDelete: "set null" }),
   driverName: varchar("driver_name", { length: 160 }).notNull(),
   vehicleMake: varchar("vehicle_make", { length: 100 }),
   vehicleModel: varchar("vehicle_model", { length: 100 }),
