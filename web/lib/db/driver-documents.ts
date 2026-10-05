@@ -113,7 +113,9 @@ function verificationSummary(
   documents: Awaited<ReturnType<typeof getDocumentsFor>>,
   requiredKinds: readonly string[]
 ) {
-  const byKind = new Map(documents.map((document) => [document.kind, document]));
+  const byKind = new Map<string, (typeof documents)[number]>(
+    documents.map((document) => [document.kind, document])
+  );
   const uploadedRequired = requiredKinds.filter((kind) => byKind.has(kind));
   const approvedRequired = requiredKinds.filter(
     (kind) => byKind.get(kind)?.status === "Approved"
