@@ -15,7 +15,7 @@ export async function GET(
   const { id } = await params;
   const image = await getDriverProfileImageById(id);
 
-  if (!image || image.driverStatus !== "Approved") {
+  if (!image?.contentType || !image.fileData || image.driverStatus !== "Approved") {
     return Response.json({ error: "Driver profile photo not found" }, { status: 404 });
   }
 
