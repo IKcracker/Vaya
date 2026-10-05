@@ -84,7 +84,7 @@ export default function DriverVehicleScreen() {
     if (!session) return;
     const response = await fetchMobileDriver(session);
     setDriver(response.driver);
-  }, [refresh, session]);
+  }, [session]);
 
   useEffect(() => {
     if (!session) {
@@ -97,7 +97,7 @@ export default function DriverVehicleScreen() {
         setError(reason instanceof Error ? reason.message : 'Unable to load vehicles')
       )
       .finally(() => setLoading(false));
-  }, [session]);
+  }, [refresh, session]);
 
   function startAdd() {
     setEditing(null);
