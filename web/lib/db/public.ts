@@ -364,6 +364,9 @@ export async function getPassengerAccountByEmail(email: string) {
     status: passenger.status,
     tripsCount: passenger.tripsCount,
     joinedAt: passenger.joinedAt.toISOString(),
+    profileImageUrl: passenger.profileImageUpdatedAt
+      ? `/api/mobile/me/photo?version=${passenger.profileImageUpdatedAt.getTime()}`
+      : "",
   };
 }
 
