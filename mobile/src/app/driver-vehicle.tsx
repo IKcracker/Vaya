@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -71,23 +71,20 @@ export default function DriverVehicleScreen() {
   const approvedCount = vehicles.filter((vehicle) => vehicle.status === 'Approved').length;
 
   const parsedYear = Number(draft.year);
-  const valid = useMemo(
-    () =>
-      draft.make.trim().length >= 2 &&
-      draft.model.trim().length >= 1 &&
-      draft.registration.trim().length >= 2 &&
-      draft.color.trim().length >= 2 &&
-      Number.isInteger(parsedYear) &&
-      parsedYear >= 1980 &&
-      parsedYear <= 2100,
-    [draft, parsedYear]
-  );
+  const valid =
+    draft.make.trim().length >= 2 &&
+    draft.model.trim().length >= 1 &&
+    draft.registration.trim().length >= 2 &&
+    draft.color.trim().length >= 2 &&
+    Number.isInteger(parsedYear) &&
+    parsedYear >= 1980 &&
+    parsedYear <= 2100;
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     if (!session) return;
     const response = await fetchMobileDriver(session);
     setDriver(response.driver);
-  }
+  }, [refresh, session]);
 
   useEffect(() => {
     if (!session) {
