@@ -85,6 +85,23 @@ export async function removePassengerProfileImageByEmail(email: string) {
   return passenger;
 }
 
+export async function getPassengerProfileImageById(passengerId: string) {
+  const db = getDb();
+
+  const [passenger] = await db
+    .select({
+      contentType: passengers.profileImageContentType,
+      fileData: passengers.profileImageData,
+      updatedAt: passengers.profileImageUpdatedAt,
+    })
+    .from(passengers)
+    .where(eq(passengers.id, passengerId))
+    .limit(1);
+
+  if (!passenger?.contentType || !passenger.fileData) return null;
+  return passenger;
+}
+
 export async function getDriverProfileImageById(driverId: string) {
   const db = getDb();
 
