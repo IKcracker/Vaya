@@ -87,10 +87,7 @@ export default function DriverVehicleScreen() {
   }, [session]);
 
   useEffect(() => {
-    if (!session) {
-      setLoading(false);
-      return;
-    }
+    if (!session) return;
 
     refresh()
       .catch((reason) =>
