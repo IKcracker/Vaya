@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -80,21 +80,33 @@ export default function DriverVehicleScreen() {
     parsedYear >= 1980 &&
     parsedYear <= 2100;
 
-  const refresh = useCallback(async () => {
+  async function refresh() {
     if (!session) return;
     const response = await fetchMobileDriver(session);
     setDriver(response.driver);
-  }, [session]);
+  }
 
   useEffect(() => {
     if (!session) return;
 
-    refresh()
-      .catch((reason) =>
-        setError(reason instanceof Error ? reason.message : 'Unable to load vehicles')
-      )
-      .finally(() => setLoading(false));
-  }, [refresh, session]);
+    let active = true;
+    fetchMobileDriver(session)
+      .then((response) => {
+        if (active) setDriver(response.driver);
+      })
+      .catch((reason) => {
+        if (active) {
+          setError(reason instanceof Error ? reason.message : 'Unable to load vehicles');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [session]);
 
   function startAdd() {
     setEditing(null);
