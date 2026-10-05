@@ -1187,6 +1187,68 @@ export async function setPrimaryMobileDriverVehicle(email: string, vehicleId: st
   return vehicle;
 }
 
+export async function removeMobileDriverVehicle(email: string, vehicleId: string) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+  const [driver] = await db.select().from(drivers).where(eq(drivers.email, normalized)).limit(1);
+  if (!driver) throw new Error("DRIVER_NOT_FOUND");
+
+  const [vehicle] = await db
+    .select()
+    .from(driverVehicles)
+    .where(and(eq(driverVehicles.id, vehicleId), eq(driverVehicles.driverId, driver.id)))
+    .limit(1);
+  if (!vehicle) throw new Error("VEHICLE_NOT_FOUND");
+
+  const activeTrips = await db
+    .select({ id: trips.id })
+    .from(trips)
+    .where(
+      and(
+        eq(trips.vehicleId, vehicleId),
+        or(
+          eq(trips.status, "Scheduled"),
+          eq(trips.status, "On schedule"),
+          eq(trips.status, "Boarding"),
+          eq(trips.status, "Full")
+        )
+      )
+    )
+    .limit(1);
+  if (activeTrips.length) throw new Error("VEHICLE_HAS_ACTIVE_TRIPS");
+
+  await db.transaction(async (tx) => {
+    await tx.delete(driverVehicles).where(eq(driverVehicles.id, vehicleId));
+    if (vehicle.isPrimary) {
+      const [next] = await tx
+        .select()
+        .from(driverVehicles)
+        .where(eq(driverVehicles.driverId, driver.id))
+        .limit(1);
+      if (next) {
+        await tx.update(driverVehicles).set({ isPrimary: true }).where(eq(driverVehicles.id, next.id));
+        await tx.update(drivers).set({
+          vehicleMake: next.make,
+          vehicleModel: next.model,
+          vehicleYear: next.year,
+          vehicleRegistration: next.registration,
+          vehicleColor: next.color,
+          updatedAt: new Date(),
+        }).where(eq(drivers.id, driver.id));
+      }
+    }
+  });
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_vehicle_removed",
+    title: "Driver removed vehicle",
+    detail: `${vehicle.make} ${vehicle.model} · ${vehicle.registration}`,
+    metadata: { driverId: driver.id, vehicleId, source: "mobile" },
+  });
+
+  return { id: vehicleId };
+}
+
 export async function createMobileDriverTrip(
   email: string,
   input: {
