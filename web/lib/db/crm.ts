@@ -61,7 +61,19 @@ export async function getAdminDashboard() {
   ] = await Promise.all([
     db.select().from(drivers).orderBy(desc(drivers.submittedAt)),
     db.select().from(trips).orderBy(desc(trips.departureAt)),
-    db.select().from(passengers).orderBy(desc(passengers.joinedAt)),
+    db
+      .select({
+        id: passengers.id,
+        name: passengers.name,
+        email: passengers.email,
+        city: passengers.city,
+        tripsCount: passengers.tripsCount,
+        status: passengers.status,
+        joinedAt: passengers.joinedAt,
+        profileImageUpdatedAt: passengers.profileImageUpdatedAt,
+      })
+      .from(passengers)
+      .orderBy(desc(passengers.joinedAt)),
     db
       .select({
         id: bookings.publicId,
@@ -95,6 +107,10 @@ export async function getAdminDashboard() {
     db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(8),
   ]);
 
+  const passengerByEmail = new Map(
+    passengerRows.map((passenger) => [passenger.email.toLowerCase(), passenger])
+  );
+
   return {
     configured: true,
     drivers: driverRows.filter((driver) => driver.status !== "Removed").map((driver) => ({
@@ -106,6 +122,10 @@ export async function getAdminDashboard() {
       checks: driver.checks,
       submitted: relativeTime(driver.submittedAt),
       status: driver.status,
+      profileImageUrl:
+        driver.email && passengerByEmail.get(driver.email.toLowerCase())?.profileImageUpdatedAt
+          ? `/api/public/drivers/${driver.id}/profile-image?version=${passengerByEmail.get(driver.email.toLowerCase())!.profileImageUpdatedAt!.getTime()}`
+          : "",
     })),
     trips: tripRows.map((trip) => ({
       id: trip.publicId,
@@ -134,6 +154,9 @@ export async function getAdminDashboard() {
       trips: String(passenger.tripsCount),
       joined: zaMonthYear.format(passenger.joinedAt),
       status: passenger.status,
+      profileImageUrl: passenger.profileImageUpdatedAt
+        ? `/api/admin/passengers/${passenger.id}/profile-image?version=${passenger.profileImageUpdatedAt.getTime()}`
+        : "",
     })),
     payments: paymentRows.map((payment) => ({
       ref: payment.ref,
@@ -202,7 +225,7 @@ export async function getDriverDetails(id: string) {
 
   if (!driver) return null;
 
-  const [driverTrips, activity, verification] = await Promise.all([
+  const [driverTrips, activity, verification, passengerProfile] = await Promise.all([
     db
       .select()
       .from(trips)
@@ -211,6 +234,14 @@ export async function getDriverDetails(id: string) {
       .limit(20),
     db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(100),
     getDriverVerificationSummary(driver.id),
+    driver.email
+      ? db
+          .select({ profileImageUpdatedAt: passengers.profileImageUpdatedAt })
+          .from(passengers)
+          .where(eq(passengers.email, driver.email))
+          .limit(1)
+          .then((rows) => rows[0] ?? null)
+      : Promise.resolve(null),
   ]);
 
   return {
@@ -231,6 +262,9 @@ export async function getDriverDetails(id: string) {
       status: driver.status,
       submittedAt: driver.submittedAt.toISOString(),
       updatedAt: driver.updatedAt.toISOString(),
+      profileImageUrl: passengerProfile?.profileImageUpdatedAt
+        ? `/api/public/drivers/${driver.id}/profile-image?version=${passengerProfile.profileImageUpdatedAt.getTime()}`
+        : "",
       verification,
     },
     trips: driverTrips.map((trip) => ({
@@ -454,7 +488,22 @@ function mapActivity(
 
 export async function getPassengerDetails(id: string) {
   const db = getDb();
-  const [passenger] = await db.select().from(passengers).where(eq(passengers.id, id)).limit(1);
+  const [passenger] = await db
+    .select({
+      id: passengers.id,
+      name: passengers.name,
+      email: passengers.email,
+      phone: passengers.phone,
+      city: passengers.city,
+      tripsCount: passengers.tripsCount,
+      status: passengers.status,
+      joinedAt: passengers.joinedAt,
+      updatedAt: passengers.updatedAt,
+      profileImageUpdatedAt: passengers.profileImageUpdatedAt,
+    })
+    .from(passengers)
+    .where(eq(passengers.id, id))
+    .limit(1);
   if (!passenger) return null;
 
   const [bookingRows, paymentRows, activityRows] = await Promise.all([
@@ -501,6 +550,9 @@ export async function getPassengerDetails(id: string) {
       status: passenger.status,
       joinedAt: passenger.joinedAt.toISOString(),
       updatedAt: passenger.updatedAt.toISOString(),
+      profileImageUrl: passenger.profileImageUpdatedAt
+        ? `/api/admin/passengers/${passenger.id}/profile-image?version=${passenger.profileImageUpdatedAt.getTime()}`
+        : "",
     },
     bookings: bookingRows.map((booking) => ({
       id: booking.id,
