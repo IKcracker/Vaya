@@ -192,7 +192,7 @@ export async function updatePassengerProfile(
     '/api/mobile/me',
     {
       method: 'PATCH',
-      body: JSON.stringify({ vehicleId, ...input }),
+      body: JSON.stringify(input),
     },
     session
   );
@@ -511,7 +511,7 @@ export async function updateDriverVehicle(
     '/api/mobile/driver',
     {
       method: 'PATCH',
-      body: JSON.stringify(input),
+      body: JSON.stringify({ vehicleId, ...input }),
     },
     session
   );
