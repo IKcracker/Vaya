@@ -32,6 +32,18 @@ const zaMonthYear = new Intl.DateTimeFormat("en-ZA", {
   timeZone: "Africa/Johannesburg",
 });
 
+const passengerWriteSelection = {
+  id: passengers.id,
+  name: passengers.name,
+  email: passengers.email,
+  phone: passengers.phone,
+  city: passengers.city,
+  tripsCount: passengers.tripsCount,
+  status: passengers.status,
+  joinedAt: passengers.joinedAt,
+  updatedAt: passengers.updatedAt,
+};
+
 function money(cents: number) {
   return `R${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 }
@@ -591,7 +603,7 @@ export async function updatePassenger(
     .update(passengers)
     .set({ ...input, updatedAt: new Date() })
     .where(eq(passengers.id, id))
-    .returning();
+    .returning(passengerWriteSelection);
   if (!passenger) return null;
 
   const changedFields = Object.keys(input);
@@ -611,7 +623,7 @@ export async function removePassenger(id: string) {
     .update(passengers)
     .set({ status: "Removed", updatedAt: new Date() })
     .where(eq(passengers.id, id))
-    .returning();
+    .returning(passengerWriteSelection);
   if (!passenger) return null;
 
   await db.insert(activityLogs).values({
