@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fetchPassengerTrips, PassengerTrip } from '@/lib/auth';
+import { API_URL } from '@/lib/api';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
 const BLUE = '#1877F2';
@@ -182,12 +184,29 @@ export default function TripsScreen() {
                     <Text style={styles.route}>{trip.route}</Text>
                     <Text style={styles.date}>{formatDate(trip.departureAt)}</Text>
 
+                    <View style={styles.driverLine}>
+                      <View style={styles.driverAvatar}>
+                        {trip.driverProfileImageUrl ? (
+                          <Image
+                            source={{ uri: `${API_URL}${trip.driverProfileImageUrl}` }}
+                            style={styles.driverAvatarImage}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <Text style={styles.driverAvatarText}>
+                            {trip.driver.split(/\s+/).filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.driverLineLabel}>Driver</Text>
+                        <Text style={styles.driverLineName}>{trip.driver}</Text>
+                      </View>
+                    </View>
+
                     <View style={styles.divider} />
                     <View style={styles.detailRow}>
                       <View>
-                        <Text style={styles.detailLabel}>Driver</Text>
-                        <Text style={styles.detailValue}>{trip.driver}</Text>
-                      </View>
                       <View>
                         <Text style={styles.detailLabel}>Seats</Text>
                         <Text style={styles.detailValue}>{trip.seats}</Text>
@@ -247,6 +266,19 @@ export default function TripsScreen() {
                       index < history.length - 1 && styles.historyBorder,
                       pressed && styles.pressed,
                     ]}>
+                    <View style={styles.historyAvatar}>
+                      {trip.driverProfileImageUrl ? (
+                        <Image
+                          source={{ uri: `${API_URL}${trip.driverProfileImageUrl}` }}
+                          style={styles.driverAvatarImage}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <Text style={styles.historyAvatarText}>
+                          {trip.driver.split(/\s+/).filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
+                        </Text>
+                      )}
+                    </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.historyRoute}>{trip.route}</Text>
                       <Text style={styles.historyMeta}>
@@ -357,6 +389,12 @@ const styles = StyleSheet.create({
   route: { color: TEXT, fontSize: 20, fontWeight: '900', marginTop: 16, letterSpacing: -0.3 },
   date: { color: BLUE, fontSize: 12, fontWeight: '800', marginTop: 5 },
   divider: { height: 1, backgroundColor: LINE, marginVertical: 15 },
+  driverLine: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
+  driverAvatar: { width: 38, height: 38, borderRadius: 19, overflow: 'hidden', backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  driverAvatarImage: { width: '100%', height: '100%' },
+  driverAvatarText: { color: BLUE, fontSize: 10, fontWeight: '900' },
+  driverLineLabel: { color: MUTED, fontSize: 8, fontWeight: '700' },
+  driverLineName: { color: TEXT, fontSize: 11, fontWeight: '900', marginTop: 3 },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   detailLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },
   detailValue: { color: TEXT, fontSize: 11, fontWeight: '900', marginTop: 4 },
@@ -402,7 +440,9 @@ const styles = StyleSheet.create({
     borderColor: LINE,
     overflow: 'hidden',
   },
-  historyRow: { padding: 15, flexDirection: 'row', alignItems: 'center' },
+  historyRow: { padding: 15, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  historyAvatar: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  historyAvatarText: { color: BLUE, fontSize: 9, fontWeight: '900' },
   historyBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
   historyRoute: { color: TEXT, fontSize: 13, fontWeight: '900' },
   historyMeta: { color: MUTED, fontSize: 10, marginTop: 4 },
