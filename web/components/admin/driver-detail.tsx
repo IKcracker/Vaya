@@ -53,6 +53,7 @@ import {
 
 type DriverDocument = {
   id: string;
+  vehicleId?: string | null;
   kind: string;
   label: string;
   required: boolean;
@@ -76,6 +77,19 @@ type DriverVerification = {
   readyToApprove: boolean;
 };
 
+type DriverVehicle = {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  registration: string;
+  color: string;
+  status: string;
+  checks: string;
+  isPrimary: boolean;
+  verification: DriverVerification;
+};
+
 type DriverRecord = {
   id: string;
   initials: string;
@@ -89,6 +103,7 @@ type DriverRecord = {
   vehicleRegistration: string;
   vehicleColor: string;
   vehicle: string;
+  vehicles: DriverVehicle[];
   checks: string;
   status: string;
   submittedAt: string;
@@ -104,6 +119,7 @@ type DriverTrip = {
   occupancy: string;
   fare: string;
   status: string;
+  vehicle: string;
 };
 
 type Activity = {
@@ -227,18 +243,11 @@ export function DriverDetail({
         return;
       }
 
-      setDriver((current) => ({
-        ...current,
-        status: payload.verification.status,
-        checks: payload.verification.checks,
-        updatedAt: new Date().toISOString(),
-        verification: {
-          ...payload.verification,
-          documents: current.verification.documents.map((document) =>
-            document.id === payload.document.id ? payload.document : document
-          ),
-        },
-      }));
+      const latest = await fetch(`/api/admin/drivers/${driver.id}`, { cache: "no-store" });
+      const data = await latest.json().catch(() => null);
+      if (latest.ok && data?.driver) {
+        setDriver(data.driver);
+      }
       setMessage(`${payload.document.label} updated to ${status}.`);
       setReviewTarget(null);
       router.refresh();
@@ -500,15 +509,27 @@ export function DriverDetail({
 
             <Card className="shadow-none">
               <CardHeader className="border-b border-[#EAECF0]">
-                <CardTitle>Vehicle</CardTitle>
-                <CardDescription>Current vehicle linked to this driver record.</CardDescription>
+                <CardTitle>Vehicles</CardTitle>
+                <CardDescription>Every vehicle is reviewed independently before it can be used for trips.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-5">
-                <Metric label="Make" value={driver.vehicleMake} />
-                <Metric label="Model" value={driver.vehicleModel} />
-                <Metric label="Year" value={String(driver.vehicleYear)} />
-                <Metric label="Registration" value={driver.vehicleRegistration || "Not provided"} />
-                <Metric label="Colour" value={driver.vehicleColor || "Not provided"} />
+              <CardContent className="space-y-3 p-5">
+                {driver.vehicles.length ? driver.vehicles.map((vehicle) => (
+                  <div key={vehicle.id} className="rounded-xl border border-[#EAECF0] bg-[#F9FAFB] p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold text-[#101828]">{vehicle.make} {vehicle.model} · {vehicle.year}</div>
+                          {vehicle.isPrimary ? <Badge variant="secondary">Primary</Badge> : null}
+                        </div>
+                        <div className="mt-1 text-xs text-[#667085]">{vehicle.color} · {vehicle.registration}</div>
+                        <div className="mt-2 text-xs text-[#667085]">{vehicle.checks}</div>
+                      </div>
+                      <Badge variant={statusVariant(vehicle.status)}>{vehicle.status}</Badge>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-sm text-[#98A2B3]">No vehicles linked to this driver.</div>
+                )}
               </CardContent>
             </Card>
 
@@ -524,6 +545,7 @@ export function DriverDetail({
                       <TableHead>Trip</TableHead>
                       <TableHead>Departure</TableHead>
                       <TableHead>Occupancy</TableHead>
+                      <TableHead>Vehicle</TableHead>
                       <TableHead>Fare</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -537,6 +559,7 @@ export function DriverDetail({
                         </TableCell>
                         <TableCell>{trip.departure}</TableCell>
                         <TableCell>{trip.occupancy}</TableCell>
+                        <TableCell>{trip.vehicle}</TableCell>
                         <TableCell className="font-semibold text-[#101828]">{trip.fare}</TableCell>
                         <TableCell><Badge variant={statusVariant(trip.status)}>{trip.status}</Badge></TableCell>
                       </TableRow>
