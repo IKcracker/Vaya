@@ -245,7 +245,7 @@ export async function createPublicBooking(input: {
           sql`${trips.seatCapacity} - ${trips.seatsBooked} >= ${seatsRequested}`
         )
       )
-      .returning(passengerAccountSelection);
+      .returning();
 
     if (!trip) {
       throw new Error("TRIP_UNAVAILABLE");
@@ -265,7 +265,7 @@ export async function createPublicBooking(input: {
         paymentStatus: "Pending",
         status: "Awaiting payment",
       })
-      .returning(passengerAccountSelection);
+      .returning();
 
     await tx
       .update(passengers)
@@ -533,7 +533,7 @@ export async function createMobileSafetyCaseByEmail(
       note: input.note.trim(),
       status: "Open",
     })
-    .returning(passengerAccountSelection);
+    .returning();
 
   await db.insert(activityLogs).values({
     eventType: "mobile_safety_case_created",
@@ -685,7 +685,7 @@ export async function createPendingMobilePayment(input: {
       method: "Paystack",
       status: "Pending",
     })
-    .returning(passengerAccountSelection);
+    .returning();
 
   await db.insert(activityLogs).values({
     eventType: "payment_initialized",
@@ -735,7 +735,7 @@ export async function settleMobilePayment(reference: string) {
       .update(payments)
       .set({ status: "Settled" })
       .where(eq(payments.publicId, reference))
-      .returning(passengerAccountSelection);
+      .returning();
 
     if (!payment) return null;
 
@@ -747,7 +747,7 @@ export async function settleMobilePayment(reference: string) {
         updatedAt: new Date(),
       })
       .where(eq(bookings.id, payment.bookingId))
-      .returning(passengerAccountSelection);
+      .returning();
 
     await tx.insert(activityLogs).values({
       eventType: "payment_settled",
@@ -777,7 +777,7 @@ export async function failMobilePayment(reference: string) {
         ne(payments.status, "Settled")
       )
     )
-    .returning(passengerAccountSelection);
+    .returning();
 
   if (!payment) return null;
 
@@ -910,7 +910,7 @@ export async function createMobileDriverApplication(input: {
       checks: "0/4 required documents uploaded",
       status: "Needs info",
     })
-    .returning(passengerAccountSelection);
+    .returning();
 
   await db.insert(activityLogs).values({
     eventType: "driver_application",
@@ -997,7 +997,7 @@ export async function updateMobileDriverVehicle(
       updatedAt: new Date(),
     })
     .where(eq(drivers.id, driver.id))
-    .returning(passengerAccountSelection);
+    .returning();
 
   await db
     .delete(driverDocuments)
@@ -1088,7 +1088,7 @@ export async function createMobileDriverTrip(
       fareCents: input.fareCents,
       status: "Scheduled",
     })
-    .returning(passengerAccountSelection);
+    .returning();
 
   await db.insert(activityLogs).values({
     eventType: "driver_trip_created",
@@ -1143,7 +1143,7 @@ export async function updateMobileDriverTripStatus(
         eq(trips.driverId, driver.id)
       )
     )
-    .returning(passengerAccountSelection);
+    .returning();
 
   if (!trip) throw new Error("TRIP_NOT_FOUND");
 
@@ -1248,7 +1248,7 @@ export async function updateMobileDriverTripDetails(
         eq(trips.driverId, driver.id)
       )
     )
-    .returning(passengerAccountSelection);
+    .returning();
 
   await db.insert(activityLogs).values({
     eventType: "driver_trip_updated",
