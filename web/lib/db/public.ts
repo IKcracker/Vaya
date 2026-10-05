@@ -33,7 +33,16 @@ const passengerAccountSelection = {
   profileImageUpdatedAt: passengers.profileImageUpdatedAt,
 };
 
-const verifiedDriver = sql<boolean>`coalesce(${drivers.status} = 'Approved', false)`;
+const verifiedDriver = sql<boolean>`coalesce(
+  ${drivers.status} = 'Approved'
+  and exists (
+    select 1
+    from driver_vehicles verified_vehicle
+    where verified_vehicle.id = ${trips.vehicleId}
+      and verified_vehicle.status = 'Approved'
+  ),
+  false
+)`;
 
 function money(cents: number) {
   return `R${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
