@@ -124,7 +124,7 @@ export async function getAdminDashboard() {
       status: driver.status,
       profileImageUrl:
         driver.email && passengerByEmail.get(driver.email.toLowerCase())?.profileImageUpdatedAt
-          ? `/api/public/drivers/${driver.id}/profile-image?version=${passengerByEmail.get(driver.email.toLowerCase())!.profileImageUpdatedAt!.getTime()}`
+          ? `/api/admin/drivers/${driver.id}/profile-image?version=${passengerByEmail.get(driver.email.toLowerCase())!.profileImageUpdatedAt!.getTime()}`
           : "",
     })),
     trips: tripRows.map((trip) => ({
@@ -263,7 +263,7 @@ export async function getDriverDetails(id: string) {
       submittedAt: driver.submittedAt.toISOString(),
       updatedAt: driver.updatedAt.toISOString(),
       profileImageUrl: passengerProfile?.profileImageUpdatedAt
-        ? `/api/public/drivers/${driver.id}/profile-image?version=${passengerProfile.profileImageUpdatedAt.getTime()}`
+        ? `/api/admin/drivers/${driver.id}/profile-image?version=${passengerProfile.profileImageUpdatedAt.getTime()}`
         : "",
       verification,
     },
