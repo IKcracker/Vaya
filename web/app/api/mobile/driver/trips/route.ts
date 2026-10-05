@@ -54,6 +54,7 @@ export async function POST(request: Request) {
   if ("response" in auth) return auth.response;
 
   const body = await request.json().catch(() => null);
+  const vehicleId = typeof body?.vehicleId === "string" ? body.vehicleId.trim() : "";
   const from = typeof body?.from === "string" ? body.from.trim() : "";
   const to = typeof body?.to === "string" ? body.to.trim() : "";
   const departureAt = new Date(
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
   const fare = Number(body?.fare);
 
   if (
+    !vehicleId ||
     !from ||
     !to ||
     from.toLowerCase() === to.toLowerCase() ||
@@ -80,6 +82,7 @@ export async function POST(request: Request) {
 
   try {
     const trip = await createMobileDriverTrip(auth.email, {
+      vehicleId,
       from,
       to,
       departureAt,
@@ -95,6 +98,14 @@ export async function POST(request: Request) {
 
     if (error instanceof Error && error.message === "DRIVER_NOT_APPROVED") {
       return Response.json({ error: "Your driver profile must be approved before publishing trips" }, { status: 403 });
+    }
+
+    if (error instanceof Error && error.message === "VEHICLE_NOT_FOUND") {
+      return Response.json({ error: "Choose one of your vehicles" }, { status: 404 });
+    }
+
+    if (error instanceof Error && error.message === "VEHICLE_NOT_APPROVED") {
+      return Response.json({ error: "This vehicle must be verified before it can be used for a trip" }, { status: 403 });
     }
 
     console.error("Mobile driver trip creation failed", error);
