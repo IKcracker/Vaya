@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
@@ -11,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fetchMobileDriver, MobileDriver } from '@/lib/auth';
+import { API_URL } from '@/lib/api';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
 const BLUE = '#1877F2';
@@ -106,6 +108,13 @@ export default function ProfileScreen() {
   const displayName = passenger?.name || user?.name || 'Vaya Passenger';
   const email = passenger?.email || user?.email || '';
   const tone = driverTone(driver?.status);
+  const profileImageSource =
+    passenger?.profileImageUrl && session
+      ? {
+          uri: `${API_URL}${passenger.profileImageUrl}`,
+          headers: { 'x-vaya-session': session },
+        }
+      : null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -125,7 +134,11 @@ export default function ProfileScreen() {
         <View style={styles.profileCard}>
           <View style={styles.profileHeader}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials(displayName) || 'VP'}</Text>
+              {profileImageSource ? (
+                <Image source={profileImageSource} style={styles.avatarImage} contentFit="cover" />
+              ) : (
+                <Text style={styles.avatarText}>{initials(displayName) || 'VP'}</Text>
+              )}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{displayName}</Text>
@@ -297,7 +310,8 @@ const styles = StyleSheet.create({
   editButtonText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   profileCard: { marginTop: 18, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 18, overflow: 'hidden' },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 16 },
-  avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 58, height: 58, borderRadius: 29, overflow: 'hidden', backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: '100%', height: '100%' },
   avatarLarge: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: BLUE, fontSize: 17, fontWeight: '900' },
   name: { color: TEXT, fontSize: 20, fontWeight: '900', letterSpacing: -0.3 },
