@@ -33,6 +33,8 @@ function publicTripShape(row: {
   fromCity: string;
   toCity: string;
   driverName: string;
+  driverId: string | null;
+  driverProfileImageUpdatedAt: Date | null;
   departureAt: Date;
   seatCapacity: number;
   seatsBooked: number;
@@ -58,6 +60,10 @@ function publicTripShape(row: {
       name: row.driverName,
       verified: row.driverIsVerified,
       location: row.driverLocation ?? "",
+      profileImageUrl:
+        row.driverId && row.driverProfileImageUpdatedAt
+          ? `/api/public/drivers/${row.driverId}/profile-image?version=${row.driverProfileImageUpdatedAt.getTime()}`
+          : "",
       vehicle:
         row.vehicleMake && row.vehicleModel
           ? `${row.vehicleMake} ${row.vehicleModel}${row.vehicleYear ? ` · ${row.vehicleYear}` : ""}`
@@ -116,6 +122,8 @@ export async function searchPublicTrips(input: {
       fromCity: trips.fromCity,
       toCity: trips.toCity,
       driverName: trips.driverName,
+      driverId: drivers.id,
+      driverProfileImageUpdatedAt: passengers.profileImageUpdatedAt,
       departureAt: trips.departureAt,
       seatCapacity: trips.seatCapacity,
       seatsBooked: trips.seatsBooked,
@@ -132,6 +140,7 @@ export async function searchPublicTrips(input: {
     })
     .from(trips)
     .leftJoin(drivers, eq(trips.driverId, drivers.id))
+    .leftJoin(passengers, eq(passengers.email, drivers.email))
     .where(and(...conditions))
     .orderBy(asc(trips.departureAt))
     .limit(50);
@@ -149,6 +158,8 @@ export async function getPublicTrip(publicId: string) {
       fromCity: trips.fromCity,
       toCity: trips.toCity,
       driverName: trips.driverName,
+      driverId: drivers.id,
+      driverProfileImageUpdatedAt: passengers.profileImageUpdatedAt,
       departureAt: trips.departureAt,
       seatCapacity: trips.seatCapacity,
       seatsBooked: trips.seatsBooked,
@@ -165,6 +176,7 @@ export async function getPublicTrip(publicId: string) {
     })
     .from(trips)
     .leftJoin(drivers, eq(trips.driverId, drivers.id))
+    .leftJoin(passengers, eq(passengers.email, drivers.email))
     .where(eq(trips.publicId, publicId))
     .limit(1);
 
@@ -325,6 +337,9 @@ export async function ensurePassengerForAuthUser(input: {
     phone: passenger.phone ?? "",
     city: passenger.city,
     status: passenger.status,
+    profileImageUrl: passenger.profileImageUpdatedAt
+      ? `/api/mobile/me/photo?version=${passenger.profileImageUpdatedAt.getTime()}`
+      : "",
   };
 }
 
@@ -396,6 +411,9 @@ export async function updatePassengerAccountByEmail(
     status: passenger.status,
     tripsCount: passenger.tripsCount,
     joinedAt: passenger.joinedAt.toISOString(),
+    profileImageUrl: passenger.profileImageUpdatedAt
+      ? `/api/mobile/me/photo?version=${passenger.profileImageUpdatedAt.getTime()}`
+      : "",
   };
 }
 
