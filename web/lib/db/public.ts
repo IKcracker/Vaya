@@ -74,7 +74,9 @@ function publicTripShape(row: {
       verified: row.driverIsVerified,
       location: row.driverLocation ?? "",
       profileImageUrl:
-        row.driverId && row.driverProfileImageUpdatedAt
+        row.driverId &&
+        row.driverStatus === "Approved" &&
+        row.driverProfileImageUpdatedAt
           ? `/api/public/drivers/${row.driverId}/profile-image?version=${row.driverProfileImageUpdatedAt.getTime()}`
           : "",
       vehicle:
