@@ -1,6 +1,4 @@
-import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
-import { Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 export type PickedProfileImage = {
   fileName: string;
@@ -13,63 +11,48 @@ export type PickedProfileImage = {
 const MAX_BYTES = 3 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-function blobToBase64(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Unable to read this photo.'));
-    reader.onload = () => {
-      const value = String(reader.result ?? '');
-      const comma = value.indexOf(',');
-      resolve(comma >= 0 ? value.slice(comma + 1) : value);
-    };
-    reader.readAsDataURL(blob);
-  });
-}
-
 export async function pickProfileImage(): Promise<PickedProfileImage | null> {
-  const result = await DocumentPicker.getDocumentAsync({
-    type: ALLOWED_TYPES,
-    copyToCacheDirectory: true,
-    multiple: false,
+  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) {
+    throw new Error('Allow photo-library access to choose a profile picture.');
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.8,
+    base64: true,
+    selectionLimit: 1,
+    defaultTab: 'photos',
   });
 
   if (result.canceled || !result.assets[0]) return null;
 
   const asset = result.assets[0];
-  if (asset.size && asset.size > MAX_BYTES) {
-    throw new Error('Profile photos must be 3 MB or smaller.');
-  }
-
-  const file =
-    Platform.OS === 'web'
-      ? (asset.file ?? await (await fetch(asset.uri)).blob())
-      : new File(asset.uri);
-
-  if (!file.size || file.size > MAX_BYTES) {
-    throw new Error('Choose a non-empty photo that is 3 MB or smaller.');
+  const fileData = asset.base64 ?? '';
+  if (!fileData) {
+    throw new Error('Vaya could not read this photo. Choose another image.');
   }
 
   const contentType =
-    asset.mimeType ||
-    file.type ||
-    (asset.name.toLowerCase().endsWith('.png')
-      ? 'image/png'
-      : asset.name.toLowerCase().endsWith('.webp')
-        ? 'image/webp'
-        : 'image/jpeg');
+    asset.mimeType && ALLOWED_TYPES.includes(asset.mimeType)
+      ? asset.mimeType
+      : 'image/jpeg';
 
-  if (!ALLOWED_TYPES.includes(contentType)) {
-    throw new Error('Use a JPG, PNG or WEBP photo.');
+  const estimatedBytes =
+    asset.fileSize ??
+    Math.floor((fileData.length * 3) / 4);
+
+  if (!estimatedBytes || estimatedBytes > MAX_BYTES) {
+    throw new Error('Profile photos must be 3 MB or smaller.');
   }
 
   return {
-    fileName: asset.name || 'profile-photo.jpg',
+    fileName: asset.fileName || 'profile-photo.jpg',
     contentType,
-    sizeBytes: file.size,
-    fileData:
-      Platform.OS === 'web'
-        ? await blobToBase64(file as Blob)
-        : await (file as File).base64(),
+    sizeBytes: estimatedBytes,
+    fileData,
     uri: asset.uri,
   };
 }
