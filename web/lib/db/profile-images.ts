@@ -110,6 +110,7 @@ export async function getDriverProfileImageById(driverId: string) {
       contentType: passengers.profileImageContentType,
       fileData: passengers.profileImageData,
       updatedAt: passengers.profileImageUpdatedAt,
+      driverStatus: drivers.status,
     })
     .from(drivers)
     .innerJoin(passengers, eq(passengers.email, drivers.email))
