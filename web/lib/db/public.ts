@@ -576,6 +576,15 @@ export async function getPassengerTripsByEmail(email: string) {
       toCity: trips.toCity,
       departureAt: trips.departureAt,
       driverName: trips.driverName,
+      driverId: trips.driverId,
+      driverStatus: sql<string | null>`(select d.status from drivers d where d.id = ${trips.driverId} limit 1)`,
+      driverProfileImageUpdatedAt: sql<Date | null>`(
+        select p.profile_image_updated_at
+        from passengers p
+        join drivers d on lower(d.email) = lower(p.email)
+        where d.id = ${trips.driverId}
+        limit 1
+      )`,
       tripStatus: trips.status,
     })
     .from(bookings)
@@ -589,6 +598,12 @@ export async function getPassengerTripsByEmail(email: string) {
     route: `${row.fromCity} → ${row.toCity}`,
     tripId: row.tripId,
     driver: row.driverName,
+    driverProfileImageUrl:
+      row.driverId &&
+      row.driverStatus === "Approved" &&
+      row.driverProfileImageUpdatedAt
+        ? `/api/public/drivers/${row.driverId}/profile-image?version=${new Date(row.driverProfileImageUpdatedAt).getTime()}`
+        : "",
     departureAt: row.departureAt.toISOString(),
     seats: row.seats,
     amountCents: row.amountCents,
