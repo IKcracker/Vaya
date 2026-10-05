@@ -2,11 +2,15 @@ import "server-only";
 
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { getDb } from "./index";
-import { getDriverVerificationSummary } from "./driver-documents";
+import {
+  getDriverVerificationSummary,
+  getVehicleVerificationSummary,
+} from "./driver-documents";
 import {
   activityLogs,
   bookings,
   drivers,
+  driverVehicles,
   passengers,
   payments,
   safetyCases,
@@ -237,11 +241,11 @@ export async function getDriverDetails(id: string) {
 
   if (!driver) return null;
 
-  const [driverTrips, activity, verification, passengerProfile] = await Promise.all([
+  const [driverTrips, activity, verification, passengerProfile, vehicleRows] = await Promise.all([
     db
       .select()
       .from(trips)
-      .where(eq(trips.driverName, driver.name))
+      .where(eq(trips.driverId, driver.id))
       .orderBy(desc(trips.departureAt))
       .limit(20),
     db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(100),
@@ -254,7 +258,45 @@ export async function getDriverDetails(id: string) {
           .limit(1)
           .then((rows) => rows[0] ?? null)
       : Promise.resolve(null),
+    db
+      .select()
+      .from(driverVehicles)
+      .where(eq(driverVehicles.driverId, driver.id))
+      .orderBy(desc(driverVehicles.isPrimary), desc(driverVehicles.createdAt)),
   ]);
+
+  const vehicles = await Promise.all(
+    vehicleRows.map(async (vehicle) => {
+      const vehicleVerification = await getVehicleVerificationSummary(
+        driver.id,
+        vehicle.id
+      );
+
+      return {
+        id: vehicle.id,
+        make: vehicle.make,
+        model: vehicle.model,
+        year: vehicle.year,
+        registration: vehicle.registration,
+        color: vehicle.color,
+        status: vehicle.status,
+        checks: vehicle.checks,
+        isPrimary: vehicle.isPrimary,
+        verification: {
+          ...vehicleVerification,
+          documents: vehicleVerification.documents.map((document) => ({
+            ...document,
+            label: `${document.label} · ${vehicle.registration}`,
+          })),
+        },
+      };
+    })
+  );
+
+  const allDocuments = [
+    ...verification.documents,
+    ...vehicles.flatMap((vehicle) => vehicle.verification.documents),
+  ];
 
   return {
     driver: {
@@ -270,6 +312,7 @@ export async function getDriverDetails(id: string) {
       vehicleRegistration: driver.vehicleRegistration ?? "",
       vehicleColor: driver.vehicleColor ?? "",
       vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}${driver.vehicleRegistration ? ` · ${driver.vehicleRegistration}` : ""}`,
+      vehicles,
       checks: driver.checks,
       status: driver.status,
       submittedAt: driver.submittedAt.toISOString(),
@@ -277,7 +320,10 @@ export async function getDriverDetails(id: string) {
       profileImageUrl: passengerProfile?.profileImageUpdatedAt
         ? `/api/admin/drivers/${driver.id}/profile-image?version=${passengerProfile.profileImageUpdatedAt.getTime()}`
         : "",
-      verification,
+      verification: {
+        ...verification,
+        documents: allDocuments,
+      },
     },
     trips: driverTrips.map((trip) => ({
       id: trip.publicId,
@@ -286,6 +332,10 @@ export async function getDriverDetails(id: string) {
       occupancy: `${trip.seatsBooked} / ${trip.seatCapacity}`,
       fare: money(trip.fareCents),
       status: trip.status,
+      vehicle:
+        trip.vehicleMake && trip.vehicleModel
+          ? `${trip.vehicleMake} ${trip.vehicleModel}${trip.vehicleRegistration ? ` · ${trip.vehicleRegistration}` : ""}`
+          : "Not assigned",
     })),
     activity: activity
       .filter((item) => item.metadata?.driverId === driver.id)
