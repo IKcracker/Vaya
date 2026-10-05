@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -92,6 +93,7 @@ type DriverRecord = {
   status: string;
   submittedAt: string;
   updatedAt: string;
+  profileImageUrl: string;
   verification: DriverVerification;
 };
 
@@ -321,9 +323,20 @@ export function DriverDetail({
 
         <div className="mb-6 flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="flex items-center gap-4">
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#E7F3FF] text-xl font-bold text-[#1877F2]">
-              {driver.initials}
-            </div>
+            {driver.profileImageUrl ? (
+              <Image
+                src={driver.profileImageUrl}
+                alt={`${driver.name} profile photo`}
+                width={64}
+                height={64}
+                unoptimized
+                className="h-16 w-16 rounded-2xl object-cover"
+              />
+            ) : (
+              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#E7F3FF] text-xl font-bold text-[#1877F2]">
+                {driver.initials}
+              </div>
+            )}
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-bold tracking-[-.035em] sm:text-[30px]">{driver.name}</h1>

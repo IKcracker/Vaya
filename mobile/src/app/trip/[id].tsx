@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -10,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getTrip, PublicTrip } from '@/lib/api';
+import { API_URL, getTrip, PublicTrip } from '@/lib/api';
 
 const BLUE = '#1877F2';
 const NAVY = '#0B1730';
@@ -142,13 +143,21 @@ export default function TripDetailScreen() {
               <Text style={styles.sectionTitle}>Driver & vehicle</Text>
               <View style={styles.driverCard}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {trip.driver.name
-                      .split(' ')
-                      .map((value) => value[0])
-                      .join('')
-                      .slice(0, 2)}
-                  </Text>
+                  {trip.driver.profileImageUrl ? (
+                    <Image
+                      source={{ uri: `${API_URL}${trip.driver.profileImageUrl}` }}
+                      style={styles.avatarImage}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Text style={styles.avatarText}>
+                      {trip.driver.name
+                        .split(' ')
+                        .map((value) => value[0])
+                        .join('')
+                        .slice(0, 2)}
+                    </Text>
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={styles.driverNameRow}>
@@ -315,10 +324,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
+    overflow: 'hidden',
     backgroundColor: '#E7F3FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarImage: { width: '100%', height: '100%' },
   avatarText: { color: BLUE, fontSize: 11, fontWeight: '900' },
   driverNameRow: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   driverName: { color: TEXT, fontSize: 13, fontWeight: '900' },

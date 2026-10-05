@@ -17,6 +17,19 @@ import {
 
 const PUBLIC_TRIP_STATUSES = ["Scheduled", "On schedule", "Boarding", "Full"];
 
+const passengerAccountSelection = {
+  id: passengers.id,
+  name: passengers.name,
+  email: passengers.email,
+  phone: passengers.phone,
+  city: passengers.city,
+  tripsCount: passengers.tripsCount,
+  status: passengers.status,
+  joinedAt: passengers.joinedAt,
+  updatedAt: passengers.updatedAt,
+  profileImageUpdatedAt: passengers.profileImageUpdatedAt,
+};
+
 const verifiedDriver = sql<boolean>`coalesce(${drivers.status} = 'Approved' and (
   select count(distinct kind) from driver_documents
   where driver_id = ${drivers.id} and status = 'Approved'
@@ -33,6 +46,8 @@ function publicTripShape(row: {
   fromCity: string;
   toCity: string;
   driverName: string;
+  driverId: string | null;
+  driverProfileImageUpdatedAt: Date | null;
   departureAt: Date;
   seatCapacity: number;
   seatsBooked: number;
@@ -58,6 +73,12 @@ function publicTripShape(row: {
       name: row.driverName,
       verified: row.driverIsVerified,
       location: row.driverLocation ?? "",
+      profileImageUrl:
+        row.driverId &&
+        row.driverStatus === "Approved" &&
+        row.driverProfileImageUpdatedAt
+          ? `/api/public/drivers/${row.driverId}/profile-image?version=${row.driverProfileImageUpdatedAt.getTime()}`
+          : "",
       vehicle:
         row.vehicleMake && row.vehicleModel
           ? `${row.vehicleMake} ${row.vehicleModel}${row.vehicleYear ? ` · ${row.vehicleYear}` : ""}`
@@ -116,6 +137,8 @@ export async function searchPublicTrips(input: {
       fromCity: trips.fromCity,
       toCity: trips.toCity,
       driverName: trips.driverName,
+      driverId: drivers.id,
+      driverProfileImageUpdatedAt: passengers.profileImageUpdatedAt,
       departureAt: trips.departureAt,
       seatCapacity: trips.seatCapacity,
       seatsBooked: trips.seatsBooked,
@@ -132,6 +155,7 @@ export async function searchPublicTrips(input: {
     })
     .from(trips)
     .leftJoin(drivers, eq(trips.driverId, drivers.id))
+    .leftJoin(passengers, eq(passengers.email, drivers.email))
     .where(and(...conditions))
     .orderBy(asc(trips.departureAt))
     .limit(50);
@@ -149,6 +173,8 @@ export async function getPublicTrip(publicId: string) {
       fromCity: trips.fromCity,
       toCity: trips.toCity,
       driverName: trips.driverName,
+      driverId: drivers.id,
+      driverProfileImageUpdatedAt: passengers.profileImageUpdatedAt,
       departureAt: trips.departureAt,
       seatCapacity: trips.seatCapacity,
       seatsBooked: trips.seatsBooked,
@@ -165,6 +191,7 @@ export async function getPublicTrip(publicId: string) {
     })
     .from(trips)
     .leftJoin(drivers, eq(trips.driverId, drivers.id))
+    .leftJoin(passengers, eq(passengers.email, drivers.email))
     .where(eq(trips.publicId, publicId))
     .limit(1);
 
@@ -188,7 +215,7 @@ export async function createPublicBooking(input: {
 
   return db.transaction(async (tx) => {
     let [passenger] = await tx
-      .select()
+      .select(passengerAccountSelection)
       .from(passengers)
       .where(eq(passengers.email, email))
       .limit(1);
@@ -202,7 +229,7 @@ export async function createPublicBooking(input: {
           city: input.passenger.city.trim(),
           status: "Active",
         })
-        .returning();
+        .returning(passengerAccountSelection);
     } else if (passenger.status === "Removed" || passenger.status === "Suspended") {
       throw new Error("PASSENGER_BLOCKED");
     }
@@ -294,7 +321,7 @@ export async function ensurePassengerForAuthUser(input: {
   const email = input.email.trim().toLowerCase();
 
   let [passenger] = await db
-    .select()
+    .select(passengerAccountSelection)
     .from(passengers)
     .where(eq(passengers.email, email))
     .limit(1);
@@ -308,7 +335,7 @@ export async function ensurePassengerForAuthUser(input: {
         city: input.city.trim(),
         status: "Active",
       })
-      .returning();
+      .returning(passengerAccountSelection);
 
     await db.insert(activityLogs).values({
       eventType: "passenger_created",
@@ -325,6 +352,9 @@ export async function ensurePassengerForAuthUser(input: {
     phone: passenger.phone ?? "",
     city: passenger.city,
     status: passenger.status,
+    profileImageUrl: passenger.profileImageUpdatedAt
+      ? `/api/mobile/me/photo?version=${passenger.profileImageUpdatedAt.getTime()}`
+      : "",
   };
 }
 
@@ -333,7 +363,7 @@ export async function getPassengerAccountByEmail(email: string) {
   const normalized = email.trim().toLowerCase();
 
   const [passenger] = await db
-    .select()
+    .select(passengerAccountSelection)
     .from(passengers)
     .where(eq(passengers.email, normalized))
     .limit(1);
@@ -349,6 +379,9 @@ export async function getPassengerAccountByEmail(email: string) {
     status: passenger.status,
     tripsCount: passenger.tripsCount,
     joinedAt: passenger.joinedAt.toISOString(),
+    profileImageUrl: passenger.profileImageUpdatedAt
+      ? `/api/mobile/me/photo?version=${passenger.profileImageUpdatedAt.getTime()}`
+      : "",
   };
 }
 
@@ -372,7 +405,7 @@ export async function updatePassengerAccountByEmail(
       updatedAt: new Date(),
     })
     .where(eq(passengers.email, normalized))
-    .returning();
+    .returning(passengerAccountSelection);
 
   if (!passenger) return null;
 
@@ -396,6 +429,9 @@ export async function updatePassengerAccountByEmail(
     status: passenger.status,
     tripsCount: passenger.tripsCount,
     joinedAt: passenger.joinedAt.toISOString(),
+    profileImageUrl: passenger.profileImageUpdatedAt
+      ? `/api/mobile/me/photo?version=${passenger.profileImageUpdatedAt.getTime()}`
+      : "",
   };
 }
 
@@ -445,7 +481,7 @@ export async function createMobileSafetyCaseByEmail(
   const normalized = email.trim().toLowerCase();
 
   const [passenger] = await db
-    .select()
+    .select(passengerAccountSelection)
     .from(passengers)
     .where(eq(passengers.email, normalized))
     .limit(1);

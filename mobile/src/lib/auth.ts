@@ -22,6 +22,7 @@ export type PassengerAccount = {
   status: string;
   tripsCount?: number;
   joinedAt?: string;
+  profileImageUrl?: string;
 };
 
 export type PassengerPayment = {
@@ -192,6 +193,28 @@ export async function updatePassengerProfile(
       method: 'PATCH',
       body: JSON.stringify(input),
     },
+    session
+  );
+}
+
+export async function uploadPassengerProfileImage(
+  session: string,
+  input: { contentType: string; fileData: string }
+) {
+  return request<{ profileImageUrl: string }>(
+    '/api/mobile/me/photo',
+    {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function removePassengerProfileImage(session: string) {
+  return request<{ removed: true }>(
+    '/api/mobile/me/photo',
+    { method: 'DELETE' },
     session
   );
 }
@@ -405,6 +428,7 @@ export type MobileDriver = {
   status: string;
   submittedAt?: string;
   verification?: DriverVerification;
+  profileImageUrl?: string;
 };
 
 export type MobileDriverTrip = {

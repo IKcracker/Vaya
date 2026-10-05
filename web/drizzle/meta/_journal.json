@@ -22,6 +22,13 @@
       "when": 1791154200000,
       "tag": "0002_driver_vehicle_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791162000000,
+      "tag": "0003_profile_images",
+      "breakpoints": true
     }
   ]
 }
