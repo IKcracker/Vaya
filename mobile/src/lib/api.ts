@@ -11,6 +11,7 @@ export type PublicTrip = {
     name: string;
     verified: boolean;
     location: string;
+    profileImageUrl: string;
     vehicle: string;
   };
   departureAt: string;
