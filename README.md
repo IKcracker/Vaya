@@ -56,7 +56,7 @@ DATABASE_URL_UNPOOLED="postgresql://user:password@your-neon-direct-host/neondb?s
 NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 ```
 
-Use the pooled Neon connection string for application traffic. Use the direct/unpooled connection string for Drizzle migrations; the migration hostname must not contain `-pooler`.
+Use the pooled Neon connection string for application traffic. `db:migrate` uses Neon's HTTP driver and the same `DATABASE_URL` as the application, so a separate unpooled connection is not required for migration. Drizzle Studio can use the optional direct/unpooled URL.
 
 ### Database commands
 
@@ -65,14 +65,18 @@ Run these from `web/`:
 ```bash
 npm run db:generate
 npm run db:migrate
+npm run db:check
 npm run db:seed
 npm run db:studio
 ```
 
 - `db:generate` creates SQL migrations from `web/lib/db/schema.ts`.
-- `db:migrate` applies committed migrations to the configured Neon database.
+- `db:migrate` applies committed migrations to `DATABASE_URL` in an HTTP transaction, then checks the application tables and columns.
+- `db:check` checks the schema without changing the database.
 - `db:seed` is idempotent and loads development/demo CRM records.
 - `db:studio` opens Drizzle Studio.
+
+If a deployed request reports `relation "drivers" does not exist`, check the deployment's `DATABASE_URL`. Migrating the database in your local `.env` does not migrate a different Neon branch used by Vercel. Run `npm run db:migrate --workspace web` with the deployed database's connection string securely supplied as `DATABASE_URL`, then run `npm run db:check --workspace web`. Seed only when development/demo records are wanted; seeding is not required to create tables.
 
 ### Admin API
 
@@ -120,6 +124,22 @@ Neon Auth setup for the target branch:
 6. Copy the branch's Neon Auth base URL into `NEON_AUTH_BASE_URL`.
 
 The public landing-page footer includes an **Admin** link. Unauthenticated users are redirected to `/admin/login`.
+
+## Mobile authentication
+
+The mobile app signs in through the Next.js `/api/mobile/auth/*` routes. Set `EXPO_PUBLIC_API_URL` in `mobile/.env` to the backend origin, without an `/api` suffix, and reload Expo after changing it.
+
+Configure `NEON_AUTH_BASE_URL` on the backend for the intended Neon branch. Set `NEON_AUTH_ORIGIN` to the public origin registered in that branch's Auth trusted domains (for example, `https://vaya-wego.vercel.app`). If it is empty, the backend uses `NEXT_PUBLIC_SITE_URL` or the Vercel production domain.
+
+For Expo Web against a deployed backend, add the exact browser origin to the comma-separated `MOBILE_WEB_ORIGINS` setting, for example `http://localhost:8081`. Native Expo Go does not need browser CORS settings. Production does not allow arbitrary browser origins.
+
+Sessions remain encrypted on native devices, survive temporary backend outages, and are cleared when expired or when signing out. If Neon requires email verification, sign-up prompts the user to verify before signing in.
+
+Run the authentication regression checks from the repository root:
+
+```bash
+node --test scripts/mobile-auth.test.cjs
+```
 
 ## Mobile payments
 

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -46,17 +47,22 @@ export default function DriverVerificationScreen() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<DriverDocumentKind | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const refreshKey = typeof params.refresh === 'string' ? params.refresh : '';
 
   async function refreshDriver() {
     if (!session) return;
-
+    setRefreshing(true);
+    setError(null);
     try {
       const response = await fetchMobileDriver(session);
       setDriver(response.driver);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to load verification');
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -92,19 +98,21 @@ export default function DriverVerificationScreen() {
     if (!session || uploading) return;
     setUploading(kind);
     setError(null);
+    setNotice(null);
 
     try {
       const selected = await pickDriverDocument(kind);
       if (!selected) return;
 
-      await uploadDriverDocument(session, {
+      const result = await uploadDriverDocument(session, {
         kind,
         fileName: selected.fileName,
         contentType: selected.contentType,
         fileData: selected.fileData,
       });
 
-      await refreshDriver();
+      setDriver((current) => current ? { ...current, verification: result.verification, status: result.verification.status, checks: result.verification.checks } : current);
+      setNotice('Document uploaded. Vaya staff will review this new copy.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to upload document');
     } finally {
@@ -118,6 +126,7 @@ export default function DriverVerificationScreen() {
         <View style={styles.center}>
           <Text style={styles.title}>Sign in required</Text>
           <Text style={styles.muted}>Sign in to manage driver verification.</Text>
+          <Pressable style={styles.primary} onPress={() => router.replace({ pathname: '/auth', params: { next: '/driver-verification' } })}><Text style={styles.primaryText}>Sign in</Text></Pressable>
         </View>
       </SafeAreaView>
     );
@@ -138,6 +147,7 @@ export default function DriverVerificationScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
           <Text style={styles.title}>No driver application found</Text>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <Pressable
             onPress={() => router.replace('/driver-application')}
             style={styles.primary}>
@@ -152,10 +162,14 @@ export default function DriverVerificationScreen() {
   const progress = verification
     ? `${verification.approvedRequiredCount}/${verification.requiredCount} approved`
     : driver.checks;
+  const approved = driver.status === 'Approved' && verification?.readyToApprove;
+  const needsAction = Boolean(verification?.missingKinds.length || verification?.needsAttentionKinds.length);
+  const nextAction = approved ? 'You’re ready to drive' : needsAction ? 'Complete your checklist' : verification?.readyToApprove ? 'Final approval pending' : 'Your documents are in review';
+  const explanation = approved ? 'Your required documents and driver application have been approved.' : needsAction ? 'Upload missing documents and replace any copies flagged by Vaya staff.' : 'Vaya staff review every required document before enabling trip publishing. Pull down to check for updates.';
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshDriver()} tintColor={BLUE} />}>
         <View style={styles.header}>
           <Pressable
             onPress={() => router.back()}
@@ -164,14 +178,14 @@ export default function DriverVerificationScreen() {
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.eyebrow}>DRIVER VERIFICATION</Text>
-            <Text style={styles.title}>Your documents</Text>
+            <Text style={styles.title}>Verification centre</Text>
           </View>
         </View>
 
         <View style={styles.summary}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.summaryLabel}>Application status</Text>
-            <Text style={styles.summaryValue}>{driver.status}</Text>
+            <Text style={styles.summaryLabel}>{driver.status.toUpperCase()}</Text>
+            <Text style={styles.summaryValue}>{nextAction}</Text>
             <Text style={styles.summaryMeta}>{progress}</Text>
           </View>
           <View style={styles.summaryBadge}>
@@ -180,6 +194,11 @@ export default function DriverVerificationScreen() {
             </Text>
           </View>
         </View>
+
+        <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${(verification?.approvedRequiredCount ?? 0) / (verification?.requiredCount || 4) * 100}%` }]} /></View>
+        <Text style={styles.explanation}>{explanation}</Text>
+        <View style={styles.metrics}>{[{ label: 'Uploaded', count: verification?.uploadedRequiredCount ?? 0 }, { label: 'Approved', count: verification?.approvedRequiredCount ?? 0 }, { label: 'Needs attention', count: (verification?.missingKinds.length ?? 0) + (verification?.needsAttentionKinds.length ?? 0) }].map((item) => <View key={item.label} style={styles.metric}><Text style={styles.metricValue}>{item.count}</Text><Text style={styles.metricLabel}>{item.label}</Text></View>)}</View>
+        {notice ? <View style={styles.approvedStrip}><Text style={styles.approvedText}>{notice}</Text></View> : null}
 
         {error ? (
           <View style={styles.error}>
@@ -204,6 +223,7 @@ export default function DriverVerificationScreen() {
                 <View style={styles.rowTop}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.docTitle}>{requirement.label}</Text>
+                    <Text style={styles.requirement}>{requirement.required ? 'Required for approval' : 'Optional'}</Text>
                     <Text style={styles.docDescription}>{requirement.description}</Text>
                   </View>
                   <View style={[styles.status, { backgroundColor: statusTone.bg }]}>
@@ -215,7 +235,8 @@ export default function DriverVerificationScreen() {
                   <View style={styles.fileBox}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.fileName} numberOfLines={1}>{document.fileName}</Text>
-                      <Text style={styles.fileMeta}>{formatFileSize(document.sizeBytes)}</Text>
+                      <Text style={styles.fileMeta}>{formatFileSize(document.sizeBytes)} · Uploaded {new Date(document.uploadedAt).toLocaleDateString()}</Text>
+                      {document.reviewedAt ? <Text style={styles.fileMeta}>Reviewed {new Date(document.reviewedAt).toLocaleDateString()}</Text> : null}
                     </View>
                   </View>
                 ) : null}
@@ -255,10 +276,9 @@ export default function DriverVerificationScreen() {
         </View>
 
         <View style={styles.help}>
-          <Text style={styles.helpTitle}>What happens after re-uploading?</Text>
+          <Text style={styles.helpTitle}>Clear copies make review easier</Text>
           <Text style={styles.helpText}>
-            Replaced documents return to Review automatically. Your driver account
-            can only be approved after all required documents are individually approved.
+            Keep the full document visible, including names, dates and vehicle details. Use a PDF, JPG, PNG or WEBP up to 3 MB. Replacements return to review; staff notes explain any corrections needed.
           </Text>
         </View>
       </ScrollView>
@@ -267,6 +287,14 @@ export default function DriverVerificationScreen() {
 }
 
 const styles = StyleSheet.create({
+  progressTrack: { height: 6, backgroundColor: '#E4E7EC', borderRadius: 8, overflow: 'hidden' },
+  progressFill: { height: 6, backgroundColor: BLUE, borderRadius: 8 },
+  explanation: { color: MUTED, fontSize: 13, lineHeight: 21, marginTop: 12, marginBottom: 18 },
+  metrics: { flexDirection: 'row', gap: 9, marginBottom: 20 },
+  metric: { flex: 1, padding: 14, backgroundColor: SURFACE, borderRadius: 14, borderWidth: 1, borderColor: LINE },
+  metricValue: { fontSize: 24, fontWeight: '800', color: TEXT },
+  metricLabel: { fontSize: 10, color: MUTED, marginTop: 4 },
+  requirement: { fontSize: 10, color: BLUE, marginTop: 4, fontWeight: '700' },
   safe: { flex: 1, backgroundColor: BG },
   page: { padding: 18, paddingBottom: 50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
@@ -288,17 +316,17 @@ const styles = StyleSheet.create({
   summaryBadgeText: { color: '#D7E6FF', fontSize: 9, fontWeight: '900' },
   error: { borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFF8F7', borderRadius: 12, padding: 12, marginBottom: 14 },
   errorText: { color: '#B42318', fontSize: 10, lineHeight: 16 },
-  list: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, overflow: 'hidden' },
-  row: { padding: 14 },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
+  list: { gap: 12, marginTop: 12 },
+  row: { padding: 18, borderRadius: 16, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE },
+  rowBorder: {},
   rowTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  docTitle: { color: TEXT, fontSize: 12, fontWeight: '900' },
-  docDescription: { color: MUTED, fontSize: 9, lineHeight: 15, marginTop: 4 },
+  docTitle: { color: TEXT, fontSize: 15, fontWeight: '800' },
+  docDescription: { color: MUTED, fontSize: 12, lineHeight: 18, marginTop: 6 },
   status: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5 },
-  statusText: { fontSize: 8, fontWeight: '900' },
+  statusText: { fontSize: 10, fontWeight: '800' },
   fileBox: { marginTop: 10, flexDirection: 'row', backgroundColor: '#F8FAFC', borderRadius: 10, padding: 10 },
-  fileName: { color: TEXT, fontSize: 10, fontWeight: '900' },
-  fileMeta: { color: MUTED, fontSize: 8, marginTop: 3 },
+  fileName: { color: TEXT, fontSize: 12, fontWeight: '700' },
+  fileMeta: { color: MUTED, fontSize: 10, marginTop: 4 },
   note: { marginTop: 10, backgroundColor: '#FFF7ED', borderRadius: 10, padding: 10 },
   noteTitle: { color: '#9A3412', fontSize: 8, fontWeight: '900' },
   noteText: { color: '#7C2D12', fontSize: 9, lineHeight: 14, marginTop: 3 },

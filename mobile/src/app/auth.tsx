@@ -33,9 +33,10 @@ export default function PassengerAuthScreen() {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const next =
-    typeof params.next === 'string' && params.next.startsWith('/')
+    typeof params.next === 'string' && params.next.startsWith('/') && !params.next.startsWith('//') && !params.next.startsWith('/auth')
       ? params.next
       : '/';
 
@@ -44,17 +45,24 @@ export default function PassengerAuthScreen() {
 
     setSubmitting(true);
     setError(null);
+    setNotice(null);
 
     try {
       if (mode === 'sign-in') {
         await signIn(email.trim(), password);
       } else {
-        await signUp({
+        const message = await signUp({
           name: name.trim(),
           city: city.trim(),
           email: email.trim().toLowerCase(),
           password,
         });
+        if (message) {
+          setMode('sign-in');
+          setPassword('');
+          setNotice(message);
+          return;
+        }
       }
 
       router.replace(next as never);
@@ -102,9 +110,11 @@ export default function PassengerAuthScreen() {
 
         <View style={styles.segment}>
           <Pressable
+            disabled={submitting}
             onPress={() => {
               setMode('sign-in');
               setError(null);
+              setNotice(null);
             }}
             style={[styles.segmentButton, mode === 'sign-in' && styles.segmentActive]}>
             <Text style={[styles.segmentText, mode === 'sign-in' && styles.segmentTextActive]}>
@@ -112,9 +122,11 @@ export default function PassengerAuthScreen() {
             </Text>
           </Pressable>
           <Pressable
+            disabled={submitting}
             onPress={() => {
               setMode('sign-up');
               setError(null);
+              setNotice(null);
             }}
             style={[styles.segmentButton, mode === 'sign-up' && styles.segmentActive]}>
             <Text style={[styles.segmentText, mode === 'sign-up' && styles.segmentTextActive]}>
@@ -175,6 +187,12 @@ export default function PassengerAuthScreen() {
             />
           </Field>
 
+          {notice ? (
+            <View style={styles.notice}>
+              <Text style={styles.noticeText}>{notice}</Text>
+            </View>
+          ) : null}
+
           {error ? (
             <View style={styles.error}>
               <Text style={styles.errorText}>{error}</Text>
@@ -202,7 +220,7 @@ export default function PassengerAuthScreen() {
         <View style={styles.note}>
           <Text style={styles.noteTitle}>Secure passenger account</Text>
           <Text style={styles.noteText}>
-            Vaya validates your identity with Neon Auth. The mobile session is kept in encrypted device storage.
+            Your account keeps your bookings, trips and profile together. Sign out on shared devices when you are finished.
           </Text>
         </View>
       </ScrollView>
@@ -303,6 +321,14 @@ const styles = StyleSheet.create({
     padding: 11,
   },
   errorText: { color: '#B42318', fontSize: 10, lineHeight: 16 },
+  notice: {
+    borderWidth: 1,
+    borderColor: '#A6F4C5',
+    backgroundColor: '#ECFDF3',
+    borderRadius: 11,
+    padding: 11,
+  },
+  noticeText: { color: '#027A48', fontSize: 10, lineHeight: 16 },
   primary: {
     height: 49,
     borderRadius: 11,

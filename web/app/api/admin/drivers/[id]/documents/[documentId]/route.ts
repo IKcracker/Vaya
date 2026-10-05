@@ -1,4 +1,5 @@
 import { isDatabaseConfigured } from "@/lib/db";
+import { getAdminAuth } from "@/lib/admin-auth";
 import {
   DRIVER_DOCUMENT_STATUSES,
   getDriverDocumentFile,
@@ -10,9 +11,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string; documentId: string }> }
 ) {
+  const auth = await getAdminAuth(request.headers.get("cookie") ?? "");
+  if (auth.status !== "authorized") return Response.json({ error: "Admin access required" }, { status: auth.status === "unconfigured" ? 503 : auth.status === "forbidden" ? 403 : 401 });
   if (!isDatabaseConfigured()) {
     return Response.json({ error: "Database is not configured" }, { status: 503 });
   }
@@ -30,7 +33,7 @@ export async function GET(
     headers: {
       "Content-Type": file.contentType,
       "Content-Length": String(bytes.length),
-      "Content-Disposition": `inline; filename="${file.fileName.replace(/"/g, "")}"`,
+      "Content-Disposition": `inline; filename="document"; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
     },
@@ -41,6 +44,8 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string; documentId: string }> }
 ) {
+  const auth = await getAdminAuth(request.headers.get("cookie") ?? "");
+  if (auth.status !== "authorized") return Response.json({ error: "Admin access required" }, { status: auth.status === "unconfigured" ? 503 : auth.status === "forbidden" ? 403 : 401 });
   if (!isDatabaseConfigured()) {
     return Response.json({ error: "Database is not configured" }, { status: 503 });
   }
@@ -51,6 +56,9 @@ export async function PATCH(
     typeof body?.status === "string" ? body.status.trim() : "";
   const reviewNote =
     typeof body?.reviewNote === "string" ? body.reviewNote.trim().slice(0, 1000) : "";
+  const expectedUpdatedAt = typeof body?.expectedUpdatedAt === "string" ? body.expectedUpdatedAt : "";
+  if (!expectedUpdatedAt || !Number.isFinite(Date.parse(expectedUpdatedAt))) return Response.json({ error: "Reload the document before reviewing it" }, { status: 400 });
+  if (status === "Approved" && body?.confirmed !== true) return Response.json({ error: "Confirm you checked this document against the driver and vehicle details" }, { status: 400 });
 
   if (!DRIVER_DOCUMENT_STATUSES.has(status as DriverDocumentStatus)) {
     return Response.json({ error: "Invalid document review status" }, { status: 400 });
@@ -67,6 +75,8 @@ export async function PATCH(
     const result = await reviewDriverDocument(id, documentId, {
       status: status as DriverDocumentStatus,
       reviewNote,
+      expectedUpdatedAt,
+      reviewer: auth.user.email ?? auth.user.id ?? "admin",
     });
 
     if (!result) {
@@ -75,6 +85,7 @@ export async function PATCH(
 
     return Response.json(result);
   } catch (error) {
+    if (error instanceof Error && error.message === "DOCUMENT_CHANGED") return Response.json({ error: "This document was replaced or reviewed since you opened it. Refresh and review the latest file." }, { status: 409 });
     console.error("Driver document review failed", error);
     return Response.json({ error: "Unable to review driver document" }, { status: 500 });
   }

@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -48,6 +49,10 @@ export default function DriverApplicationScreen() {
   const [picking, setPicking] = useState<DriverDocumentKind | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [applicationSaved, setApplicationSaved] = useState(false);
+  const [uploaded, setUploaded] = useState<DriverDocumentKind[]>([]);
+  const [uploadLabel, setUploadLabel] = useState('Saving application…');
+  const [consent, setConsent] = useState(false);
 
   const year = Number(vehicleYear);
   const requiredDocumentsReady = useMemo(
@@ -68,10 +73,10 @@ export default function DriverApplicationScreen() {
     Number.isInteger(year) &&
     year >= 1980 &&
     year <= 2100 &&
-    requiredDocumentsReady;
+    requiredDocumentsReady && consent;
 
   async function chooseDocument(kind: DriverDocumentKind) {
-    if (submitting) return;
+    if (submitting || picking) return;
     setPicking(kind);
     setError(null);
 
@@ -79,6 +84,7 @@ export default function DriverApplicationScreen() {
       const picked = await pickDriverDocument(kind);
       if (picked) {
         setDocuments((current) => ({ ...current, [kind]: picked }));
+        setUploaded((current) => current.filter((item) => item !== kind));
       }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to select document');
@@ -94,7 +100,9 @@ export default function DriverApplicationScreen() {
     setError(null);
 
     try {
-      await submitDriverApplication(session, {
+      if (!applicationSaved) {
+        setUploadLabel('Saving application…');
+        await submitDriverApplication(session, {
         name: name.trim(),
         phone: phone.trim(),
         location: location.trim(),
@@ -103,11 +111,14 @@ export default function DriverApplicationScreen() {
         vehicleYear: year,
         vehicleRegistration: vehicleRegistration.trim().toUpperCase(),
         vehicleColor: vehicleColor.trim(),
-      });
+        });
+        setApplicationSaved(true);
+      }
 
       for (const requirement of DRIVER_DOCUMENT_REQUIREMENTS) {
         const document = documents[requirement.kind];
-        if (!document) continue;
+        if (!document || uploaded.includes(document.kind)) continue;
+        setUploadLabel(`Uploading ${requirement.label.toLowerCase()}…`);
 
         await uploadDriverDocument(session, {
           kind: document.kind,
@@ -115,9 +126,10 @@ export default function DriverApplicationScreen() {
           contentType: document.contentType,
           fileData: document.fileData,
         });
+        setUploaded((current) => [...current.filter((kind) => kind !== document.kind), document.kind]);
       }
 
-      router.replace({ pathname: '/explore', params: { refresh: 'verification' } });
+      router.replace({ pathname: '/driver-verification', params: { refresh: String(Date.now()) } });
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -192,36 +204,37 @@ export default function DriverApplicationScreen() {
         <SectionTitle title="Driver details" />
         <View style={styles.card}>
           <Field label="Full name">
-            <TextInput value={name} onChangeText={setName} autoCapitalize="words" style={styles.input} />
+            <TextInput editable={!submitting && !applicationSaved} value={name} onChangeText={setName} autoCapitalize="words" style={styles.input} />
           </Field>
           <Field label="Phone">
-            <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" style={styles.input} placeholder="e.g. 071 234 5678" placeholderTextColor="#98A2B3" />
+            <TextInput editable={!submitting && !applicationSaved} value={phone} onChangeText={setPhone} keyboardType="phone-pad" style={styles.input} placeholder="e.g. 071 234 5678" placeholderTextColor="#98A2B3" />
           </Field>
           <Field label="Operating area">
-            <TextInput value={location} onChangeText={setLocation} autoCapitalize="words" style={styles.input} placeholder="Johannesburg" placeholderTextColor="#98A2B3" />
+            <TextInput editable={!submitting && !applicationSaved} value={location} onChangeText={setLocation} autoCapitalize="words" style={styles.input} placeholder="Johannesburg" placeholderTextColor="#98A2B3" />
           </Field>
         </View>
 
         <SectionTitle title="Vehicle" />
         <View style={styles.card}>
           <Field label="Make">
-            <TextInput value={vehicleMake} onChangeText={setVehicleMake} autoCapitalize="words" style={styles.input} placeholder="Toyota" placeholderTextColor="#98A2B3" />
+            <TextInput editable={!submitting && !applicationSaved} value={vehicleMake} onChangeText={setVehicleMake} autoCapitalize="words" style={styles.input} placeholder="Toyota" placeholderTextColor="#98A2B3" />
           </Field>
           <Field label="Model">
-            <TextInput value={vehicleModel} onChangeText={setVehicleModel} autoCapitalize="words" style={styles.input} placeholder="Corolla" placeholderTextColor="#98A2B3" />
+            <TextInput editable={!submitting && !applicationSaved} value={vehicleModel} onChangeText={setVehicleModel} autoCapitalize="words" style={styles.input} placeholder="Corolla" placeholderTextColor="#98A2B3" />
           </Field>
           <Field label="Year">
-            <TextInput value={vehicleYear} onChangeText={setVehicleYear} keyboardType="number-pad" maxLength={4} style={styles.input} placeholder="2022" placeholderTextColor="#98A2B3" />
+            <TextInput editable={!submitting && !applicationSaved} value={vehicleYear} onChangeText={setVehicleYear} keyboardType="number-pad" maxLength={4} style={styles.input} placeholder="2022" placeholderTextColor="#98A2B3" />
           </Field>
           <Field label="Registration number">
-            <TextInput value={vehicleRegistration} onChangeText={setVehicleRegistration} autoCapitalize="characters" style={styles.input} placeholder="AB 12 CD GP" placeholderTextColor="#98A2B3" />
+            <TextInput editable={!submitting && !applicationSaved} value={vehicleRegistration} onChangeText={setVehicleRegistration} autoCapitalize="characters" style={styles.input} placeholder="AB 12 CD GP" placeholderTextColor="#98A2B3" />
           </Field>
           <Field label="Vehicle colour">
-            <TextInput value={vehicleColor} onChangeText={setVehicleColor} autoCapitalize="words" style={styles.input} placeholder="White" placeholderTextColor="#98A2B3" />
+            <TextInput editable={!submitting && !applicationSaved} value={vehicleColor} onChangeText={setVehicleColor} autoCapitalize="words" style={styles.input} placeholder="White" placeholderTextColor="#98A2B3" />
           </Field>
         </View>
 
-        <SectionTitle title="Verification documents" subtitle="PDF, JPG, PNG or WEBP · max 5 MB each" />
+        <SectionTitle title="Verification documents" subtitle="PDF, JPG, PNG or WEBP · max 3 MB each" />
+        <View style={styles.documentProgress}><Text style={styles.reviewTitle}>{DRIVER_DOCUMENT_REQUIREMENTS.filter((item) => item.required && documents[item.kind]).length} of 4 required documents selected</Text><Text style={styles.reviewText}>Choose clear, complete copies. Staff compare the details with your profile and vehicle.</Text></View>
         <View style={styles.documentsCard}>
           {DRIVER_DOCUMENT_REQUIREMENTS.map((item, index) => {
             const selected = documents[item.kind];
@@ -247,19 +260,24 @@ export default function DriverApplicationScreen() {
                 </View>
 
                 {selected ? (
+                  <View>
+                  {selected.contentType.startsWith('image/') ? <Image source={{ uri: selected.uri }} accessibilityLabel={`${item.label} preview`} style={styles.preview} resizeMode="contain" /> : null}
                   <View style={styles.selectedFile}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.selectedName} numberOfLines={1}>{selected.fileName}</Text>
-                      <Text style={styles.selectedMeta}>{formatFileSize(selected.sizeBytes)} · Ready to upload</Text>
+                      <Text style={styles.selectedMeta}>{formatFileSize(selected.sizeBytes)} · {uploaded.includes(item.kind) ? 'Uploaded' : 'Ready to upload'}</Text>
                     </View>
                     <Pressable
+                      disabled={submitting || Boolean(picking)}
                       onPress={() => void chooseDocument(item.kind)}
                       style={({ pressed }) => [styles.replaceButton, pressed && styles.pressed]}>
                       <Text style={styles.replaceText}>Replace</Text>
                     </Pressable>
                   </View>
+                  </View>
                 ) : (
                   <Pressable
+                    disabled={submitting || Boolean(picking)}
                     onPress={() => void chooseDocument(item.kind)}
                     style={({ pressed }) => [styles.uploadButton, pressed && styles.pressed]}>
                     {isPicking ? <ActivityIndicator size="small" color={BLUE} /> : <Text style={styles.uploadText}>Choose document</Text>}
@@ -273,6 +291,7 @@ export default function DriverApplicationScreen() {
         {error ? (
           <View style={styles.error}>
             <Text style={styles.errorText}>{error}</Text>
+            {applicationSaved ? <Pressable onPress={() => router.replace('/driver-verification')}><Text style={styles.uploadText}>Continue from my saved application →</Text></Pressable> : null}
           </View>
         ) : null}
 
@@ -285,8 +304,12 @@ export default function DriverApplicationScreen() {
           </Text>
         </View>
 
+        <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: consent }} disabled={submitting} onPress={() => setConsent((value) => !value)} style={styles.consent}>
+          <Text style={styles.check}>{consent ? '✓' : '○'}</Text><Text style={styles.consentText}>These documents belong to me and this vehicle. I understand Vaya staff must review them before I can publish trips.</Text>
+        </Pressable>
+
         <Pressable
-          disabled={!valid || submitting}
+          disabled={!valid || submitting || Boolean(picking)}
           onPress={() => void submit()}
           style={({ pressed }) => [
             styles.primary,
@@ -296,7 +319,7 @@ export default function DriverApplicationScreen() {
           {submitting ? (
             <View style={styles.submittingRow}>
               <ActivityIndicator color="#FFFFFF" />
-              <Text style={styles.primaryText}>Submitting verification…</Text>
+              <Text style={styles.primaryText}>{uploadLabel}</Text>
             </View>
           ) : (
             <Text style={styles.primaryText}>Submit verification</Text>
@@ -332,6 +355,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const styles = StyleSheet.create({
+  documentProgress: { backgroundColor: '#EEF5FF', padding: 14, borderRadius: 14, marginBottom: 12 },
+  preview: { width: '100%', height: 150, borderRadius: 12, marginTop: 12, backgroundColor: '#F2F4F7' },
+  consent: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 18, padding: 14, borderWidth: 1, borderColor: LINE, borderRadius: 14, backgroundColor: SURFACE },
+  check: { color: BLUE, fontSize: 22 },
+  consentText: { flex: 1, color: TEXT, fontSize: 12, lineHeight: 19 },
   safe: { flex: 1, backgroundColor: BG },
   page: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 44 },
   pressed: { opacity: 0.72 },

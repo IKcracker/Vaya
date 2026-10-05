@@ -2,8 +2,10 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 import { API_URL, normalizeConnectionError } from '@/lib/api';
+import { readSession, writeSession } from './session-storage';
 
 const SESSION_KEY = 'vaya.passenger.session';
+let storageOperation: Promise<void> = Promise.resolve();
 
 export type AuthUser = {
   id?: string;
@@ -48,7 +50,7 @@ export type PassengerTrip = {
   createdAt: string;
 };
 
-async function storeSession(value: string | null) {
+async function writeStoredSession(value: string | null) {
   if (Platform.OS === 'web') {
     if (typeof localStorage === 'undefined') return;
     if (value) localStorage.setItem(SESSION_KEY, value);
@@ -56,11 +58,13 @@ async function storeSession(value: string | null) {
     return;
   }
 
-  if (value) {
-    await SecureStore.setItemAsync(SESSION_KEY, value);
-  } else {
-    await SecureStore.deleteItemAsync(SESSION_KEY);
-  }
+  await writeSession(SecureStore, value);
+}
+
+export function storeSession(value: string | null) {
+  const next = storageOperation.then(() => writeStoredSession(value));
+  storageOperation = next.catch(() => {});
+  return next;
 }
 
 export async function readStoredSession() {
@@ -69,7 +73,7 @@ export async function readStoredSession() {
     return localStorage.getItem(SESSION_KEY);
   }
 
-  return SecureStore.getItemAsync(SESSION_KEY);
+  return readSession(SecureStore);
 }
 
 async function request<T>(
@@ -77,9 +81,12 @@ async function request<T>(
   init?: RequestInit,
   session?: string | null
 ): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
   try {
     const response = await fetch(`${API_URL}${path}`, {
       ...init,
+      signal: controller.signal,
       headers: {
         Accept: 'application/json',
         ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
@@ -92,28 +99,42 @@ async function request<T>(
 
     if (!response.ok) {
       const error = new Error(
-        payload?.error ?? `Request failed (${response.status})`
+        payload?.error ?? (response.status === 404
+          ? 'This server does not provide the mobile API. Check EXPO_PUBLIC_API_URL and deploy the latest backend.'
+          : `Request failed (${response.status})`)
       );
       (error as Error & { status?: number }).status = response.status;
       throw error;
     }
 
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('The server returned an invalid response. Please try again.');
+    }
     return payload as T;
   } catch (error) {
     throw normalizeConnectionError(error);
+  } finally {
+    clearTimeout(timeout);
   }
+}
+
+export function isExpiredSession(error: unknown) {
+  return error instanceof Error && (error as Error & { status?: number }).status === 401;
 }
 
 export async function passengerSignIn(email: string, password: string) {
   const response = await request<{
     user: AuthUser;
+    passenger: PassengerAccount;
     session: string;
   }>('/api/mobile/auth/sign-in', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
   });
 
-  await storeSession(response.session);
+  if (!response.session || !response.user?.email) {
+    throw new Error('Sign-in did not return a valid session. Please try again.');
+  }
   return response;
 }
 
@@ -126,22 +147,29 @@ export async function passengerSignUp(input: {
   const response = await request<{
     user: AuthUser;
     passenger: PassengerAccount;
-    session: string;
+    session: string | null;
+    message?: string;
   }>('/api/mobile/auth/sign-up', {
     method: 'POST',
     body: JSON.stringify(input),
   });
 
-  await storeSession(response.session);
+  if (!response.session) {
+    if (!response.user?.email) throw new Error('The server returned an invalid account. Please try again.');
+    return { ...response, session: null, message: response.message ?? 'Account created. Check your email to verify your account, then sign in.' };
+  }
+  if (!response.user?.email) throw new Error('The server returned an invalid account. Please try again.');
   return response;
 }
 
 export async function fetchPassengerSession(session: string) {
-  return request<{
+  const response = await request<{
     authenticated: true;
     user: AuthUser;
     passenger: PassengerAccount | null;
   }>('/api/mobile/auth/session', undefined, session);
+  if (!response.authenticated || !response.user?.email) throw new Error('The server returned an invalid session. Please try again.');
+  return response;
 }
 
 export async function fetchPassengerProfile(session: string) {
@@ -235,6 +263,7 @@ export async function createAuthenticatedBooking(
 }
 
 export async function passengerSignOut(session: string | null) {
+  await storeSession(null);
   if (session) {
     try {
       await request(
@@ -247,7 +276,6 @@ export async function passengerSignOut(session: string | null) {
     }
   }
 
-  await storeSession(null);
 }
 
 

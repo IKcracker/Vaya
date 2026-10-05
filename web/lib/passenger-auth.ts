@@ -26,7 +26,52 @@ export function getPassengerAuthBaseUrl() {
 }
 
 export function getPassengerAuthOrigin() {
-  return getSiteUrl().origin;
+  const configured = process.env.NEON_AUTH_ORIGIN?.trim();
+  return configured ? new URL(configured).origin : getSiteUrl().origin;
+}
+
+export class PassengerAuthError extends Error {
+  constructor(message: string, public status = 503) {
+    super(message);
+  }
+}
+
+export async function requestPassengerAuth(path: string, init?: RequestInit) {
+  if (!isPassengerAuthConfigured()) {
+    throw new PassengerAuthError("Passenger authentication is not configured");
+  }
+  try {
+    return await fetch(`${getPassengerAuthBaseUrl()}${path}`, {
+      ...init,
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        origin: getPassengerAuthOrigin(),
+        ...init?.headers,
+      },
+      signal: AbortSignal.timeout(10_000),
+      cache: "no-store",
+    });
+  } catch {
+    throw new PassengerAuthError("Authentication service is temporarily unavailable. Please try again.");
+  }
+}
+
+export function passengerAuthFailure(error: unknown) {
+  return Response.json(
+    { error: error instanceof PassengerAuthError ? error.message : "Authentication service is temporarily unavailable. Please try again." },
+    { status: error instanceof PassengerAuthError ? error.status : 503, headers: { "Cache-Control": "no-store" } }
+  );
+}
+
+export function upstreamAuthFailure(status: number, payload: { message?: string; error?: string; code?: string } | null) {
+  const message = payload?.message ?? payload?.error;
+  if (/invalid origin/i.test(message ?? "") || payload?.code === "INVALID_ORIGIN") {
+    throw new PassengerAuthError("Authentication origin is not trusted. Configure NEON_AUTH_ORIGIN and allow that origin in the Neon Auth branch used by this deployment.");
+  }
+  if (status >= 500 || status === 404 || status === 429) {
+    throw new PassengerAuthError(status === 429 ? "Too many attempts. Please try again later." : "Authentication service is temporarily unavailable. Please try again.", status === 429 ? 429 : 503);
+  }
 }
 
 export async function getPassengerSession(
@@ -38,33 +83,35 @@ export async function getPassengerSession(
     return { status: "unconfigured" };
   }
 
-  try {
-    const response = await fetch(`${baseUrl}/get-session`, {
-      method: "GET",
-      headers: {
-        accept: "application/json",
-        cookie: cookieHeader,
-      },
-      cache: "no-store",
-    });
+  if (!cookieHeader) return { status: "unauthenticated" };
 
-    if (!response.ok) {
-      return { status: "unauthenticated" };
-    }
+  const response = await requestPassengerAuth("/get-session", {
+    method: "GET",
+    headers: {
+      accept: "application/json",
+      cookie: cookieHeader,
+    },
+  });
 
-    const payload = (await response.json().catch(() => null)) as
-      | { user?: PassengerAuthUser | null }
-      | null;
+  if (!response.ok) {
+    if (response.status === 401) return { status: "unauthenticated" };
+    throw new PassengerAuthError("Unable to verify your session. Please try again.");
+  }
 
-    if (!payload?.user?.email) {
-      return { status: "unauthenticated" };
-    }
+  const payload = (await response.json().catch(() => {
+    throw new PassengerAuthError("Authentication service returned an invalid response. Please try again.");
+  })) as
+    | { user?: PassengerAuthUser | null }
+    | null;
 
-    return { status: "authenticated", user: payload.user };
-  } catch (error) {
-    console.error("Passenger Neon Auth session check failed", error);
+  if (payload === null) return { status: "unauthenticated" };
+  if (typeof payload !== "object" || Array.isArray(payload)) throw new PassengerAuthError("Authentication service returned an invalid response. Please try again.");
+  if (!payload?.user?.email) {
+    if (payload.user) throw new PassengerAuthError("Authentication service returned an invalid user. Please try again.");
     return { status: "unauthenticated" };
   }
+
+  return { status: "authenticated", user: payload.user };
 }
 
 export function copyAuthCookies(source: Headers, target: Headers) {
@@ -88,11 +135,11 @@ export function copyAuthCookies(source: Headers, target: Headers) {
 export function sessionCookieFromHeaders(headers: Headers) {
   const enhanced = headers as Headers & { getSetCookie?: () => string[] };
   const setCookies = enhanced.getSetCookie?.() ?? [];
-  const values = setCookies.length ? setCookies : [headers.get("set-cookie") ?? ""].filter(Boolean);
+  const values = setCookies.length ? setCookies : (headers.get("set-cookie") ?? "").split(/,(?=\s*[^;,=\s]+=)/);
 
   const cookiePairs = values
     .map((value) => value.split(";")[0]?.trim())
-    .filter(Boolean);
+    .filter((value) => Boolean(value) && !value.endsWith("="));
 
   return cookiePairs.join("; ");
 }

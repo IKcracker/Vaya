@@ -3,6 +3,7 @@ import "server-only";
 import { and, asc, desc, eq, gte, ilike, lt, ne, or, sql } from "drizzle-orm";
 import { getDb } from "./index";
 import { getDriverVerificationSummary } from "./driver-documents";
+import { REQUIRED_DRIVER_DOCUMENTS } from "@/lib/driver-verification";
 import {
   activityLogs,
   bookings,
@@ -15,6 +16,12 @@ import {
 } from "./schema";
 
 const PUBLIC_TRIP_STATUSES = ["Scheduled", "On schedule", "Boarding", "Full"];
+
+const verifiedDriver = sql<boolean>`coalesce(${drivers.status} = 'Approved' and (
+  select count(distinct kind) from driver_documents
+  where driver_id = ${drivers.id} and status = 'Approved'
+  and kind in (${sql.join(REQUIRED_DRIVER_DOCUMENTS.map((document) => sql`${document.kind}`), sql`, `)})
+) = ${REQUIRED_DRIVER_DOCUMENTS.length}, false)`;
 
 function money(cents: number) {
   return `R${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
@@ -32,6 +39,7 @@ function publicTripShape(row: {
   fareCents: number;
   status: string;
   driverStatus: string | null;
+  driverIsVerified: boolean;
   vehicleMake: string | null;
   vehicleModel: string | null;
   vehicleYear: number | null;
@@ -48,7 +56,7 @@ function publicTripShape(row: {
     to: row.toCity,
     driver: {
       name: row.driverName,
-      verified: row.driverStatus === "Approved",
+      verified: row.driverIsVerified,
       location: row.driverLocation ?? "",
       vehicle:
         row.vehicleMake && row.vehicleModel
@@ -114,6 +122,7 @@ export async function searchPublicTrips(input: {
       fareCents: trips.fareCents,
       status: trips.status,
       driverStatus: drivers.status,
+      driverIsVerified: verifiedDriver,
       vehicleMake: trips.vehicleMake,
       vehicleModel: trips.vehicleModel,
       vehicleYear: trips.vehicleYear,
@@ -146,6 +155,7 @@ export async function getPublicTrip(publicId: string) {
       fareCents: trips.fareCents,
       status: trips.status,
       driverStatus: drivers.status,
+      driverIsVerified: verifiedDriver,
       vehicleMake: trips.vehicleMake,
       vehicleModel: trips.vehicleModel,
       vehicleYear: trips.vehicleYear,
@@ -1021,7 +1031,7 @@ export async function createMobileDriverTrip(
     .limit(1);
 
   if (!driver) throw new Error("DRIVER_NOT_FOUND");
-  if (driver.status !== "Approved") throw new Error("DRIVER_NOT_APPROVED");
+  if (driver.status !== "Approved" || !(await getDriverVerificationSummary(driver.id)).readyToApprove) throw new Error("DRIVER_NOT_APPROVED");
 
   const publicId = `VY-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
@@ -1085,7 +1095,7 @@ export async function updateMobileDriverTripStatus(
     .limit(1);
 
   if (!driver) throw new Error("DRIVER_NOT_FOUND");
-  if (driver.status !== "Approved") throw new Error("DRIVER_NOT_APPROVED");
+  if (driver.status !== "Approved" || !(await getDriverVerificationSummary(driver.id)).readyToApprove) throw new Error("DRIVER_NOT_APPROVED");
 
   const [trip] = await db
     .update(trips)
@@ -1161,7 +1171,7 @@ export async function updateMobileDriverTripDetails(
     .limit(1);
 
   if (!driver) throw new Error("DRIVER_NOT_FOUND");
-  if (driver.status !== "Approved") throw new Error("DRIVER_NOT_APPROVED");
+  if (driver.status !== "Approved" || !(await getDriverVerificationSummary(driver.id)).readyToApprove) throw new Error("DRIVER_NOT_APPROVED");
 
   const [existing] = await db
     .select()

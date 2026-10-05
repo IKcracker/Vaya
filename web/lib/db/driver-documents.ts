@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import {
   DRIVER_DOCUMENTS,
@@ -24,7 +24,7 @@ export const DRIVER_DOCUMENT_STATUSES = new Set<DriverDocumentStatus>([
 ]);
 
 function shapeDocument(
-  document: typeof driverDocuments.$inferSelect
+  document: Omit<typeof driverDocuments.$inferSelect, "fileData">
 ) {
   const definition = DRIVER_DOCUMENTS.find(
     (item) => item.kind === document.kind
@@ -49,7 +49,13 @@ function shapeDocument(
 export async function getDriverDocuments(driverId: string) {
   const db = getDb();
   const rows = await db
-    .select()
+    .select({
+      id: driverDocuments.id, driverId: driverDocuments.driverId, kind: driverDocuments.kind,
+      fileName: driverDocuments.fileName, contentType: driverDocuments.contentType,
+      sizeBytes: driverDocuments.sizeBytes, status: driverDocuments.status,
+      reviewNote: driverDocuments.reviewNote, uploadedAt: driverDocuments.uploadedAt,
+      reviewedAt: driverDocuments.reviewedAt, updatedAt: driverDocuments.updatedAt,
+    })
     .from(driverDocuments)
     .where(eq(driverDocuments.driverId, driverId));
 
@@ -214,6 +220,8 @@ export async function saveDriverDocumentByEmail(
         sizeBytes: input.sizeBytes,
         fileData: input.fileData,
         status: "Review",
+        uploadedAt: now,
+        updatedAt: now,
       })
       .returning();
   }
@@ -248,6 +256,8 @@ export async function reviewDriverDocument(
   input: {
     status: DriverDocumentStatus;
     reviewNote?: string | null;
+    expectedUpdatedAt: string;
+    reviewer: string;
   }
 ) {
   const db = getDb();
@@ -262,12 +272,13 @@ export async function reviewDriverDocument(
     .where(
       and(
         eq(driverDocuments.id, documentId),
-        eq(driverDocuments.driverId, driverId)
+        eq(driverDocuments.driverId, driverId),
+        sql`date_trunc('milliseconds', ${driverDocuments.updatedAt}) = ${input.expectedUpdatedAt}::timestamptz`
       )
     )
     .returning();
 
-  if (!document) return null;
+  if (!document) throw new Error("DOCUMENT_CHANGED");
 
   const [driver] = await db
     .select()
@@ -284,6 +295,9 @@ export async function reviewDriverDocument(
       documentId: document.id,
       kind: document.kind,
       status: input.status,
+      reviewer: input.reviewer,
+      reviewedVersion: input.expectedUpdatedAt,
+      reviewNote: input.reviewNote?.trim() || null,
     },
   });
 

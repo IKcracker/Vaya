@@ -1,17 +1,18 @@
 import { isDatabaseConfigured } from "@/lib/db";
 import { saveDriverDocumentByEmail } from "@/lib/db/driver-documents";
+import { validateDriverDocument } from "@/lib/driver-document-upload";
 import {
   isDriverDocumentKind,
 } from "@/lib/driver-verification";
 import {
   getMobileSessionCookie,
   getPassengerSession,
+  passengerAuthFailure,
 } from "@/lib/passenger-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_CONTENT_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
@@ -19,18 +20,17 @@ const ALLOWED_CONTENT_TYPES = new Set([
   "image/webp",
 ]);
 
-function base64ByteLength(value: string) {
-  const normalized = value.replace(/\s/g, "");
-  const padding = normalized.endsWith("==") ? 2 : normalized.endsWith("=") ? 1 : 0;
-  return Math.floor((normalized.length * 3) / 4) - padding;
-}
-
 export async function POST(request: Request) {
   if (!isDatabaseConfigured()) {
     return Response.json({ error: "Database is not configured" }, { status: 503 });
   }
 
-  const auth = await getPassengerSession(getMobileSessionCookie(request));
+  let auth;
+  try {
+    auth = await getPassengerSession(getMobileSessionCookie(request));
+  } catch (error) {
+    return passengerAuthFailure(error);
+  }
 
   if (auth.status === "unconfigured") {
     return Response.json(
@@ -63,25 +63,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const sizeBytes = base64ByteLength(fileData);
-
-  if (sizeBytes <= 0 || sizeBytes > MAX_FILE_BYTES) {
-    return Response.json(
-      { error: "Each driver document must be 5 MB or smaller" },
-      { status: 413 }
-    );
-  }
+  const validated = validateDriverDocument(contentType, fileData);
+  if ("error" in validated) return Response.json({ error: validated.error }, { status: validated.status });
 
   try {
     const result = await saveDriverDocumentByEmail(auth.user.email, {
       kind,
       fileName,
       contentType,
-      sizeBytes,
-      fileData,
+      sizeBytes: validated.sizeBytes,
+      fileData: validated.fileData,
     });
 
-    return Response.json(result, { status: 201 });
+    return Response.json(result, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof Error && error.message === "DRIVER_NOT_FOUND") {
       return Response.json(

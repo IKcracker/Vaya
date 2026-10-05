@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getAdminAuth } from "@/lib/admin-auth";
+import { mobileCorsHeaders } from "@/lib/mobile-cors";
 
 function loginUrl(request: NextRequest, reason?: string) {
   const url = new URL("/admin/login", request.url);
@@ -16,6 +17,16 @@ function loginUrl(request: NextRequest, reason?: string) {
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  if (pathname.startsWith("/api/mobile/") || pathname.startsWith("/api/public/")) {
+    const headers = mobileCorsHeaders(request.headers.get("origin"));
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: headers ? 204 : 403, headers: headers ?? { Vary: "Origin" } });
+    }
+    const response = NextResponse.next();
+    for (const [name, value] of Object.entries(headers ?? {})) response.headers.set(name, value);
+    return response;
+  }
 
   if (
     pathname === "/admin/login" ||
@@ -63,5 +74,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*", "/api/mobile/:path*", "/api/public/:path*"],
 };

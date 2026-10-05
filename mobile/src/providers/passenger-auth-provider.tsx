@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -16,6 +17,8 @@ import {
   passengerSignOut,
   passengerSignUp,
   readStoredSession,
+  storeSession,
+  isExpiredSession,
 } from '@/lib/auth';
 
 type AuthContextValue = {
@@ -29,7 +32,7 @@ type AuthContextValue = {
     email: string;
     password: string;
     city: string;
-  }) => Promise<void>;
+  }) => Promise<string | null>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -41,8 +44,9 @@ export function PassengerAuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [passenger, setPassenger] = useState<PassengerAccount | null>(null);
+  const operation = useRef(0);
 
-  const applySession = useCallback(async (token: string | null) => {
+  const applySession = useCallback(async (token: string | null, version = operation.current) => {
     if (!token) {
       setSession(null);
       setUser(null);
@@ -51,6 +55,10 @@ export function PassengerAuthProvider({ children }: PropsWithChildren) {
     }
 
     const response = await fetchPassengerSession(token);
+    if (version !== operation.current) return;
+    if (!response.authenticated || !response.user?.email) {
+      throw new Error('The server returned an invalid session. Please sign in again.');
+    }
     setSession(token);
     setUser(response.user);
     setPassenger(response.passenger);
@@ -58,10 +66,11 @@ export function PassengerAuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let active = true;
+    const version = operation.current;
 
     readStoredSession()
       .then(async (token) => {
-        if (!active) return;
+        if (!active || version !== operation.current) return;
 
         if (!token) {
           setLoading(false);
@@ -70,19 +79,20 @@ export function PassengerAuthProvider({ children }: PropsWithChildren) {
 
         try {
           const response = await fetchPassengerSession(token);
-          if (!active) return;
+          if (!active || version !== operation.current) return;
 
           setSession(token);
           setUser(response.user);
           setPassenger(response.passenger);
-        } catch {
-          if (!active) return;
-          await passengerSignOut(null);
+        } catch (error) {
+          if (!active || version !== operation.current) return;
+          if (isExpiredSession(error)) await storeSession(null);
+          if (!active || version !== operation.current) return;
           setSession(null);
           setUser(null);
           setPassenger(null);
         } finally {
-          if (active) setLoading(false);
+          if (active && version === operation.current) setLoading(false);
         }
       })
       .catch(() => {
@@ -96,10 +106,20 @@ export function PassengerAuthProvider({ children }: PropsWithChildren) {
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      const response = await passengerSignIn(email, password);
-      await applySession(response.session);
+      const version = ++operation.current;
+      try {
+        const response = await passengerSignIn(email, password);
+        if (version !== operation.current) return;
+        await storeSession(response.session);
+        if (version !== operation.current) return;
+        setSession(response.session);
+        setUser(response.user);
+        setPassenger(response.passenger);
+      } finally {
+        if (version === operation.current) setLoading(false);
+      }
     },
-    [applySession]
+    []
   );
 
   const signUp = useCallback(
@@ -109,24 +129,49 @@ export function PassengerAuthProvider({ children }: PropsWithChildren) {
       password: string;
       city: string;
     }) => {
-      const response = await passengerSignUp(input);
-      setSession(response.session);
-      setUser(response.user);
-      setPassenger(response.passenger);
+      const version = ++operation.current;
+      try {
+        const response = await passengerSignUp(input);
+        if (version !== operation.current) return null;
+        if (!response.session) return response.message ?? 'Check your email to verify your account, then sign in.';
+        await storeSession(response.session);
+        if (version !== operation.current) return null;
+        setSession(response.session);
+        setUser(response.user);
+        setPassenger(response.passenger);
+        return null;
+      } finally {
+        if (version === operation.current) setLoading(false);
+      }
     },
     []
   );
 
   const signOut = useCallback(async () => {
-    await passengerSignOut(session);
+    operation.current += 1;
     setSession(null);
     setUser(null);
     setPassenger(null);
+    setLoading(false);
+    await passengerSignOut(session);
   }, [session]);
 
   const refresh = useCallback(async () => {
-    if (!session) return;
-    await applySession(session);
+    const version = operation.current;
+    const token = session ?? await readStoredSession();
+    if (!token || version !== operation.current) return;
+    try {
+      await applySession(token, version);
+    } catch (error) {
+      if (version === operation.current && isExpiredSession(error)) {
+        await storeSession(null);
+        if (version !== operation.current) return;
+        setSession(null);
+        setUser(null);
+        setPassenger(null);
+      }
+      throw error;
+    }
   }, [applySession, session]);
 
   const value = useMemo(

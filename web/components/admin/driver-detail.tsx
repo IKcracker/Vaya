@@ -39,6 +39,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { DRIVER_DOCUMENTS } from "@/lib/driver-verification";
 import {
   Table,
   TableBody,
@@ -132,6 +134,18 @@ export function DriverDetail({
   const [removeOpen, setRemoveOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<DriverDocument | null>(null);
+  const [reviewStatus, setReviewStatus] = useState<"Approved" | "Needs info" | "Rejected">("Approved");
+  const [reviewNote, setReviewNote] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+
+  function openReview(document: DriverDocument, status: typeof reviewStatus) {
+    setReviewTarget(document);
+    setReviewStatus(status);
+    setReviewNote("");
+    setConfirmed(false);
+    setMessage(null);
+  }
 
   const submitted = useMemo(
     () => new Intl.DateTimeFormat("en-ZA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(driver.submittedAt)),
@@ -182,21 +196,7 @@ export function DriverDetail({
     documentId: string,
     status: "Approved" | "Needs info" | "Rejected"
   ) {
-    let reviewNote = "";
-
-    if (status === "Needs info" || status === "Rejected") {
-      const note = window.prompt(
-        status === "Needs info"
-          ? "Tell the driver what must be corrected or re-uploaded:"
-          : "Add the reason this document was rejected:"
-      );
-      if (note === null) return;
-      reviewNote = note.trim();
-      if (!reviewNote) {
-        setMessage("A review note is required for this action.");
-        return;
-      }
-    }
+    if (!reviewTarget || (status === "Approved" ? !confirmed : !reviewNote.trim())) return;
 
     setSaving(true);
     setMessage(null);
@@ -207,13 +207,21 @@ export function DriverDetail({
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status, reviewNote }),
+          body: JSON.stringify({ status, reviewNote, confirmed, expectedUpdatedAt: reviewTarget.updatedAt }),
         }
       );
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
         setMessage(payload?.error ?? "Unable to review document");
+        if (response.status === 409) {
+          const latest = await fetch(`/api/admin/drivers/${driver.id}`, { cache: "no-store" });
+          const data = await latest.json().catch(() => null);
+          if (latest.ok && data?.driver) {
+            setDriver(data.driver);
+            setReviewTarget(null);
+          }
+        }
         return;
       }
 
@@ -230,7 +238,10 @@ export function DriverDetail({
         },
       }));
       setMessage(`${payload.document.label} updated to ${status}.`);
+      setReviewTarget(null);
       router.refresh();
+    } catch {
+      setMessage("Unable to save the review. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -390,6 +401,17 @@ export function DriverDetail({
                 </div>
               </CardHeader>
               <CardContent className="p-0">
+                <div className="border-b border-[#EAECF0] bg-[#F8FAFC] p-5">
+                  <div className="mb-3 h-2 overflow-hidden rounded-full bg-[#EAECF0]">
+                    <div className="h-full rounded-full bg-[#1877F2] transition-all" style={{ width: `${driver.verification.approvedRequiredCount / driver.verification.requiredCount * 100}%` }} />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {DRIVER_DOCUMENTS.filter((item) => item.required).map((requirement) => {
+                      const file = driver.verification.documents.find((item) => item.kind === requirement.kind);
+                      return <Badge key={requirement.kind} variant={file?.status === "Approved" ? "success" : "warning"}>{requirement.label}: {file?.status ?? "Missing"}</Badge>;
+                    })}
+                  </div>
+                </div>
                 {driver.verification.documents.length ? (
                   <div className="divide-y divide-[#EAECF0]">
                     {driver.verification.documents.map((document) => (
@@ -411,6 +433,7 @@ export function DriverDetail({
                             <div className="mt-2 truncate text-xs text-[#667085]">
                               {document.fileName} · {(document.sizeBytes / 1024 / 1024).toFixed(2)} MB
                             </div>
+                            <div className="mt-1 text-xs text-[#98A2B3]">Uploaded {new Date(document.uploadedAt).toLocaleDateString("en-ZA")}{document.reviewedAt ? ` · Reviewed ${new Date(document.reviewedAt).toLocaleDateString("en-ZA")}` : " · Awaiting staff review"}</div>
                             {document.reviewNote ? (
                               <div className="mt-3 rounded-lg border border-[#FEDF89] bg-[#FFFAEB] px-3 py-2 text-xs leading-5 text-[#93370D]">
                                 {document.reviewNote}
@@ -433,19 +456,19 @@ export function DriverDetail({
                             <Button
                               variant="outline"
                               disabled={saving}
-                              onClick={() => void reviewDocument(document.id, "Needs info")}>
+                              onClick={() => openReview(document, "Needs info")}>
                               Request info
                             </Button>
                             <Button
                               variant="destructive"
                               disabled={saving}
-                              onClick={() => void reviewDocument(document.id, "Rejected")}>
+                              onClick={() => openReview(document, "Rejected")}>
                               Reject
                             </Button>
                             <Button
                               className="bg-[#1877F2] hover:bg-[#166FE5]"
                               disabled={saving || document.status === "Approved"}
-                              onClick={() => void reviewDocument(document.id, "Approved")}>
+                              onClick={() => openReview(document, "Approved")}>
                               <ShieldCheck />
                               Approve
                             </Button>
@@ -566,6 +589,29 @@ export function DriverDetail({
           </div>
         </div>
       </main>
+
+      <Dialog open={Boolean(reviewTarget)} onOpenChange={(open) => { if (!open && !saving) setReviewTarget(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{reviewTarget?.label} review</DialogTitle>
+            <DialogDescription>Check the document is legible, current, and belongs to this driver or vehicle.</DialogDescription>
+          </DialogHeader>
+          {reviewTarget ? <div className="grid gap-5 px-5 py-4 md:grid-cols-[1.4fr_1fr]">
+            <div className="space-y-2">
+              <iframe title={`${reviewTarget.label} preview`} src={`/api/admin/drivers/${driver.id}/documents/${reviewTarget.id}?version=${encodeURIComponent(reviewTarget.updatedAt)}`} className="h-96 w-full rounded-xl border bg-[#F8FAFC]" />
+              <a className="text-xs font-medium text-[#1877F2]" href={`/api/admin/drivers/${driver.id}/documents/${reviewTarget.id}`} target="_blank" rel="noreferrer">Open full document in a new tab</a>
+            </div>
+            <div className="space-y-4">
+              <div className="rounded-xl bg-[#F8FAFC] p-4 text-sm leading-6"><strong>{driver.name}</strong><br />{driver.email}<br />{driver.vehicle}<br />Registration: <strong>{driver.vehicleRegistration || "Not supplied"}</strong></div>
+              <div className="flex flex-wrap gap-2">{(["Approved", "Needs info", "Rejected"] as const).map((status) => <Button key={status} size="sm" variant={reviewStatus === status ? "default" : "outline"} disabled={saving} onClick={() => { setReviewStatus(status); setConfirmed(false); }}>{status}</Button>)}</div>
+              <Field label={reviewStatus === "Approved" ? "Review note (optional)" : "What must the driver fix?"} htmlFor="document-review-note"><Textarea id="document-review-note" value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} maxLength={1000} disabled={saving} placeholder="Explain the issue and the document or correction needed." /></Field>
+              {reviewStatus === "Approved" ? <label className="flex gap-3 rounded-lg border p-3 text-sm leading-5"><input type="checkbox" className="mt-1" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={saving} />I checked the original attachment, its validity, and matching driver / vehicle details.</label> : null}
+              {message ? <p role="alert" className="text-sm text-[#B42318]">{message}</p> : null}
+            </div>
+          </div> : null}
+          <DialogFooter><Button variant="outline" disabled={saving} onClick={() => setReviewTarget(null)}>Cancel</Button><Button disabled={saving || (reviewStatus === "Approved" ? !confirmed : !reviewNote.trim())} onClick={() => { if (reviewTarget) void reviewDocument(reviewTarget.id, reviewStatus); }}>{saving ? "Saving review…" : "Save review"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-2xl">

@@ -1,4 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
+import { File } from 'expo-file-system';
+import { Platform } from 'react-native';
 
 import type { DriverDocumentKind } from '@/lib/auth';
 
@@ -46,9 +48,10 @@ export type PickedDriverDocument = {
   contentType: string;
   sizeBytes: number;
   fileData: string;
+  uri: string;
 };
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 3 * 1024 * 1024;
 
 function blobToBase64(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
@@ -77,19 +80,18 @@ export async function pickDriverDocument(
   const asset = result.assets[0];
 
   if (asset.size && asset.size > MAX_BYTES) {
-    throw new Error('Each document must be 5 MB or smaller.');
+    throw new Error('Each document must be 3 MB or smaller.');
   }
 
-  const response = await fetch(asset.uri);
-  const blob = await response.blob();
+  const file = Platform.OS === 'web' ? (asset.file ?? await (await fetch(asset.uri)).blob()) : new File(asset.uri);
 
-  if (blob.size > MAX_BYTES) {
-    throw new Error('Each document must be 5 MB or smaller.');
+  if (!file.size || file.size > MAX_BYTES) {
+    throw new Error('Choose a non-empty document that is 3 MB or smaller.');
   }
 
   const contentType =
     asset.mimeType ||
-    blob.type ||
+    file.type ||
     (asset.name.toLowerCase().endsWith('.pdf')
       ? 'application/pdf'
       : 'image/jpeg');
@@ -109,8 +111,9 @@ export async function pickDriverDocument(
     kind,
     fileName: asset.name || `${kind}.pdf`,
     contentType,
-    sizeBytes: blob.size,
-    fileData: await blobToBase64(blob),
+    sizeBytes: file.size,
+    fileData: Platform.OS === 'web' ? await blobToBase64(file as Blob) : await (file as File).base64(),
+    uri: asset.uri,
   };
 }
 
