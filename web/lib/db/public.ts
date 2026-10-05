@@ -17,6 +17,19 @@ import {
 
 const PUBLIC_TRIP_STATUSES = ["Scheduled", "On schedule", "Boarding", "Full"];
 
+const passengerAccountSelection = {
+  id: passengers.id,
+  name: passengers.name,
+  email: passengers.email,
+  phone: passengers.phone,
+  city: passengers.city,
+  tripsCount: passengers.tripsCount,
+  status: passengers.status,
+  joinedAt: passengers.joinedAt,
+  updatedAt: passengers.updatedAt,
+  profileImageUpdatedAt: passengers.profileImageUpdatedAt,
+};
+
 const verifiedDriver = sql<boolean>`coalesce(${drivers.status} = 'Approved' and (
   select count(distinct kind) from driver_documents
   where driver_id = ${drivers.id} and status = 'Approved'
@@ -200,7 +213,7 @@ export async function createPublicBooking(input: {
 
   return db.transaction(async (tx) => {
     let [passenger] = await tx
-      .select()
+      .select(passengerAccountSelection)
       .from(passengers)
       .where(eq(passengers.email, email))
       .limit(1);
@@ -214,7 +227,7 @@ export async function createPublicBooking(input: {
           city: input.passenger.city.trim(),
           status: "Active",
         })
-        .returning();
+        .returning(passengerAccountSelection);
     } else if (passenger.status === "Removed" || passenger.status === "Suspended") {
       throw new Error("PASSENGER_BLOCKED");
     }
@@ -232,7 +245,7 @@ export async function createPublicBooking(input: {
           sql`${trips.seatCapacity} - ${trips.seatsBooked} >= ${seatsRequested}`
         )
       )
-      .returning();
+      .returning(passengerAccountSelection);
 
     if (!trip) {
       throw new Error("TRIP_UNAVAILABLE");
@@ -252,7 +265,7 @@ export async function createPublicBooking(input: {
         paymentStatus: "Pending",
         status: "Awaiting payment",
       })
-      .returning();
+      .returning(passengerAccountSelection);
 
     await tx
       .update(passengers)
@@ -306,7 +319,7 @@ export async function ensurePassengerForAuthUser(input: {
   const email = input.email.trim().toLowerCase();
 
   let [passenger] = await db
-    .select()
+    .select(passengerAccountSelection)
     .from(passengers)
     .where(eq(passengers.email, email))
     .limit(1);
@@ -320,7 +333,7 @@ export async function ensurePassengerForAuthUser(input: {
         city: input.city.trim(),
         status: "Active",
       })
-      .returning();
+      .returning(passengerAccountSelection);
 
     await db.insert(activityLogs).values({
       eventType: "passenger_created",
@@ -348,7 +361,7 @@ export async function getPassengerAccountByEmail(email: string) {
   const normalized = email.trim().toLowerCase();
 
   const [passenger] = await db
-    .select()
+    .select(passengerAccountSelection)
     .from(passengers)
     .where(eq(passengers.email, normalized))
     .limit(1);
@@ -390,7 +403,7 @@ export async function updatePassengerAccountByEmail(
       updatedAt: new Date(),
     })
     .where(eq(passengers.email, normalized))
-    .returning();
+    .returning(passengerAccountSelection);
 
   if (!passenger) return null;
 
@@ -466,7 +479,7 @@ export async function createMobileSafetyCaseByEmail(
   const normalized = email.trim().toLowerCase();
 
   const [passenger] = await db
-    .select()
+    .select(passengerAccountSelection)
     .from(passengers)
     .where(eq(passengers.email, normalized))
     .limit(1);
@@ -520,7 +533,7 @@ export async function createMobileSafetyCaseByEmail(
       note: input.note.trim(),
       status: "Open",
     })
-    .returning();
+    .returning(passengerAccountSelection);
 
   await db.insert(activityLogs).values({
     eventType: "mobile_safety_case_created",
@@ -672,7 +685,7 @@ export async function createPendingMobilePayment(input: {
       method: "Paystack",
       status: "Pending",
     })
-    .returning();
+    .returning(passengerAccountSelection);
 
   await db.insert(activityLogs).values({
     eventType: "payment_initialized",
@@ -722,7 +735,7 @@ export async function settleMobilePayment(reference: string) {
       .update(payments)
       .set({ status: "Settled" })
       .where(eq(payments.publicId, reference))
-      .returning();
+      .returning(passengerAccountSelection);
 
     if (!payment) return null;
 
@@ -734,7 +747,7 @@ export async function settleMobilePayment(reference: string) {
         updatedAt: new Date(),
       })
       .where(eq(bookings.id, payment.bookingId))
-      .returning();
+      .returning(passengerAccountSelection);
 
     await tx.insert(activityLogs).values({
       eventType: "payment_settled",
@@ -764,7 +777,7 @@ export async function failMobilePayment(reference: string) {
         ne(payments.status, "Settled")
       )
     )
-    .returning();
+    .returning(passengerAccountSelection);
 
   if (!payment) return null;
 
@@ -897,7 +910,7 @@ export async function createMobileDriverApplication(input: {
       checks: "0/4 required documents uploaded",
       status: "Needs info",
     })
-    .returning();
+    .returning(passengerAccountSelection);
 
   await db.insert(activityLogs).values({
     eventType: "driver_application",
@@ -984,7 +997,7 @@ export async function updateMobileDriverVehicle(
       updatedAt: new Date(),
     })
     .where(eq(drivers.id, driver.id))
-    .returning();
+    .returning(passengerAccountSelection);
 
   await db
     .delete(driverDocuments)
@@ -1075,7 +1088,7 @@ export async function createMobileDriverTrip(
       fareCents: input.fareCents,
       status: "Scheduled",
     })
-    .returning();
+    .returning(passengerAccountSelection);
 
   await db.insert(activityLogs).values({
     eventType: "driver_trip_created",
@@ -1130,7 +1143,7 @@ export async function updateMobileDriverTripStatus(
         eq(trips.driverId, driver.id)
       )
     )
-    .returning();
+    .returning(passengerAccountSelection);
 
   if (!trip) throw new Error("TRIP_NOT_FOUND");
 
@@ -1235,7 +1248,7 @@ export async function updateMobileDriverTripDetails(
         eq(trips.driverId, driver.id)
       )
     )
-    .returning();
+    .returning(passengerAccountSelection);
 
   await db.insert(activityLogs).values({
     eventType: "driver_trip_updated",
