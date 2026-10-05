@@ -114,7 +114,7 @@ export default function DriverVerificationScreen() {
       const selected = await pickDriverDocument(kind);
       if (!selected) return;
 
-      const result = await uploadDriverDocument(session, {
+      await uploadDriverDocument(session, {
         kind,
         vehicleId: vehicleId || null,
         fileName: selected.fileName,
@@ -183,9 +183,14 @@ export default function DriverVerificationScreen() {
     );
   }
 
+  const requiredCount =
+    verification?.requiredCount ??
+    requirements.filter((requirement) => requirement.required).length;
   const progress = verification
     ? `${verification.approvedRequiredCount}/${verification.requiredCount} approved`
-    : driver.checks;
+    : vehicleId
+      ? selectedVehicle?.checks ?? 'Verification required'
+      : driver.checks;
   const approved = vehicleId
     ? selectedVehicle?.status === 'Approved'
     : driver.status === 'Approved' && verification?.readyToApprove;
@@ -228,12 +233,12 @@ export default function DriverVerificationScreen() {
           </View>
           <View style={styles.summaryBadge}>
             <Text style={styles.summaryBadgeText}>
-              {verification?.uploadedRequiredCount ?? 0}/{verification?.requiredCount ?? 4} uploaded
+              {verification?.uploadedRequiredCount ?? 0}/{requiredCount} uploaded
             </Text>
           </View>
         </View>
 
-        <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${(verification?.approvedRequiredCount ?? 0) / (verification?.requiredCount || 4) * 100}%` }]} /></View>
+        <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${requiredCount ? ((verification?.approvedRequiredCount ?? 0) / requiredCount) * 100 : 0}%` }]} /></View>
         <Text style={styles.explanation}>{explanation}</Text>
         <View style={styles.metrics}>{[{ label: 'Uploaded', count: verification?.uploadedRequiredCount ?? 0 }, { label: 'Approved', count: verification?.approvedRequiredCount ?? 0 }, { label: 'Needs attention', count: (verification?.missingKinds.length ?? 0) + (verification?.needsAttentionKinds.length ?? 0) }].map((item) => <View key={item.label} style={styles.metric}><Text style={styles.metricValue}>{item.count}</Text><Text style={styles.metricLabel}>{item.label}</Text></View>)}</View>
         {notice ? <View style={styles.approvedStrip}><Text style={styles.approvedText}>{notice}</Text></View> : null}
