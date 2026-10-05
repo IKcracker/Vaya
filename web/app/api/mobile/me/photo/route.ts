@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   if ("error" in auth) return auth.error;
 
   const image = await getPassengerProfileImageByEmail(auth.email);
-  if (!image) {
+  if (!image?.contentType || !image.fileData) {
     return Response.json({ error: "Profile photo not found" }, { status: 404 });
   }
 
