@@ -1,6 +1,6 @@
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -14,7 +14,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { publishDriverTrip } from '@/lib/auth';
+import {
+  fetchMobileDriver,
+  MobileDriverVehicle,
+  publishDriverTrip,
+} from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
 const BLUE = '#1877F2';
@@ -62,6 +66,8 @@ export default function PublishDriverTripScreen() {
   const router = useRouter();
   const { loading, session } = usePassengerAuth();
 
+  const [vehicles, setVehicles] = useState<MobileDriverVehicle[]>([]);
+  const [vehicleId, setVehicleId] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [departureAt, setDepartureAt] = useState(initialDeparture);
@@ -73,6 +79,24 @@ export default function PublishDriverTripScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!session) return;
+
+    fetchMobileDriver(session)
+      .then((response) => {
+        const approved = (response.driver?.vehicles ?? []).filter(
+          (vehicle) => vehicle.status === 'Approved'
+        );
+        setVehicles(approved);
+        const preferred =
+          approved.find((vehicle) => vehicle.isPrimary) ?? approved[0];
+        if (preferred) setVehicleId(preferred.id);
+      })
+      .catch((reason: unknown) => {
+        setError(reason instanceof Error ? reason.message : 'Unable to load your vehicles');
+      });
+  }, [session]);
+
   const fareAmount = Number(fare);
   const routeReady =
     from.trim().length >= 2 &&
@@ -80,6 +104,7 @@ export default function PublishDriverTripScreen() {
     from.trim().toLowerCase() !== to.trim().toLowerCase();
 
   const valid =
+    Boolean(vehicleId) &&
     routeReady &&
     departureAt.getTime() > now &&
     seats >= 1 &&
@@ -127,6 +152,7 @@ export default function PublishDriverTripScreen() {
 
     try {
       await publishDriverTrip(session, {
+        vehicleId,
         from: from.trim(),
         to: to.trim(),
         departureAt: departureAt.toISOString(),
@@ -242,6 +268,52 @@ export default function PublishDriverTripScreen() {
             </View>
           </View>
         </View>
+
+        <Text style={styles.sectionLabel}>VEHICLE</Text>
+        {vehicles.length ? (
+          <View style={styles.vehicleList}>
+            {vehicles.map((vehicle) => {
+              const active = vehicle.id === vehicleId;
+              return (
+                <Pressable
+                  key={vehicle.id}
+                  onPress={() => setVehicleId(vehicle.id)}
+                  style={({ pressed }) => [
+                    styles.vehicleOption,
+                    active && styles.vehicleOptionActive,
+                    pressed && styles.pressed,
+                  ]}>
+                  <View style={[styles.vehicleRadio, active && styles.vehicleRadioActive]}>
+                    {active ? <View style={styles.vehicleRadioDot} /> : null}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.vehicleName, active && styles.vehicleNameActive]}>
+                      {vehicle.make} {vehicle.model}
+                    </Text>
+                    <Text style={styles.vehicleMeta}>
+                      {vehicle.year} · {vehicle.color} · {vehicle.registration}
+                    </Text>
+                  </View>
+                  {vehicle.isPrimary ? (
+                    <View style={styles.primaryVehicleBadge}>
+                      <Text style={styles.primaryVehicleText}>Primary</Text>
+                    </View>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.noVehicle}>
+            <Text style={styles.noVehicleTitle}>No approved vehicle available</Text>
+            <Text style={styles.noVehicleText}>
+              Every vehicle needs its own registration and roadworthy approval before it can be used for a trip.
+            </Text>
+            <Pressable onPress={() => router.push('/driver-vehicle')} style={styles.manageVehicleButton}>
+              <Text style={styles.manageVehicleText}>Manage vehicles</Text>
+            </Pressable>
+          </View>
+        )}
 
         <Text style={styles.sectionLabel}>WHEN</Text>
         <View style={styles.scheduleRow}>
@@ -654,6 +726,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     marginTop: 2,
   },
+  vehicleList: { gap: 8, marginBottom: 4 },
+  vehicleOption: { minHeight: 62, borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: SURFACE, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  vehicleOptionActive: { borderColor: '#84ADFF', backgroundColor: '#F5F9FF' },
+  vehicleRadio: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: '#98A2B3', alignItems: 'center', justifyContent: 'center' },
+  vehicleRadioActive: { borderColor: BLUE },
+  vehicleRadioDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: BLUE },
+  vehicleName: { color: TEXT, fontSize: 11, fontWeight: '900' },
+  vehicleNameActive: { color: '#175CD3' },
+  vehicleMeta: { color: MUTED, fontSize: 9, marginTop: 3 },
+  primaryVehicleBadge: { borderRadius: 999, backgroundColor: '#E7F3FF', paddingHorizontal: 7, paddingVertical: 5 },
+  primaryVehicleText: { color: BLUE, fontSize: 7, fontWeight: '900' },
+  noVehicle: { borderRadius: 15, borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFF8F7', padding: 14, marginBottom: 4 },
+  noVehicleTitle: { color: '#B42318', fontSize: 11, fontWeight: '900' },
+  noVehicleText: { color: '#B42318', fontSize: 9, lineHeight: 15, marginTop: 4 },
+  manageVehicleButton: { marginTop: 10, alignSelf: 'flex-start', borderRadius: 9, backgroundColor: '#B42318', paddingHorizontal: 11, paddingVertical: 8 },
+  manageVehicleText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
   sectionLabel: {
     color: MUTED,
     fontSize: 9,
