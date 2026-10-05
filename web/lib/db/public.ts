@@ -2,13 +2,16 @@ import "server-only";
 
 import { and, asc, desc, eq, gte, ilike, lt, ne, or, sql } from "drizzle-orm";
 import { getDb } from "./index";
-import { getDriverVerificationSummary } from "./driver-documents";
-import { REQUIRED_DRIVER_DOCUMENTS } from "@/lib/driver-verification";
+import {
+  getDriverVerificationSummary,
+  getVehicleVerificationSummary,
+} from "./driver-documents";
 import {
   activityLogs,
   bookings,
   driverDocuments,
   drivers,
+  driverVehicles,
   passengers,
   payments,
   safetyCases,
@@ -30,11 +33,16 @@ const passengerAccountSelection = {
   profileImageUpdatedAt: passengers.profileImageUpdatedAt,
 };
 
-const verifiedDriver = sql<boolean>`coalesce(${drivers.status} = 'Approved' and (
-  select count(distinct kind) from driver_documents
-  where driver_id = ${drivers.id} and status = 'Approved'
-  and kind in (${sql.join(REQUIRED_DRIVER_DOCUMENTS.map((document) => sql`${document.kind}`), sql`, `)})
-) = ${REQUIRED_DRIVER_DOCUMENTS.length}, false)`;
+const verifiedDriver = sql<boolean>`coalesce(
+  ${drivers.status} = 'Approved'
+  and exists (
+    select 1
+    from driver_vehicles verified_vehicle
+    where verified_vehicle.id = ${trips.vehicleId}
+      and verified_vehicle.status = 'Approved'
+  ),
+  false
+)`;
 
 function money(cents: number) {
   return `R${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
@@ -577,6 +585,15 @@ export async function getPassengerTripsByEmail(email: string) {
       toCity: trips.toCity,
       departureAt: trips.departureAt,
       driverName: trips.driverName,
+      driverId: trips.driverId,
+      driverStatus: sql<string | null>`(select d.status from drivers d where d.id = ${trips.driverId} limit 1)`,
+      driverProfileImageUpdatedAt: sql<Date | null>`(
+        select p.profile_image_updated_at
+        from passengers p
+        join drivers d on lower(d.email) = lower(p.email)
+        where d.id = ${trips.driverId}
+        limit 1
+      )`,
       tripStatus: trips.status,
     })
     .from(bookings)
@@ -590,6 +607,12 @@ export async function getPassengerTripsByEmail(email: string) {
     route: `${row.fromCity} → ${row.toCity}`,
     tripId: row.tripId,
     driver: row.driverName,
+    driverProfileImageUrl:
+      row.driverId &&
+      row.driverStatus === "Approved" &&
+      row.driverProfileImageUpdatedAt
+        ? `/api/public/drivers/${row.driverId}/profile-image?version=${new Date(row.driverProfileImageUpdatedAt).getTime()}`
+        : "",
     departureAt: row.departureAt.toISOString(),
     seats: row.seats,
     amountCents: row.amountCents,
@@ -810,14 +833,49 @@ export async function getMobileDriverByEmail(email: string) {
 
   if (!driver) return null;
 
-  const [driverTrips, verification] = await Promise.all([
+  const [driverTrips, verification, vehicleRows, passenger] = await Promise.all([
     db
       .select()
       .from(trips)
       .where(eq(trips.driverId, driver.id))
       .orderBy(desc(trips.departureAt)),
     getDriverVerificationSummary(driver.id),
+    db
+      .select()
+      .from(driverVehicles)
+      .where(eq(driverVehicles.driverId, driver.id))
+      .orderBy(desc(driverVehicles.isPrimary), desc(driverVehicles.createdAt)),
+    db
+      .select({ profileImageUpdatedAt: passengers.profileImageUpdatedAt })
+      .from(passengers)
+      .where(eq(passengers.email, normalized))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
   ]);
+
+  const vehicles = await Promise.all(
+    vehicleRows.map(async (vehicle) => {
+      const vehicleVerification = await getVehicleVerificationSummary(
+        driver.id,
+        vehicle.id
+      );
+      return {
+        id: vehicle.id,
+        make: vehicle.make,
+        model: vehicle.model,
+        year: vehicle.year,
+        registration: vehicle.registration,
+        color: vehicle.color,
+        status: vehicle.status,
+        checks: vehicle.checks,
+        isPrimary: vehicle.isPrimary,
+        label: `${vehicle.make} ${vehicle.model} · ${vehicle.year}`,
+        verification: vehicleVerification,
+      };
+    })
+  );
+
+  const primaryVehicle = vehicles.find((vehicle) => vehicle.isPrimary) ?? vehicles[0];
 
   return {
     driver: {
@@ -827,24 +885,20 @@ export async function getMobileDriverByEmail(email: string) {
       email: driver.email ?? "",
       phone: driver.phone ?? "",
       location: driver.location,
-      vehicleMake: driver.vehicleMake,
-      vehicleModel: driver.vehicleModel,
-      vehicleYear: driver.vehicleYear,
-      vehicleRegistration: driver.vehicleRegistration ?? "",
-      vehicleColor: driver.vehicleColor ?? "",
-      vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}${driver.vehicleRegistration ? ` · ${driver.vehicleRegistration}` : ""}`,
+      vehicle: primaryVehicle?.label ?? "",
+      vehicleMake: primaryVehicle?.make ?? driver.vehicleMake,
+      vehicleModel: primaryVehicle?.model ?? driver.vehicleModel,
+      vehicleYear: primaryVehicle?.year ?? driver.vehicleYear,
+      vehicleRegistration: primaryVehicle?.registration ?? driver.vehicleRegistration ?? "",
+      vehicleColor: primaryVehicle?.color ?? driver.vehicleColor ?? "",
+      vehicles,
       checks: driver.checks,
       status: driver.status,
       submittedAt: driver.submittedAt.toISOString(),
-      verification: {
-        documents: verification.documents,
-        requiredCount: verification.requiredCount,
-        uploadedRequiredCount: verification.uploadedRequiredCount,
-        approvedRequiredCount: verification.approvedRequiredCount,
-        missingKinds: verification.missingKinds,
-        needsAttentionKinds: verification.needsAttentionKinds,
-        readyToApprove: verification.readyToApprove,
-      },
+      profileImageUrl: passenger?.profileImageUpdatedAt
+        ? `/api/mobile/me/photo?version=${passenger.profileImageUpdatedAt.getTime()}`
+        : "",
+      verification,
     },
     trips: driverTrips.map((trip) => ({
       id: trip.publicId,
@@ -858,6 +912,13 @@ export async function getMobileDriverByEmail(email: string) {
       fareCents: trip.fareCents,
       fare: money(trip.fareCents),
       status: trip.status,
+      vehicleId: trip.vehicleId ?? "",
+      vehicle:
+        trip.vehicleMake && trip.vehicleModel
+          ? `${trip.vehicleMake} ${trip.vehicleModel}${trip.vehicleYear ? ` · ${trip.vehicleYear}` : ""}`
+          : "",
+      vehicleRegistration: trip.vehicleRegistration ?? "",
+      vehicleColor: trip.vehicleColor ?? "",
     })),
   };
 }
@@ -882,9 +943,7 @@ export async function createMobileDriverApplication(input: {
     .where(eq(drivers.email, email))
     .limit(1);
 
-  if (existing) {
-    throw new Error("DRIVER_ALREADY_EXISTS");
-  }
+  if (existing) throw new Error("DRIVER_ALREADY_EXISTS");
 
   const initials =
     input.name
@@ -896,66 +955,97 @@ export async function createMobileDriverApplication(input: {
       .slice(0, 4)
       .toUpperCase() || "VD";
 
-  const [driver] = await db
-    .insert(drivers)
-    .values({
-      initials,
-      name: input.name.trim(),
-      email,
-      phone: input.phone?.trim() || null,
-      location: input.location.trim(),
-      vehicleMake: input.vehicleMake.trim(),
-      vehicleModel: input.vehicleModel.trim(),
-      vehicleYear: input.vehicleYear,
-      vehicleRegistration: input.vehicleRegistration.trim().toUpperCase(),
-      vehicleColor: input.vehicleColor.trim(),
-      checks: "0/4 required documents uploaded",
-      status: "Needs info",
-    })
-    .returning();
+  const result = await db.transaction(async (tx) => {
+    const [driver] = await tx
+      .insert(drivers)
+      .values({
+        initials,
+        name: input.name.trim(),
+        email,
+        phone: input.phone?.trim() || null,
+        location: input.location.trim(),
+        vehicleMake: input.vehicleMake.trim(),
+        vehicleModel: input.vehicleModel.trim(),
+        vehicleYear: input.vehicleYear,
+        vehicleRegistration: input.vehicleRegistration.trim().toUpperCase(),
+        vehicleColor: input.vehicleColor.trim(),
+        checks: "0/2 required identity documents uploaded",
+        status: "Needs info",
+      })
+      .returning();
 
-  await db.insert(activityLogs).values({
-    eventType: "driver_application",
-    title: "Driver application submitted",
-    detail: `${driver.name} · ${driver.location}`,
-    metadata: {
-      driverId: driver.id,
-      email,
-      source: "mobile",
-    },
+    const [vehicle] = await tx
+      .insert(driverVehicles)
+      .values({
+        driverId: driver.id,
+        make: input.vehicleMake.trim(),
+        model: input.vehicleModel.trim(),
+        year: input.vehicleYear,
+        registration: input.vehicleRegistration.trim().toUpperCase(),
+        color: input.vehicleColor.trim(),
+        checks: "0/2 required documents uploaded",
+        status: "Needs info",
+        isPrimary: true,
+      })
+      .returning();
+
+    await tx.insert(activityLogs).values({
+      eventType: "driver_application",
+      title: "Driver application submitted",
+      detail: `${driver.name} · ${driver.location}`,
+      metadata: { driverId: driver.id, vehicleId: vehicle.id, email, source: "mobile" },
+    });
+
+    return { driver, vehicle };
   });
 
   return {
-    id: driver.id,
-    name: driver.name,
-    email: driver.email ?? "",
-    location: driver.location,
-    vehicle: `${driver.vehicleMake} ${driver.vehicleModel} · ${driver.vehicleYear}${driver.vehicleRegistration ? ` · ${driver.vehicleRegistration}` : ""}`,
-    vehicleMake: driver.vehicleMake,
-    vehicleModel: driver.vehicleModel,
-    vehicleYear: driver.vehicleYear,
-    vehicleRegistration: driver.vehicleRegistration ?? "",
-    vehicleColor: driver.vehicleColor ?? "",
-    checks: driver.checks,
-    status: driver.status,
+    id: result.driver.id,
+    name: result.driver.name,
+    email: result.driver.email ?? "",
+    location: result.driver.location,
+    vehicle: `${result.vehicle.make} ${result.vehicle.model} · ${result.vehicle.year}`,
+    vehicleMake: result.vehicle.make,
+    vehicleModel: result.vehicle.model,
+    vehicleYear: result.vehicle.year,
+    vehicleRegistration: result.vehicle.registration,
+    vehicleColor: result.vehicle.color,
+    vehicles: [{
+      id: result.vehicle.id,
+      make: result.vehicle.make,
+      model: result.vehicle.model,
+      year: result.vehicle.year,
+      registration: result.vehicle.registration,
+      color: result.vehicle.color,
+      status: result.vehicle.status,
+      checks: result.vehicle.checks,
+      isPrimary: true,
+      label: `${result.vehicle.make} ${result.vehicle.model} · ${result.vehicle.year}`,
+      verification: {
+        documents: [],
+        requiredCount: 2,
+        uploadedRequiredCount: 0,
+        approvedRequiredCount: 0,
+        missingKinds: ["vehicle_registration", "roadworthy"],
+        needsAttentionKinds: [],
+        readyToApprove: false,
+      },
+    }],
+    checks: result.driver.checks,
+    status: result.driver.status,
     verification: {
       documents: [],
-      requiredCount: 4,
+      requiredCount: 2,
       uploadedRequiredCount: 0,
       approvedRequiredCount: 0,
-      missingKinds: [
-        "identity",
-        "drivers_license",
-        "vehicle_registration",
-        "roadworthy",
-      ],
+      missingKinds: ["identity", "drivers_license"],
       needsAttentionKinds: [],
       readyToApprove: false,
     },
   };
 }
 
-export async function updateMobileDriverVehicle(
+export async function createMobileDriverVehicle(
   email: string,
   input: {
     vehicleMake: string;
@@ -967,38 +1057,81 @@ export async function updateMobileDriverVehicle(
 ) {
   const db = getDb();
   const normalized = email.trim().toLowerCase();
-
-  const [driver] = await db
-    .select()
-    .from(drivers)
-    .where(eq(drivers.email, normalized))
-    .limit(1);
-
+  const [driver] = await db.select().from(drivers).where(eq(drivers.email, normalized)).limit(1);
   if (!driver) throw new Error("DRIVER_NOT_FOUND");
-  if (driver.status === "Suspended" || driver.status === "Removed") {
-    throw new Error("DRIVER_BLOCKED");
+  if (driver.status === "Suspended" || driver.status === "Removed") throw new Error("DRIVER_BLOCKED");
+
+  const registration = input.vehicleRegistration.trim().toUpperCase();
+  const [duplicate] = await db
+    .select({ id: driverVehicles.id })
+    .from(driverVehicles)
+    .where(and(eq(driverVehicles.driverId, driver.id), eq(driverVehicles.registration, registration)))
+    .limit(1);
+  if (duplicate) throw new Error("VEHICLE_ALREADY_EXISTS");
+
+  const [vehicle] = await db
+    .insert(driverVehicles)
+    .values({
+      driverId: driver.id,
+      make: input.vehicleMake.trim(),
+      model: input.vehicleModel.trim(),
+      year: input.vehicleYear,
+      registration,
+      color: input.vehicleColor.trim(),
+      status: "Needs info",
+      checks: "0/2 required documents uploaded",
+      isPrimary: false,
+    })
+    .returning();
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_vehicle_added",
+    title: "Driver added vehicle",
+    detail: `${vehicle.make} ${vehicle.model} · ${vehicle.registration}`,
+    metadata: { driverId: driver.id, vehicleId: vehicle.id, source: "mobile" },
+  });
+
+  return vehicle;
+}
+
+export async function updateMobileDriverVehicle(
+  email: string,
+  vehicleId: string,
+  input: {
+    vehicleMake: string;
+    vehicleModel: string;
+    vehicleYear: number;
+    vehicleRegistration: string;
+    vehicleColor: string;
   }
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+  const [driver] = await db.select().from(drivers).where(eq(drivers.email, normalized)).limit(1);
+  if (!driver) throw new Error("DRIVER_NOT_FOUND");
+  if (driver.status === "Suspended" || driver.status === "Removed") throw new Error("DRIVER_BLOCKED");
 
-  const previousVehicle = [
-    driver.vehicleMake,
-    driver.vehicleModel,
-    String(driver.vehicleYear),
-    driver.vehicleRegistration ?? "",
-  ].filter(Boolean).join(" · ");
+  const [existing] = await db
+    .select()
+    .from(driverVehicles)
+    .where(and(eq(driverVehicles.id, vehicleId), eq(driverVehicles.driverId, driver.id)))
+    .limit(1);
+  if (!existing) throw new Error("VEHICLE_NOT_FOUND");
 
+  const registration = input.vehicleRegistration.trim().toUpperCase();
   const [updated] = await db
-    .update(drivers)
+    .update(driverVehicles)
     .set({
-      vehicleMake: input.vehicleMake.trim(),
-      vehicleModel: input.vehicleModel.trim(),
-      vehicleYear: input.vehicleYear,
-      vehicleRegistration: input.vehicleRegistration.trim().toUpperCase(),
-      vehicleColor: input.vehicleColor.trim(),
+      make: input.vehicleMake.trim(),
+      model: input.vehicleModel.trim(),
+      year: input.vehicleYear,
+      registration,
+      color: input.vehicleColor.trim(),
       status: "Needs info",
       checks: "Vehicle documents require verification",
       updatedAt: new Date(),
     })
-    .where(eq(drivers.id, driver.id))
+    .where(eq(driverVehicles.id, vehicleId))
     .returning();
 
   await db
@@ -1006,50 +1139,129 @@ export async function updateMobileDriverVehicle(
     .where(
       and(
         eq(driverDocuments.driverId, driver.id),
-        or(
-          eq(driverDocuments.kind, "vehicle_registration"),
-          eq(driverDocuments.kind, "roadworthy"),
-          eq(driverDocuments.kind, "insurance")
-        )
+        eq(driverDocuments.vehicleId, vehicleId)
       )
     );
 
-  const verification = await getDriverVerificationSummary(driver.id);
+  if (existing.isPrimary) {
+    await db
+      .update(drivers)
+      .set({
+        vehicleMake: updated.make,
+        vehicleModel: updated.model,
+        vehicleYear: updated.year,
+        vehicleRegistration: updated.registration,
+        vehicleColor: updated.color,
+        updatedAt: new Date(),
+      })
+      .where(eq(drivers.id, driver.id));
+  }
 
   await db.insert(activityLogs).values({
     eventType: "driver_vehicle_changed",
-    title: "Driver changed vehicle",
-    detail: [updated.vehicleMake, updated.vehicleModel, String(updated.vehicleYear)].join(" · "),
-    metadata: {
-      driverId: driver.id,
-      previousVehicle,
-      vehicleRegistration: updated.vehicleRegistration,
-      source: "mobile",
-    },
+    title: "Driver updated vehicle",
+    detail: `${updated.make} ${updated.model} · ${updated.registration}`,
+    metadata: { driverId: driver.id, vehicleId, source: "mobile" },
   });
 
-  return {
-    id: updated.id,
-    vehicleMake: updated.vehicleMake,
-    vehicleModel: updated.vehicleModel,
-    vehicleYear: updated.vehicleYear,
-    vehicleRegistration: updated.vehicleRegistration ?? "",
-    vehicleColor: updated.vehicleColor ?? "",
-    vehicle: [
-      updated.vehicleMake,
-      updated.vehicleModel,
-      String(updated.vehicleYear),
-      updated.vehicleRegistration ?? "",
-    ].filter(Boolean).join(" · "),
-    status: updated.status,
-    checks: updated.checks,
-    verification,
-  };
+  return updated;
+}
+
+export async function setPrimaryMobileDriverVehicle(email: string, vehicleId: string) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+  const [driver] = await db.select().from(drivers).where(eq(drivers.email, normalized)).limit(1);
+  if (!driver) throw new Error("DRIVER_NOT_FOUND");
+
+  const [vehicle] = await db
+    .select()
+    .from(driverVehicles)
+    .where(and(eq(driverVehicles.id, vehicleId), eq(driverVehicles.driverId, driver.id)))
+    .limit(1);
+  if (!vehicle) throw new Error("VEHICLE_NOT_FOUND");
+
+  await db.transaction(async (tx) => {
+    await tx.update(driverVehicles).set({ isPrimary: false }).where(eq(driverVehicles.driverId, driver.id));
+    await tx.update(driverVehicles).set({ isPrimary: true, updatedAt: new Date() }).where(eq(driverVehicles.id, vehicleId));
+    await tx.update(drivers).set({
+      vehicleMake: vehicle.make,
+      vehicleModel: vehicle.model,
+      vehicleYear: vehicle.year,
+      vehicleRegistration: vehicle.registration,
+      vehicleColor: vehicle.color,
+      updatedAt: new Date(),
+    }).where(eq(drivers.id, driver.id));
+  });
+
+  return vehicle;
+}
+
+export async function removeMobileDriverVehicle(email: string, vehicleId: string) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+  const [driver] = await db.select().from(drivers).where(eq(drivers.email, normalized)).limit(1);
+  if (!driver) throw new Error("DRIVER_NOT_FOUND");
+
+  const [vehicle] = await db
+    .select()
+    .from(driverVehicles)
+    .where(and(eq(driverVehicles.id, vehicleId), eq(driverVehicles.driverId, driver.id)))
+    .limit(1);
+  if (!vehicle) throw new Error("VEHICLE_NOT_FOUND");
+
+  const activeTrips = await db
+    .select({ id: trips.id })
+    .from(trips)
+    .where(
+      and(
+        eq(trips.vehicleId, vehicleId),
+        or(
+          eq(trips.status, "Scheduled"),
+          eq(trips.status, "On schedule"),
+          eq(trips.status, "Boarding"),
+          eq(trips.status, "Full")
+        )
+      )
+    )
+    .limit(1);
+  if (activeTrips.length) throw new Error("VEHICLE_HAS_ACTIVE_TRIPS");
+
+  await db.transaction(async (tx) => {
+    await tx.delete(driverVehicles).where(eq(driverVehicles.id, vehicleId));
+    if (vehicle.isPrimary) {
+      const [next] = await tx
+        .select()
+        .from(driverVehicles)
+        .where(eq(driverVehicles.driverId, driver.id))
+        .limit(1);
+      if (next) {
+        await tx.update(driverVehicles).set({ isPrimary: true }).where(eq(driverVehicles.id, next.id));
+        await tx.update(drivers).set({
+          vehicleMake: next.make,
+          vehicleModel: next.model,
+          vehicleYear: next.year,
+          vehicleRegistration: next.registration,
+          vehicleColor: next.color,
+          updatedAt: new Date(),
+        }).where(eq(drivers.id, driver.id));
+      }
+    }
+  });
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_vehicle_removed",
+    title: "Driver removed vehicle",
+    detail: `${vehicle.make} ${vehicle.model} · ${vehicle.registration}`,
+    metadata: { driverId: driver.id, vehicleId, source: "mobile" },
+  });
+
+  return { id: vehicleId };
 }
 
 export async function createMobileDriverTrip(
   email: string,
   input: {
+    vehicleId: string;
     from: string;
     to: string;
     departureAt: Date;
@@ -1060,17 +1272,20 @@ export async function createMobileDriverTrip(
   const db = getDb();
   const normalized = email.trim().toLowerCase();
 
-  const [driver] = await db
+  const [driver] = await db.select().from(drivers).where(eq(drivers.email, normalized)).limit(1);
+  if (!driver) throw new Error("DRIVER_NOT_FOUND");
+  if (driver.status !== "Approved") throw new Error("DRIVER_NOT_APPROVED");
+
+  const [vehicle] = await db
     .select()
-    .from(drivers)
-    .where(eq(drivers.email, normalized))
+    .from(driverVehicles)
+    .where(and(eq(driverVehicles.id, input.vehicleId), eq(driverVehicles.driverId, driver.id)))
     .limit(1);
 
-  if (!driver) throw new Error("DRIVER_NOT_FOUND");
-  if (driver.status !== "Approved" || !(await getDriverVerificationSummary(driver.id)).readyToApprove) throw new Error("DRIVER_NOT_APPROVED");
+  if (!vehicle) throw new Error("VEHICLE_NOT_FOUND");
+  if (vehicle.status !== "Approved") throw new Error("VEHICLE_NOT_APPROVED");
 
   const publicId = `VY-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-
   const [trip] = await db
     .insert(trips)
     .values({
@@ -1078,12 +1293,13 @@ export async function createMobileDriverTrip(
       fromCity: input.from.trim(),
       toCity: input.to.trim(),
       driverId: driver.id,
+      vehicleId: vehicle.id,
       driverName: driver.name,
-      vehicleMake: driver.vehicleMake,
-      vehicleModel: driver.vehicleModel,
-      vehicleYear: driver.vehicleYear,
-      vehicleRegistration: driver.vehicleRegistration,
-      vehicleColor: driver.vehicleColor,
+      vehicleMake: vehicle.make,
+      vehicleModel: vehicle.model,
+      vehicleYear: vehicle.year,
+      vehicleRegistration: vehicle.registration,
+      vehicleColor: vehicle.color,
       departureAt: input.departureAt,
       seatCapacity: input.seats,
       seatsBooked: 0,
@@ -1096,12 +1312,7 @@ export async function createMobileDriverTrip(
     eventType: "driver_trip_created",
     title: "Driver published a trip",
     detail: `${trip.publicId} · ${trip.fromCity} → ${trip.toCity}`,
-    metadata: {
-      driverId: driver.id,
-      tripId: trip.id,
-      publicId: trip.publicId,
-      source: "mobile",
-    },
+    metadata: { driverId: driver.id, vehicleId: vehicle.id, tripId: trip.id, publicId: trip.publicId, source: "mobile" },
   });
 
   return {
@@ -1113,6 +1324,10 @@ export async function createMobileDriverTrip(
     fareCents: trip.fareCents,
     fare: money(trip.fareCents),
     status: trip.status,
+    vehicleId: vehicle.id,
+    vehicle: `${vehicle.make} ${vehicle.model} · ${vehicle.year}`,
+    vehicleRegistration: vehicle.registration,
+    vehicleColor: vehicle.color,
   };
 }
 

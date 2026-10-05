@@ -179,6 +179,12 @@ export default function ProfileScreen() {
             note="Report a trip or travel safety concern"
             icon="🛡"
             onPress={() => router.push('/profile-safety')}
+          />
+          <AccountRow
+            title="Settings"
+            note="Account, privacy, vehicles, verification and app information"
+            icon="⚙"
+            onPress={() => router.push('/settings')}
             last
           />
         </View>
@@ -213,7 +219,7 @@ export default function ProfileScreen() {
               <Pressable
                 onPress={() => router.push('/driver-vehicle')}
                 style={({ pressed }) => [styles.vehicleButton, pressed && styles.pressed]}>
-                <Text style={styles.vehicleButtonText}>Manage vehicle</Text>
+                <Text style={styles.vehicleButtonText}>Manage vehicles</Text>
               </Pressable>
               <Pressable
                 onPress={() => router.push('/explore')}

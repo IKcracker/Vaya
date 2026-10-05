@@ -18,7 +18,8 @@ import {
   uploadDriverDocument,
 } from '@/lib/auth';
 import {
-  DRIVER_DOCUMENT_REQUIREMENTS,
+  PERSONAL_DRIVER_DOCUMENT_REQUIREMENTS,
+  VEHICLE_DOCUMENT_REQUIREMENTS,
   formatFileSize,
   pickDriverDocument,
 } from '@/lib/driver-documents';
@@ -41,7 +42,7 @@ function tone(status: string) {
 
 export default function DriverVerificationScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ refresh?: string }>();
+  const params = useLocalSearchParams<{ refresh?: string; vehicleId?: string }>();
   const { session } = usePassengerAuth();
   const [driver, setDriver] = useState<MobileDriver | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,6 +52,10 @@ export default function DriverVerificationScreen() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const refreshKey = typeof params.refresh === 'string' ? params.refresh : '';
+  const vehicleId = typeof params.vehicleId === 'string' ? params.vehicleId : '';
+  const selectedVehicle = vehicleId
+    ? driver?.vehicles?.find((vehicle) => vehicle.id === vehicleId) ?? null
+    : null;
 
   async function refreshDriver() {
     if (!session) return;
@@ -89,9 +94,14 @@ export default function DriverVerificationScreen() {
     };
   }, [refreshKey, session]);
 
+  const verification = selectedVehicle?.verification ?? driver?.verification;
+  const requirements = vehicleId
+    ? VEHICLE_DOCUMENT_REQUIREMENTS
+    : PERSONAL_DRIVER_DOCUMENT_REQUIREMENTS;
+
   const documents = useMemo(
-    () => new Map(driver?.verification?.documents.map((item) => [item.kind, item]) ?? []),
-    [driver?.verification?.documents]
+    () => new Map(verification?.documents.map((item) => [item.kind, item]) ?? []),
+    [verification?.documents]
   );
 
   async function replace(kind: DriverDocumentKind) {
@@ -104,14 +114,15 @@ export default function DriverVerificationScreen() {
       const selected = await pickDriverDocument(kind);
       if (!selected) return;
 
-      const result = await uploadDriverDocument(session, {
+      await uploadDriverDocument(session, {
         kind,
+        vehicleId: vehicleId || null,
         fileName: selected.fileName,
         contentType: selected.contentType,
         fileData: selected.fileData,
       });
 
-      setDriver((current) => current ? { ...current, verification: result.verification, status: result.verification.status, checks: result.verification.checks } : current);
+      await refreshDriver();
       setNotice('Document uploaded. Vaya staff will review this new copy.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to upload document');
@@ -158,14 +169,46 @@ export default function DriverVerificationScreen() {
     );
   }
 
-  const verification = driver.verification;
+  if (vehicleId && !selectedVehicle) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <Text style={styles.title}>Vehicle not found</Text>
+          <Text style={styles.muted}>Return to your vehicle list and choose a vehicle to verify.</Text>
+          <Pressable style={styles.primary} onPress={() => router.replace('/driver-vehicle')}>
+            <Text style={styles.primaryText}>Open vehicles</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const requiredCount =
+    verification?.requiredCount ??
+    requirements.filter((requirement) => requirement.required).length;
   const progress = verification
     ? `${verification.approvedRequiredCount}/${verification.requiredCount} approved`
-    : driver.checks;
-  const approved = driver.status === 'Approved' && verification?.readyToApprove;
+    : vehicleId
+      ? selectedVehicle?.checks ?? 'Verification required'
+      : driver.checks;
+  const approved = vehicleId
+    ? selectedVehicle?.status === 'Approved'
+    : driver.status === 'Approved' && verification?.readyToApprove;
   const needsAction = Boolean(verification?.missingKinds.length || verification?.needsAttentionKinds.length);
-  const nextAction = approved ? 'You’re ready to drive' : needsAction ? 'Complete your checklist' : verification?.readyToApprove ? 'Final approval pending' : 'Your documents are in review';
-  const explanation = approved ? 'Your required documents and driver application have been approved.' : needsAction ? 'Upload missing documents and replace any copies flagged by Vaya staff.' : 'Vaya staff review every required document before enabling trip publishing. Pull down to check for updates.';
+  const nextAction = approved
+    ? vehicleId ? 'Vehicle approved' : 'You’re ready to drive'
+    : needsAction
+      ? 'Complete your checklist'
+      : verification?.readyToApprove
+        ? 'Final approval pending'
+        : 'Your documents are in review';
+  const explanation = approved
+    ? vehicleId
+      ? 'This vehicle is approved and can be selected when you publish a trip.'
+      : 'Your identity and driving licence have been approved.'
+    : needsAction
+      ? 'Upload missing documents and replace any copies flagged by Vaya staff.'
+      : 'Vaya Operations reviews every required document before approval.';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -177,25 +220,25 @@ export default function DriverVerificationScreen() {
             <Text style={styles.backText}>‹</Text>
           </Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>DRIVER VERIFICATION</Text>
-            <Text style={styles.title}>Verification centre</Text>
+            <Text style={styles.eyebrow}>{vehicleId ? 'VEHICLE VERIFICATION' : 'DRIVER VERIFICATION'}</Text>
+            <Text style={styles.title}>{vehicleId ? selectedVehicle?.label ?? 'Vehicle verification' : 'Identity verification'}</Text>
           </View>
         </View>
 
         <View style={styles.summary}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.summaryLabel}>{driver.status.toUpperCase()}</Text>
+            <Text style={styles.summaryLabel}>{(vehicleId ? selectedVehicle?.status ?? 'Needs info' : driver.status).toUpperCase()}</Text>
             <Text style={styles.summaryValue}>{nextAction}</Text>
             <Text style={styles.summaryMeta}>{progress}</Text>
           </View>
           <View style={styles.summaryBadge}>
             <Text style={styles.summaryBadgeText}>
-              {verification?.uploadedRequiredCount ?? 0}/{verification?.requiredCount ?? 4} uploaded
+              {verification?.uploadedRequiredCount ?? 0}/{requiredCount} uploaded
             </Text>
           </View>
         </View>
 
-        <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${(verification?.approvedRequiredCount ?? 0) / (verification?.requiredCount || 4) * 100}%` }]} /></View>
+        <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${requiredCount ? ((verification?.approvedRequiredCount ?? 0) / requiredCount) * 100 : 0}%` }]} /></View>
         <Text style={styles.explanation}>{explanation}</Text>
         <View style={styles.metrics}>{[{ label: 'Uploaded', count: verification?.uploadedRequiredCount ?? 0 }, { label: 'Approved', count: verification?.approvedRequiredCount ?? 0 }, { label: 'Needs attention', count: (verification?.missingKinds.length ?? 0) + (verification?.needsAttentionKinds.length ?? 0) }].map((item) => <View key={item.label} style={styles.metric}><Text style={styles.metricValue}>{item.count}</Text><Text style={styles.metricLabel}>{item.label}</Text></View>)}</View>
         {notice ? <View style={styles.approvedStrip}><Text style={styles.approvedText}>{notice}</Text></View> : null}
@@ -207,7 +250,7 @@ export default function DriverVerificationScreen() {
         ) : null}
 
         <View style={styles.list}>
-          {DRIVER_DOCUMENT_REQUIREMENTS.map((requirement, index) => {
+          {requirements.map((requirement, index) => {
             const document = documents.get(requirement.kind);
             const status = document?.status ?? 'Missing';
             const statusTone = tone(status);
@@ -218,7 +261,7 @@ export default function DriverVerificationScreen() {
                 key={requirement.kind}
                 style={[
                   styles.row,
-                  index < DRIVER_DOCUMENT_REQUIREMENTS.length - 1 && styles.rowBorder,
+                  index < requirements.length - 1 && styles.rowBorder,
                 ]}>
                 <View style={styles.rowTop}>
                   <View style={{ flex: 1 }}>
@@ -278,7 +321,7 @@ export default function DriverVerificationScreen() {
         <View style={styles.help}>
           <Text style={styles.helpTitle}>Clear copies make review easier</Text>
           <Text style={styles.helpText}>
-            Keep the full document visible, including names, dates and vehicle details. Use a PDF, JPG, PNG or WEBP up to 3 MB. Replacements return to review; staff notes explain any corrections needed.
+            Keep the full document visible and legible. Use a PDF, JPG, PNG or WEBP up to 3 MB. Vehicle documents are tied only to the selected vehicle; replacing one returns that vehicle to review.
           </Text>
         </View>
       </ScrollView>

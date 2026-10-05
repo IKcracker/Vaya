@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 import type { DriverDocumentKind } from '@/lib/auth';
 
-export const DRIVER_DOCUMENT_REQUIREMENTS: {
+export const PERSONAL_DRIVER_DOCUMENT_REQUIREMENTS: {
   kind: DriverDocumentKind;
   label: string;
   description: string;
@@ -22,16 +22,24 @@ export const DRIVER_DOCUMENT_REQUIREMENTS: {
     description: 'Upload a clear copy showing the licence details and expiry date.',
     required: true,
   },
+];
+
+export const VEHICLE_DOCUMENT_REQUIREMENTS: {
+  kind: DriverDocumentKind;
+  label: string;
+  description: string;
+  required: boolean;
+}[] = [
   {
     kind: 'vehicle_registration',
     label: 'Vehicle registration / licence',
-    description: 'Registration or vehicle licence document for the vehicle you will use.',
+    description: 'Registration or vehicle licence document for this specific vehicle.',
     required: true,
   },
   {
     kind: 'roadworthy',
     label: 'Roadworthy certificate',
-    description: 'Current roadworthy certificate for the vehicle.',
+    description: 'Current roadworthy certificate for this specific vehicle.',
     required: true,
   },
   {
@@ -40,6 +48,11 @@ export const DRIVER_DOCUMENT_REQUIREMENTS: {
     description: 'Optional but recommended proof of active vehicle insurance.',
     required: false,
   },
+];
+
+export const DRIVER_DOCUMENT_REQUIREMENTS = [
+  ...PERSONAL_DRIVER_DOCUMENT_REQUIREMENTS,
+  ...VEHICLE_DOCUMENT_REQUIREMENTS,
 ];
 
 export type PickedDriverDocument = {
@@ -83,7 +96,9 @@ export async function pickDriverDocument(
     throw new Error('Each document must be 3 MB or smaller.');
   }
 
-  const file = Platform.OS === 'web' ? (asset.file ?? await (await fetch(asset.uri)).blob()) : new File(asset.uri);
+  const file = Platform.OS === 'web'
+    ? (asset.file ?? await (await fetch(asset.uri)).blob())
+    : new File(asset.uri);
 
   if (!file.size || file.size > MAX_BYTES) {
     throw new Error('Choose a non-empty document that is 3 MB or smaller.');
@@ -96,14 +111,7 @@ export async function pickDriverDocument(
       ? 'application/pdf'
       : 'image/jpeg');
 
-  if (
-    ![
-      'application/pdf',
-      'image/jpeg',
-      'image/png',
-      'image/webp',
-    ].includes(contentType)
-  ) {
+  if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(contentType)) {
     throw new Error('Use a PDF, JPG, PNG or WEBP file.');
   }
 
@@ -112,7 +120,9 @@ export async function pickDriverDocument(
     fileName: asset.name || `${kind}.pdf`,
     contentType,
     sizeBytes: file.size,
-    fileData: Platform.OS === 'web' ? await blobToBase64(file as Blob) : await (file as File).base64(),
+    fileData: Platform.OS === 'web'
+      ? await blobToBase64(file as Blob)
+      : await (file as File).base64(),
     uri: asset.uri,
   };
 }

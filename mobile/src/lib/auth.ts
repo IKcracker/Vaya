@@ -41,6 +41,7 @@ export type PassengerTrip = {
   route: string;
   tripId: string;
   driver: string;
+  driverProfileImageUrl?: string;
   departureAt: string;
   seats: number;
   amountCents: number;
@@ -388,6 +389,7 @@ export type DriverDocumentKind =
 
 export type DriverVerificationDocument = {
   id: string;
+  vehicleId?: string | null;
   kind: DriverDocumentKind;
   label: string;
   required: boolean;
@@ -411,6 +413,20 @@ export type DriverVerification = {
   readyToApprove: boolean;
 };
 
+export type MobileDriverVehicle = {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  registration: string;
+  color: string;
+  status: string;
+  checks: string;
+  isPrimary: boolean;
+  label: string;
+  verification?: DriverVerification;
+};
+
 export type MobileDriver = {
   id: string;
   initials?: string;
@@ -428,6 +444,7 @@ export type MobileDriver = {
   status: string;
   submittedAt?: string;
   verification?: DriverVerification;
+  vehicles?: MobileDriverVehicle[];
   profileImageUrl?: string;
 };
 
@@ -443,6 +460,7 @@ export type MobileDriverTrip = {
   fareCents: number;
   fare: string;
   status: string;
+  vehicleId?: string;
   vehicle?: string;
   vehicleRegistration?: string;
   vehicleColor?: string;
@@ -480,6 +498,7 @@ export async function submitDriverApplication(
 
 export async function updateDriverVehicle(
   session: string,
+  vehicleId: string,
   input: {
     vehicleMake: string;
     vehicleModel: string;
@@ -492,7 +511,7 @@ export async function updateDriverVehicle(
     '/api/mobile/driver',
     {
       method: 'PATCH',
-      body: JSON.stringify(input),
+      body: JSON.stringify({ vehicleId, ...input }),
     },
     session
   );
@@ -502,6 +521,7 @@ export async function uploadDriverDocument(
   session: string,
   input: {
     kind: DriverDocumentKind;
+    vehicleId?: string | null;
     fileName: string;
     contentType: string;
     fileData: string;
@@ -523,6 +543,7 @@ export async function uploadDriverDocument(
 export async function publishDriverTrip(
   session: string,
   input: {
+    vehicleId: string;
     from: string;
     to: string;
     departureAt: string;
@@ -539,6 +560,73 @@ export async function publishDriverTrip(
     session
   );
 }
+
+export async function createDriverVehicle(
+  session: string,
+  input: {
+    vehicleMake: string;
+    vehicleModel: string;
+    vehicleYear: number;
+    vehicleRegistration: string;
+    vehicleColor: string;
+  }
+) {
+  return request<{ vehicle: MobileDriverVehicle }>(
+    '/api/mobile/driver/vehicles',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function updateDriverVehicleById(
+  session: string,
+  vehicleId: string,
+  input: {
+    vehicleMake: string;
+    vehicleModel: string;
+    vehicleYear: number;
+    vehicleRegistration: string;
+    vehicleColor: string;
+  }
+) {
+  return request<{ vehicle: MobileDriverVehicle }>(
+    `/api/mobile/driver/vehicles/${encodeURIComponent(vehicleId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function setPrimaryDriverVehicle(
+  session: string,
+  vehicleId: string
+) {
+  return request<{ vehicle: MobileDriverVehicle }>(
+    `/api/mobile/driver/vehicles/${encodeURIComponent(vehicleId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'set_primary' }),
+    },
+    session
+  );
+}
+
+export async function removeDriverVehicle(
+  session: string,
+  vehicleId: string
+) {
+  return request<{ removed: true }>(
+    `/api/mobile/driver/vehicles/${encodeURIComponent(vehicleId)}`,
+    { method: 'DELETE' },
+    session
+  );
+}
+
 
 export async function updateDriverTripStatus(
   session: string,

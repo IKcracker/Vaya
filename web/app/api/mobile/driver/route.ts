@@ -116,6 +116,7 @@ export async function PATCH(request: Request) {
   if ("error" in auth) return auth.error;
 
   const body = await request.json().catch(() => null);
+  const vehicleId = typeof body?.vehicleId === "string" ? body.vehicleId.trim() : "";
   const vehicleMake =
     typeof body?.vehicleMake === "string" ? body.vehicleMake.trim() : "";
   const vehicleModel =
@@ -127,6 +128,7 @@ export async function PATCH(request: Request) {
     typeof body?.vehicleColor === "string" ? body.vehicleColor.trim() : "";
 
   if (
+    !vehicleId ||
     vehicleMake.length < 2 ||
     vehicleModel.length < 1 ||
     vehicleRegistration.length < 2 ||
@@ -139,7 +141,7 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const driver = await updateMobileDriverVehicle(auth.email, {
+    const driver = await updateMobileDriverVehicle(auth.email, vehicleId, {
       vehicleMake,
       vehicleModel,
       vehicleYear,
@@ -151,6 +153,10 @@ export async function PATCH(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === "DRIVER_NOT_FOUND") {
       return Response.json({ error: "Driver profile not found" }, { status: 404 });
+    }
+
+    if (error instanceof Error && error.message === "VEHICLE_NOT_FOUND") {
+      return Response.json({ error: "Vehicle not found" }, { status: 404 });
     }
 
     if (error instanceof Error && error.message === "DRIVER_BLOCKED") {
