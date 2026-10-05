@@ -207,7 +207,6 @@ export default function TripsScreen() {
                     <View style={styles.divider} />
                     <View style={styles.detailRow}>
                       <View>
-                      <View>
                         <Text style={styles.detailLabel}>Seats</Text>
                         <Text style={styles.detailValue}>{trip.seats}</Text>
                       </View>
