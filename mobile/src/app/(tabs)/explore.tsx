@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchMobileDriver, MobileDriver, MobileDriverTrip } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const GREEN='#16B364'; const GREEN_DARK='#087F5B'; const BG='#FFFFFF'; const SURFACE='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
+const GREEN='#16B364'; const GREEN_DARK='#087F5B'; const BG='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
 
 function formatDeparture(value:string){return new Intl.DateTimeFormat('en-ZA',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value));}
 function statusTone(status:string){if(status==='Approved')return{bg:'#ECFDF3',text:'#027A48'};if(status==='Rejected'||status==='Suspended')return{bg:'#FFF1F0',text:'#B42318'};return{bg:'#FFFAEB',text:'#B54708'};}
