@@ -21,8 +21,8 @@ import { API_URL } from '@/lib/api';
 import { pickProfileImage } from '@/lib/profile-image';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -260,18 +260,18 @@ const styles = StyleSheet.create({
   backText: { color: TEXT, fontSize: 30, lineHeight: 30, marginTop: -3 },
   eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
   title: { color: TEXT, fontSize: 22, fontWeight: '900', marginTop: 3 },
-  notice: { backgroundColor: '#EEF5FF', borderRadius: 14, padding: 14, marginBottom: 14 },
+  notice: { backgroundColor: '#E9F9F3', borderRadius: 14, padding: 14, marginBottom: 14 },
   noticeTitle: { color: TEXT, fontSize: 10, fontWeight: '900' },
   noticeText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
   photoCard: { flexDirection: 'row', gap: 14, alignItems: 'center', backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, padding: 15, marginBottom: 14 },
-  photo: { width: 76, height: 76, borderRadius: 38, overflow: 'hidden', backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  photo: { width: 76, height: 76, borderRadius: 38, overflow: 'hidden', backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   photoImage: { width: '100%', height: '100%' },
   photoInitials: { color: BLUE, fontSize: 21, fontWeight: '900' },
   photoDetails: { flex: 1 },
   photoTitle: { color: TEXT, fontSize: 13, fontWeight: '900' },
   photoText: { color: MUTED, fontSize: 9, lineHeight: 15, marginTop: 4 },
   photoActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  photoButton: { minHeight: 38, paddingHorizontal: 13, borderRadius: 10, borderWidth: 1, borderColor: '#B2CCFF', backgroundColor: '#F5F9FF', alignItems: 'center', justifyContent: 'center' },
+  photoButton: { minHeight: 38, paddingHorizontal: 13, borderRadius: 10, borderWidth: 1, borderColor: '#B7EAD6', backgroundColor: '#F5F9FF', alignItems: 'center', justifyContent: 'center' },
   photoButtonText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   removePhotoButton: { minHeight: 38, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFF8F7', alignItems: 'center', justifyContent: 'center' },
   removePhotoText: { color: '#B42318', fontSize: 10, fontWeight: '900' },
