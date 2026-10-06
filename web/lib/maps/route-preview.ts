@@ -58,7 +58,7 @@ function normalizePlace(value: string) {
     .replace(/\s+/g, " ");
 }
 
-function resolvePlace(value: string): RouteCoordinate | null {
+function resolveKnownPlace(value: string): RouteCoordinate | null {
   const normalized = normalizePlace(value);
   if (!normalized) return null;
 
@@ -107,12 +107,55 @@ function samplePath(path: RouteCoordinate[], limit = 120) {
   return sampled;
 }
 
+async function geocodePlace(value: string): Promise<RouteCoordinate | null> {
+  const known = resolveKnownPlace(value);
+  if (known) return known;
+
+  const baseUrl = (
+    process.env.NOMINATIM_BASE_URL?.trim() || "https://nominatim.openstreetmap.org"
+  ).replace(/\/$/, "");
+
+  try {
+    const params = new URLSearchParams({
+      q: `${value}, South Africa`,
+      format: "jsonv2",
+      limit: "1",
+      countrycodes: "za",
+    });
+    const response = await fetch(`${baseUrl}/search?${params.toString()}`, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Vaya/1.0 (co.za.vaya.app)",
+      },
+      next: { revalidate: 60 * 60 * 24 * 30 },
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!response.ok) return null;
+
+    const payload = (await response.json()) as Array<{
+      lat?: string;
+      lon?: string;
+    }>;
+    const latitude = Number(payload[0]?.lat);
+    const longitude = Number(payload[0]?.lon);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+    return { latitude, longitude };
+  } catch (error) {
+    console.warn("Place geocoding failed", value, error);
+    return null;
+  }
+}
+
 export async function getRoutePreview(
   from: string,
   to: string
 ): Promise<RoutePreview | null> {
-  const origin = resolvePlace(from);
-  const destination = resolvePlace(to);
+  const [origin, destination] = await Promise.all([
+    geocodePlace(from),
+    geocodePlace(to),
+  ]);
 
   if (!origin || !destination) return null;
 
