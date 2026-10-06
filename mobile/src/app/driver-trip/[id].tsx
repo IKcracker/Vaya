@@ -1,5 +1,6 @@
+import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -14,6 +15,8 @@ import { RouteMap, RouteMapFallback } from '@/components/route-map';
 import {
   fetchMobileDriver,
   MobileDriverTrip,
+  stopDriverLiveLocation,
+  updateDriverLiveLocation,
   updateDriverTripStatus,
 } from '@/lib/auth';
 import { getRoutePreview, RoutePreview } from '@/lib/api';
@@ -48,6 +51,15 @@ export default function DriverTripScreen() {
   const [routeMessage, setRouteMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(Boolean(session && id));
   const [saving, setSaving] = useState(false);
+  const [tracking, setTracking] = useState(false);
+  const [trackingMessage, setTrackingMessage] = useState<string | null>(null);
+  const [liveLocation, setLiveLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    heading: number | null;
+    isFresh: boolean;
+  } | null>(null);
+  const locationSubscription = useRef<Location.LocationSubscription | null>(null);
   const [error, setError] = useState<string | null>(
     id ? null : 'Trip reference is missing.'
   );
@@ -104,6 +116,97 @@ export default function DriverTripScreen() {
     };
   }, [id, session]);
 
+  useEffect(() => {
+    return () => {
+      locationSubscription.current?.remove();
+      locationSubscription.current = null;
+    };
+  }, []);
+
+  async function startLiveTracking() {
+    if (!session || !trip || tracking) return;
+
+    if (trip.status !== 'On schedule' && trip.status !== 'Boarding') {
+      setTrackingMessage('Set the trip to On schedule or Boarding before sharing live location.');
+      return;
+    }
+
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (permission.status !== 'granted') {
+      setTrackingMessage('Location permission is required to share your live position.');
+      return;
+    }
+
+    setTrackingMessage('Starting live location…');
+
+    try {
+      const subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 8000,
+          distanceInterval: 30,
+        },
+        (position) => {
+          const nextLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            heading:
+              position.coords.heading == null || position.coords.heading < 0
+                ? null
+                : position.coords.heading,
+            isFresh: true,
+          };
+          setLiveLocation(nextLocation);
+          void updateDriverLiveLocation(session, trip.id, {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracyMeters: position.coords.accuracy ?? null,
+            heading:
+              position.coords.heading == null || position.coords.heading < 0
+                ? null
+                : position.coords.heading,
+            speedMps:
+              position.coords.speed == null || position.coords.speed < 0
+                ? null
+                : position.coords.speed,
+            recordedAt: new Date(position.timestamp).toISOString(),
+          }).catch((reason: unknown) => {
+            setTrackingMessage(
+              reason instanceof Error ? reason.message : 'Unable to share live location'
+            );
+          });
+        }
+      );
+
+      locationSubscription.current?.remove();
+      locationSubscription.current = subscription;
+      setTracking(true);
+      setTrackingMessage('Live location is being shared with booked passengers.');
+    } catch (reason) {
+      setTrackingMessage(
+        reason instanceof Error ? reason.message : 'Unable to start live location'
+      );
+    }
+  }
+
+  async function stopLiveTracking() {
+    locationSubscription.current?.remove();
+    locationSubscription.current = null;
+    setTracking(false);
+    setLiveLocation(null);
+
+    if (!session || !trip) return;
+
+    try {
+      await stopDriverLiveLocation(session, trip.id);
+      setTrackingMessage('Live location sharing stopped.');
+    } catch (reason) {
+      setTrackingMessage(
+        reason instanceof Error ? reason.message : 'Unable to stop live location'
+      );
+    }
+  }
+
   async function setStatus(
     status: 'Scheduled' | 'On schedule' | 'Boarding' | 'Completed' | 'Cancelled'
   ) {
@@ -114,6 +217,9 @@ export default function DriverTripScreen() {
 
     try {
       await updateDriverTripStatus(session, trip.id, status);
+      if (status === 'Completed' || status === 'Cancelled') {
+        await stopLiveTracking();
+      }
       await reload();
     } catch (reason) {
       setError(
@@ -201,7 +307,7 @@ export default function DriverTripScreen() {
 
         <Text style={styles.sectionTitle}>Route map</Text>
         {route ? (
-          <RouteMap route={route} from={trip.from} to={trip.to} height={190} />
+          <RouteMap route={route} from={trip.from} to={trip.to} height={190} liveLocation={liveLocation} />
         ) : (
           <RouteMapFallback
             from={trip.from}
@@ -210,6 +316,28 @@ export default function DriverTripScreen() {
             height={190}
           />
         )}
+
+        <View style={styles.liveCard}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.liveTitle}>
+              {tracking ? 'Live location on' : 'Share live location'}
+            </Text>
+            <Text style={styles.liveText}>
+              {trackingMessage ??
+                (trip.status === 'On schedule' || trip.status === 'Boarding'
+                  ? 'Passengers on this trip can see your position while this screen is open.'
+                  : 'Change the trip to On schedule or Boarding to start tracking.')}
+            </Text>
+          </View>
+          <Pressable
+            disabled={saving}
+            onPress={() => void (tracking ? stopLiveTracking() : startLiveTracking())}
+            style={[styles.liveButton, tracking && styles.liveButtonStop]}>
+            <Text style={[styles.liveButtonText, tracking && styles.liveButtonStopText]}>
+              {tracking ? 'Stop' : 'Start'}
+            </Text>
+          </Pressable>
+        </View>
 
         {editable ? (
           <Pressable
@@ -347,6 +475,37 @@ const styles = StyleSheet.create({
   metricLabelDark: { color: '#8FA0B8' },
   metricValue: { color: TEXT, fontSize: 14, fontWeight: '900', marginTop: 4 },
   metricValueDark: { color: '#FFFFFF' },
+  liveCard: {
+    marginTop: 12,
+    minHeight: 66,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#B7EAD6',
+    backgroundColor: '#ECFDF3',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  liveTitle: { color: TEXT, fontSize: 10, fontWeight: '900' },
+  liveText: { color: MUTED, fontSize: 8, lineHeight: 13, marginTop: 3 },
+  liveButton: {
+    minWidth: 58,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: BLUE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  liveButtonStop: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  liveButtonText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900' },
+  liveButtonStopText: { color: '#B42318' },
   editTripButton: {
     marginTop: 14,
     minHeight: 62,
