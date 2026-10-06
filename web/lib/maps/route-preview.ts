@@ -107,10 +107,7 @@ function samplePath(path: RouteCoordinate[], limit = 120) {
   return sampled;
 }
 
-async function geocodePlace(value: string): Promise<RouteCoordinate | null> {
-  const known = resolveKnownPlace(value);
-  if (known) return known;
-
+async function geocodeRemotePlace(value: string): Promise<RouteCoordinate | null> {
   const baseUrl = (
     process.env.NOMINATIM_BASE_URL?.trim() || "https://nominatim.openstreetmap.org"
   ).replace(/\/$/, "");
@@ -152,12 +149,19 @@ export async function getRoutePreview(
   from: string,
   to: string
 ): Promise<RoutePreview | null> {
-  const [origin, destination] = await Promise.all([
-    geocodePlace(from),
-    geocodePlace(to),
-  ]);
+  const knownOrigin = resolveKnownPlace(from);
+  const knownDestination = resolveKnownPlace(to);
 
-  if (!origin || !destination) return null;
+  const origin = knownOrigin ?? (await geocodeRemotePlace(from));
+  if (!origin) return null;
+
+  if (!knownOrigin && !knownDestination) {
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+  }
+
+  const destination =
+    knownDestination ?? (await geocodeRemotePlace(to));
+  if (!destination) return null;
 
   const coordinates = `${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}`;
   const baseUrl = (
