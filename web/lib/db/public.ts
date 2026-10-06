@@ -1496,3 +1496,426 @@ export async function updateMobileDriverTripDetails(
     status: trip.status,
   };
 }
+
+
+type MobilePrivacyPreferences = {
+  profileVisible: boolean;
+  sharePhone: boolean;
+  locationSharing: boolean;
+};
+
+const DEFAULT_PRIVACY_PREFERENCES: MobilePrivacyPreferences = {
+  profileVisible: true,
+  sharePhone: false,
+  locationSharing: true,
+};
+
+export async function getMobilePrivacyPreferencesByEmail(email: string) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [row] = await db
+    .select({ metadata: activityLogs.metadata })
+    .from(activityLogs)
+    .where(
+      and(
+        eq(activityLogs.eventType, "privacy_preferences_updated"),
+        sql`lower(${activityLogs.metadata} ->> 'email') = ${normalized}`
+      )
+    )
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(1);
+
+  const metadata = row?.metadata ?? {};
+
+  return {
+    profileVisible:
+      typeof metadata.profileVisible === "boolean"
+        ? metadata.profileVisible
+        : DEFAULT_PRIVACY_PREFERENCES.profileVisible,
+    sharePhone:
+      typeof metadata.sharePhone === "boolean"
+        ? metadata.sharePhone
+        : DEFAULT_PRIVACY_PREFERENCES.sharePhone,
+    locationSharing:
+      typeof metadata.locationSharing === "boolean"
+        ? metadata.locationSharing
+        : DEFAULT_PRIVACY_PREFERENCES.locationSharing,
+  };
+}
+
+export async function updateMobilePrivacyPreferencesByEmail(
+  email: string,
+  input: Partial<MobilePrivacyPreferences>
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+  const current = await getMobilePrivacyPreferencesByEmail(normalized);
+  const preferences = {
+    profileVisible:
+      typeof input.profileVisible === "boolean"
+        ? input.profileVisible
+        : current.profileVisible,
+    sharePhone:
+      typeof input.sharePhone === "boolean" ? input.sharePhone : current.sharePhone,
+    locationSharing:
+      typeof input.locationSharing === "boolean"
+        ? input.locationSharing
+        : current.locationSharing,
+  };
+
+  await db.insert(activityLogs).values({
+    eventType: "privacy_preferences_updated",
+    title: "Privacy preferences updated",
+    detail: normalized,
+    metadata: { email: normalized, ...preferences, source: "mobile" },
+  });
+
+  return preferences;
+}
+
+async function getMobileMessageContacts(email: string) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const passengerContacts = await db
+    .select({
+      email: drivers.email,
+      name: drivers.name,
+      tripId: trips.publicId,
+      fromCity: trips.fromCity,
+      toCity: trips.toCity,
+    })
+    .from(bookings)
+    .innerJoin(passengers, eq(bookings.passengerId, passengers.id))
+    .innerJoin(trips, eq(bookings.tripId, trips.id))
+    .innerJoin(drivers, eq(trips.driverId, drivers.id))
+    .where(eq(passengers.email, normalized));
+
+  const [driver] = await db
+    .select({ id: drivers.id })
+    .from(drivers)
+    .where(eq(drivers.email, normalized))
+    .limit(1);
+
+  const driverContacts = driver
+    ? await db
+        .select({
+          email: passengers.email,
+          name: passengers.name,
+          tripId: trips.publicId,
+          fromCity: trips.fromCity,
+          toCity: trips.toCity,
+        })
+        .from(trips)
+        .innerJoin(bookings, eq(bookings.tripId, trips.id))
+        .innerJoin(passengers, eq(bookings.passengerId, passengers.id))
+        .where(eq(trips.driverId, driver.id))
+    : [];
+
+  const contacts = new Map<
+    string,
+    { email: string; name: string; tripId: string; route: string }
+  >();
+
+  for (const contact of [...passengerContacts, ...driverContacts]) {
+    if (!contact.email) continue;
+    const contactEmail = contact.email.trim().toLowerCase();
+    if (!contactEmail || contactEmail === normalized) continue;
+    if (!contacts.has(contactEmail)) {
+      contacts.set(contactEmail, {
+        email: contactEmail,
+        name: contact.name,
+        tripId: contact.tripId,
+        route: `${contact.fromCity} → ${contact.toCity}`,
+      });
+    }
+  }
+
+  return Array.from(contacts.values());
+}
+
+export async function getMobileMessageThreadsByEmail(email: string) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+  const contacts = await getMobileMessageContacts(normalized);
+
+  const messageRows = await db
+    .select({
+      detail: activityLogs.detail,
+      metadata: activityLogs.metadata,
+      createdAt: activityLogs.createdAt,
+    })
+    .from(activityLogs)
+    .where(
+      and(
+        eq(activityLogs.eventType, "mobile_message"),
+        or(
+          sql`lower(${activityLogs.metadata} ->> 'senderEmail') = ${normalized}`,
+          sql`lower(${activityLogs.metadata} ->> 'recipientEmail') = ${normalized}`
+        )
+      )
+    )
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(250);
+
+  const latestByEmail = new Map<
+    string,
+    { body: string; createdAt: Date; senderEmail: string }
+  >();
+
+  for (const row of messageRows) {
+    const senderEmail =
+      typeof row.metadata.senderEmail === "string"
+        ? row.metadata.senderEmail.toLowerCase()
+        : "";
+    const recipientEmail =
+      typeof row.metadata.recipientEmail === "string"
+        ? row.metadata.recipientEmail.toLowerCase()
+        : "";
+    const otherEmail = senderEmail === normalized ? recipientEmail : senderEmail;
+    if (!otherEmail || latestByEmail.has(otherEmail)) continue;
+    latestByEmail.set(otherEmail, {
+      body: row.detail,
+      createdAt: row.createdAt,
+      senderEmail,
+    });
+  }
+
+  return contacts
+    .map((contact) => {
+      const latest = latestByEmail.get(contact.email);
+      return {
+        id: contact.email,
+        participant: {
+          name: contact.name,
+          email: contact.email,
+        },
+        tripId: contact.tripId,
+        route: contact.route,
+        lastMessage: latest?.body ?? `Connected through ${contact.route}`,
+        lastAt: latest?.createdAt.toISOString() ?? "",
+        unread: Boolean(latest && latest.senderEmail !== normalized),
+      };
+    })
+    .sort((a, b) => (b.lastAt || "").localeCompare(a.lastAt || ""));
+}
+
+export async function getMobileConversationByEmail(
+  email: string,
+  recipientEmail: string
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+  const recipient = recipientEmail.trim().toLowerCase();
+  const contacts = await getMobileMessageContacts(normalized);
+  const contact = contacts.find((item) => item.email === recipient);
+  if (!contact) throw new Error("MESSAGE_CONTACT_NOT_ALLOWED");
+
+  const rows = await db
+    .select({
+      detail: activityLogs.detail,
+      metadata: activityLogs.metadata,
+      createdAt: activityLogs.createdAt,
+    })
+    .from(activityLogs)
+    .where(
+      and(
+        eq(activityLogs.eventType, "mobile_message"),
+        or(
+          and(
+            sql`lower(${activityLogs.metadata} ->> 'senderEmail') = ${normalized}`,
+            sql`lower(${activityLogs.metadata} ->> 'recipientEmail') = ${recipient}`
+          ),
+          and(
+            sql`lower(${activityLogs.metadata} ->> 'senderEmail') = ${recipient}`,
+            sql`lower(${activityLogs.metadata} ->> 'recipientEmail') = ${normalized}`
+          )
+        )
+      )
+    )
+    .orderBy(asc(activityLogs.createdAt))
+    .limit(250);
+
+  return {
+    participant: contact,
+    messages: rows.map((row, index) => ({
+      id: `${row.createdAt.getTime()}-${index}`,
+      body: row.detail,
+      senderEmail:
+        typeof row.metadata.senderEmail === "string"
+          ? row.metadata.senderEmail
+          : "",
+      sentAt: row.createdAt.toISOString(),
+    })),
+  };
+}
+
+export async function sendMobileMessageByEmail(
+  email: string,
+  input: { recipientEmail: string; body: string }
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+  const recipient = input.recipientEmail.trim().toLowerCase();
+  const body = input.body.trim();
+  if (!body) throw new Error("MESSAGE_BODY_REQUIRED");
+
+  const contacts = await getMobileMessageContacts(normalized);
+  const contact = contacts.find((item) => item.email === recipient);
+  if (!contact) throw new Error("MESSAGE_CONTACT_NOT_ALLOWED");
+
+  const [sender] = await db
+    .select({ name: passengers.name })
+    .from(passengers)
+    .where(eq(passengers.email, normalized))
+    .limit(1);
+
+  const [message] = await db
+    .insert(activityLogs)
+    .values({
+      eventType: "mobile_message",
+      title: `Message to ${contact.name}`,
+      detail: body,
+      metadata: {
+        senderEmail: normalized,
+        senderName: sender?.name ?? normalized,
+        recipientEmail: recipient,
+        recipientName: contact.name,
+        tripId: contact.tripId,
+        route: contact.route,
+        source: "mobile",
+      },
+    })
+    .returning({ createdAt: activityLogs.createdAt });
+
+  return {
+    id: message.createdAt.getTime().toString(),
+    body,
+    senderEmail: normalized,
+    sentAt: message.createdAt.toISOString(),
+  };
+}
+
+export async function getMobileNotificationsByEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  const [passengerTrips, passengerPayments, driverResult] = await Promise.all([
+    getPassengerTripsByEmail(normalized),
+    getPassengerPaymentsByEmail(normalized),
+    getMobileDriverByEmail(normalized),
+  ]);
+
+  const notifications: {
+    id: string;
+    kind: string;
+    title: string;
+    text: string;
+    createdAt: string;
+  }[] = [];
+
+  for (const trip of passengerTrips.slice(0, 15)) {
+    const title =
+      trip.tripStatus === "Completed"
+        ? "Trip completed"
+        : trip.paymentStatus === "Paid"
+          ? "Ride confirmed"
+          : "Booking awaiting payment";
+    notifications.push({
+      id: `trip-${trip.id}`,
+      kind: "trip",
+      title,
+      text: `${trip.route} · ${trip.driver}`,
+      createdAt: trip.createdAt,
+    });
+  }
+
+  for (const payment of passengerPayments.slice(0, 15)) {
+    notifications.push({
+      id: `payment-${payment.reference}`,
+      kind: "payment",
+      title:
+        payment.status === "Settled" ? "Payment received" : `Payment ${payment.status.toLowerCase()}`,
+      text: `${payment.amount} · ${payment.route}`,
+      createdAt: payment.createdAt,
+    });
+  }
+
+  if (driverResult?.driver) {
+    notifications.push({
+      id: `driver-${driverResult.driver.id}`,
+      kind: "verification",
+      title:
+        driverResult.driver.status === "Approved"
+          ? "Driver verification approved"
+          : "Driver verification update",
+      text: driverResult.driver.checks,
+      createdAt: driverResult.driver.submittedAt ?? new Date(0).toISOString(),
+    });
+  }
+
+  return notifications
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 30);
+}
+
+export async function getDriverEarningsByEmail(email: string) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const rows = await db
+    .select({
+      reference: payments.publicId,
+      amountCents: payments.amountCents,
+      createdAt: payments.createdAt,
+      fromCity: trips.fromCity,
+      toCity: trips.toCity,
+    })
+    .from(payments)
+    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+    .innerJoin(trips, eq(bookings.tripId, trips.id))
+    .innerJoin(drivers, eq(trips.driverId, drivers.id))
+    .where(
+      and(eq(drivers.email, normalized), eq(payments.status, "Settled"))
+    )
+    .orderBy(desc(payments.createdAt));
+
+  const now = new Date();
+  const monthKeys = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    return {
+      key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
+      label: new Intl.DateTimeFormat("en-ZA", { month: "short" }).format(date),
+      amountCents: 0,
+    };
+  });
+  const byKey = new Map(monthKeys.map((item) => [item.key, item]));
+
+  for (const row of rows) {
+    const date = row.createdAt;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const bucket = byKey.get(key);
+    if (bucket) bucket.amountCents += row.amountCents;
+  }
+
+  const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const totalCents = rows.reduce((sum, row) => sum + row.amountCents, 0);
+
+  return {
+    totalCents,
+    total: money(totalCents),
+    thisMonthCents: byKey.get(currentKey)?.amountCents ?? 0,
+    thisMonth: money(byKey.get(currentKey)?.amountCents ?? 0),
+    chart: monthKeys.map((item) => ({
+      label: item.label,
+      amountCents: item.amountCents,
+    })),
+    payouts: rows.slice(0, 20).map((row) => ({
+      reference: row.reference,
+      route: `${row.fromCity} → ${row.toCity}`,
+      amountCents: row.amountCents,
+      amount: money(row.amountCents),
+      status: "Completed",
+      createdAt: row.createdAt.toISOString(),
+    })),
+  };
+}
