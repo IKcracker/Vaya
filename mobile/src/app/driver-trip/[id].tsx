@@ -13,6 +13,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RouteMap, RouteMapFallback } from '@/components/route-map';
 import {
+  getBackgroundDriverTrackingState,
+  startBackgroundDriverTracking,
+  stopBackgroundDriverTracking,
+} from '@/lib/background-driver-location';
+import {
   fetchMobileDriver,
   MobileDriverTrip,
   stopDriverLiveLocation,
@@ -117,11 +122,22 @@ export default function DriverTripScreen() {
   }, [id, session]);
 
   useEffect(() => {
+    let active = true;
+
+    getBackgroundDriverTrackingState()
+      .then((state) => {
+        if (!active || !state.active || state.tripId !== id) return;
+        setTracking(true);
+        setTrackingMessage('Background live location is active for this trip.');
+      })
+      .catch(() => {});
+
     return () => {
+      active = false;
       locationSubscription.current?.remove();
       locationSubscription.current = null;
     };
-  }, []);
+  }, [id]);
 
   async function startLiveTracking() {
     if (!session || !trip || tracking) return;
@@ -140,6 +156,14 @@ export default function DriverTripScreen() {
     setTrackingMessage('Starting live location…');
 
     try {
+      const backgroundStarted = await startBackgroundDriverTracking(session, trip.id);
+      if (!backgroundStarted) {
+        setTrackingMessage(
+          'Background location permission is required so passengers can keep seeing your position when Vaya is not open.'
+        );
+        return;
+      }
+
       const subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
@@ -181,7 +205,7 @@ export default function DriverTripScreen() {
       locationSubscription.current?.remove();
       locationSubscription.current = subscription;
       setTracking(true);
-      setTrackingMessage('Live location is being shared with booked passengers.');
+      setTrackingMessage('Live location is being shared in the foreground and background.');
     } catch (reason) {
       setTrackingMessage(
         reason instanceof Error ? reason.message : 'Unable to start live location'
@@ -194,6 +218,8 @@ export default function DriverTripScreen() {
     locationSubscription.current = null;
     setTracking(false);
     setLiveLocation(null);
+
+    await stopBackgroundDriverTracking().catch(() => {});
 
     if (!session || !trip) return;
 
@@ -325,7 +351,7 @@ export default function DriverTripScreen() {
             <Text style={styles.liveText}>
               {trackingMessage ??
                 (trip.status === 'On schedule' || trip.status === 'Boarding'
-                  ? 'Passengers on this trip can see your position while this screen is open.'
+                  ? 'Passengers on this trip can keep seeing your position even when Vaya is in the background.'
                   : 'Change the trip to On schedule or Boarding to start tracking.')}
             </Text>
           </View>
