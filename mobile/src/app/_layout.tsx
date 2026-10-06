@@ -70,6 +70,7 @@ export default function RootLayout() {
           <Stack.Screen name="privacy-security" />
           <Stack.Screen name="help-support" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="conversation/[email]" />
           <Stack.Screen name="settings" />
         </Stack>
       </ThemeProvider>
