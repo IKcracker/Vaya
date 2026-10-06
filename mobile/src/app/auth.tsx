@@ -97,14 +97,12 @@ export default function PassengerAuthScreen() {
         </Pressable>
 
         <View style={styles.hero}>
-          <Text style={styles.brand}>
-            vaya<Text style={styles.dot}>.</Text>
-          </Text>
+          <Text style={styles.brand}>Vaya</Text>
           <Text style={styles.heroTitle}>
             {mode === 'sign-in' ? 'Welcome back' : 'Create your Vaya account'}
           </Text>
           <Text style={styles.heroText}>
-            Your bookings, trips and profile stay synced securely across the app.
+            Ride together with verified drivers, trusted vehicles and one secure Vaya account.
           </Text>
         </View>
 
@@ -265,7 +263,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   brand: { color: '#FFFFFF', fontSize: 24, fontWeight: '900', letterSpacing: -1.1 },
-  dot: { color: '#60A5FA' },
+  dot: { color: '#34D399' },
   heroTitle: {
     color: '#FFFFFF',
     fontSize: 25,
@@ -273,10 +271,10 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     marginTop: 28,
   },
-  heroText: { color: '#A9B6CA', fontSize: 11, lineHeight: 18, marginTop: 7 },
+  heroText: { color: '#B9D7CE', fontSize: 11, lineHeight: 18, marginTop: 7 },
   segment: {
     marginTop: 18,
-    backgroundColor: '#E9EDF3',
+    backgroundColor: '#E8EFEC',
     borderRadius: 12,
     padding: 4,
     flexDirection: 'row',
@@ -336,7 +334,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryDisabled: { backgroundColor: '#B7D5FA' },
+  primaryDisabled: { backgroundColor: '#B7D8CB' },
   primaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
   note: {
     marginTop: 16,
