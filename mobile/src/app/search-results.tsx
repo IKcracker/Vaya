@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   infoDot: { color: '#C4CBC8', fontSize: 8 },
   pickupRow: { marginTop: 11, paddingTop: 10, borderTopWidth: 1, borderTopColor: LINE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   pickupValue: { color: GREEN_DARK, fontSize: 9, fontWeight: '900' },
-  arrowButton: { width: 28, height: 28, borderRadius: 14, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
+  arrowButton: { width: 28, height: 28, borderRadius: 14, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
   arrowButtonText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900', marginTop: -2 },
   chevron: { color: '#98A2B3', fontSize: 23 },
   tip: { marginTop: 10, backgroundColor: '#E9F9F3', borderRadius: 15, padding: 14 },
