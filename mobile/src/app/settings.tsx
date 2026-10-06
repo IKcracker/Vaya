@@ -9,7 +9,7 @@ import { fetchMobileDriver, MobileDriver } from '@/lib/auth';
 import { API_URL } from '@/lib/api';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const GREEN='#16B364'; const GREEN_DARK='#087F5B'; const BG='#FFFFFF'; const SURFACE='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
+const GREEN='#16B364'; const GREEN_DARK='#087F5B'; const BG='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
 
 export default function SettingsScreen(){
  const router=useRouter(); const {loading,session,user,passenger,signOut}=usePassengerAuth(); const [driver,setDriver]=useState<MobileDriver|null>(null);
