@@ -23,19 +23,6 @@ export type PassengerAccount = {
   tripsCount?: number;
   joinedAt?: string;
   profileImageUrl?: string;
-  stats?: {
-    totalTrips: number;
-    completedTrips: number;
-    memberSince: string;
-    yearsDriving: number;
-    ratingAverage: number | null;
-    ratingCount: number;
-  };
-  reviews?: {
-    rating: number;
-    comment: string;
-    createdAt: string;
-  }[];
 };
 
 export type PassengerPayment = {
@@ -595,6 +582,19 @@ export type MobileDriver = {
   verification?: DriverVerification;
   vehicles?: MobileDriverVehicle[];
   profileImageUrl?: string;
+  stats?: {
+    totalTrips: number;
+    completedTrips: number;
+    memberSince: string;
+    yearsDriving: number;
+    ratingAverage: number | null;
+    ratingCount: number;
+  };
+  reviews?: {
+    rating: number;
+    comment: string;
+    createdAt: string;
+  }[];
 };
 
 
