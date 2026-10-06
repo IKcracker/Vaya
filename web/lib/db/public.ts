@@ -1347,6 +1347,174 @@ export async function createMobileDriverTrip(
   };
 }
 
+type DriverLiveLocationInput = {
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+  heading: number | null;
+  speedMps: number | null;
+  recordedAt: Date;
+};
+
+export async function updateMobileDriverLiveLocationByEmail(
+  email: string,
+  publicId: string,
+  input: DriverLiveLocationInput
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [driver] = await db
+    .select({ id: drivers.id })
+    .from(drivers)
+    .where(eq(drivers.email, normalized))
+    .limit(1);
+
+  if (!driver) throw new Error("DRIVER_NOT_FOUND");
+
+  const [trip] = await db
+    .select({
+      id: trips.id,
+      publicId: trips.publicId,
+      fromCity: trips.fromCity,
+      toCity: trips.toCity,
+      status: trips.status,
+    })
+    .from(trips)
+    .where(
+      and(
+        eq(trips.publicId, publicId),
+        eq(trips.driverId, driver.id)
+      )
+    )
+    .limit(1);
+
+  if (!trip) throw new Error("TRIP_NOT_FOUND");
+  if (trip.status !== "On schedule" && trip.status !== "Boarding") {
+    throw new Error("TRIP_NOT_ACTIVE");
+  }
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_live_location",
+    title: "Driver live location",
+    detail: `${trip.publicId} · ${trip.fromCity} → ${trip.toCity}`,
+    metadata: {
+      driverId: driver.id,
+      tripId: trip.id,
+      publicId: trip.publicId,
+      latitude: input.latitude,
+      longitude: input.longitude,
+      accuracyMeters: input.accuracyMeters,
+      heading: input.heading,
+      speedMps: input.speedMps,
+      recordedAt: input.recordedAt.toISOString(),
+      source: "mobile",
+    },
+  });
+
+  return {
+    latitude: input.latitude,
+    longitude: input.longitude,
+    accuracyMeters: input.accuracyMeters,
+    heading: input.heading,
+    speedMps: input.speedMps,
+    recordedAt: input.recordedAt.toISOString(),
+  };
+}
+
+export async function stopMobileDriverLiveLocationByEmail(
+  email: string,
+  publicId: string
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [driver] = await db
+    .select({ id: drivers.id })
+    .from(drivers)
+    .where(eq(drivers.email, normalized))
+    .limit(1);
+
+  if (!driver) throw new Error("DRIVER_NOT_FOUND");
+
+  const [trip] = await db
+    .select({ id: trips.id, publicId: trips.publicId })
+    .from(trips)
+    .where(
+      and(
+        eq(trips.publicId, publicId),
+        eq(trips.driverId, driver.id)
+      )
+    )
+    .limit(1);
+
+  if (!trip) throw new Error("TRIP_NOT_FOUND");
+
+  await db.insert(activityLogs).values({
+    eventType: "driver_live_location_stopped",
+    title: "Driver stopped live location",
+    detail: trip.publicId,
+    metadata: {
+      driverId: driver.id,
+      tripId: trip.id,
+      publicId: trip.publicId,
+      source: "mobile",
+    },
+  });
+}
+
+async function getTripLiveLocation(publicId: string) {
+  const db = getDb();
+
+  const [row] = await db
+    .select({
+      eventType: activityLogs.eventType,
+      metadata: activityLogs.metadata,
+      createdAt: activityLogs.createdAt,
+    })
+    .from(activityLogs)
+    .where(
+      and(
+        or(
+          eq(activityLogs.eventType, "driver_live_location"),
+          eq(activityLogs.eventType, "driver_live_location_stopped")
+        ),
+        sql`${activityLogs.metadata} ->> 'publicId' = ${publicId}`
+      )
+    )
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(1);
+
+  if (!row || row.eventType === "driver_live_location_stopped") return null;
+
+  const latitude = Number(row.metadata.latitude);
+  const longitude = Number(row.metadata.longitude);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+
+  const recordedAt =
+    typeof row.metadata.recordedAt === "string"
+      ? row.metadata.recordedAt
+      : row.createdAt.toISOString();
+  const recordedTime = new Date(recordedAt).getTime();
+
+  return {
+    latitude,
+    longitude,
+    accuracyMeters:
+      row.metadata.accuracyMeters == null
+        ? null
+        : Number(row.metadata.accuracyMeters),
+    heading:
+      row.metadata.heading == null ? null : Number(row.metadata.heading),
+    speedMps:
+      row.metadata.speedMps == null ? null : Number(row.metadata.speedMps),
+    recordedAt,
+    isFresh:
+      Number.isFinite(recordedTime) &&
+      Date.now() - recordedTime <= 2 * 60 * 1000,
+  };
+}
+
 export async function updateMobileDriverTripStatus(
   email: string,
   publicId: string,
