@@ -46,7 +46,11 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Vaya to use your location while you are driving so passengers on your active trip can see your live position."
+          "locationWhenInUsePermission": "Allow Vaya to use your location while you are driving so passengers on your active trip can see your live position.",
+          "locationAlwaysAndWhenInUsePermission": "Allow Vaya to continue sharing your location during an active trip so booked passengers can follow your journey even when Vaya is in the background.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ]
     ],
