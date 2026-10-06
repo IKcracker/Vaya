@@ -72,10 +72,8 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
-          <View>
-            <Text style={styles.eyebrow}>VAYA ACCOUNT</Text>
-            <Text style={styles.title}>Settings</Text>
-          </View>
+          <Text style={styles.title}>Settings</Text>
+          <View style={styles.headerSpacer} />
         </View>
 
         <View style={styles.accountCard}>
@@ -90,7 +88,7 @@ export default function SettingsScreen() {
           <Pressable onPress={() => router.push('/profile-edit')} style={styles.editButton}><Text style={styles.editText}>Edit</Text></Pressable>
         </View>
 
-        <Section title="Account & travel">
+        <Section title="Account">
           <Row icon="👤" title="Personal details" note="Name, phone, home city and profile photo" onPress={() => router.push('/profile-edit')} />
           <Row icon="🎫" title="My trips" note="Upcoming bookings and travel history" onPress={() => router.push('/trips')} />
           <Row icon="💳" title="Payments" note="Payment attempts, references and settled transactions" onPress={() => router.push('/profile-payments')} last />
@@ -207,14 +205,14 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 },
   centerText: { color: MUTED, fontSize: 11, lineHeight: 18, textAlign: 'center', marginTop: 7, maxWidth: 300 },
   pressed: { opacity: 0.72 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerSpacer: { width: 40 },
   back: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, borderColor: LINE, backgroundColor: SURFACE, alignItems: 'center', justifyContent: 'center' },
   backText: { color: TEXT, fontSize: 30, lineHeight: 30, marginTop: -3 },
-  eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
-  title: { color: TEXT, fontSize: 25, fontWeight: '900', marginTop: 3, letterSpacing: -0.4 },
+  title: { color: TEXT, fontSize: 19, fontWeight: '900', letterSpacing: -0.25 },
   primary: { marginTop: 18, height: 48, paddingHorizontal: 18, borderRadius: 12, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
   primaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
-  accountCard: { marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DDE7E3', padding: 15 },
+  accountCard: { marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: 14, backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DFE6E3', padding: 13 },
   avatar: { width: 54, height: 54, borderRadius: 27, overflow: 'hidden', backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   avatarImage: { width: '100%', height: '100%' },
   avatarText: { color: BLUE, fontSize: 15, fontWeight: '900' },
@@ -223,15 +221,15 @@ const styles = StyleSheet.create({
   accountMeta: { color: '#087F5B', fontSize: 8, fontWeight: '800', marginTop: 4 },
   editButton: { paddingHorizontal: 11, paddingVertical: 8, borderRadius: 10, backgroundColor: '#E9F9F3', borderWidth: 1, borderColor: '#C7EEDF' },
   editText: { color: '#087F5B', fontSize: 9, fontWeight: '900' },
-  section: { marginTop: 23 },
-  sectionTitle: { color: TEXT, fontSize: 15, fontWeight: '900', marginBottom: 8 },
+  section: { marginTop: 19 },
+  sectionTitle: { color: MUTED, fontSize: 9, fontWeight: '900', letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 7 },
   sectionCard: { borderWidth: 1, borderColor: '#DDE7E3', borderRadius: 15, backgroundColor: SURFACE, overflow: 'hidden' },
-  row: { minHeight: 66, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  row: { minHeight: 58, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
-  rowIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#F1F5F3', alignItems: 'center', justifyContent: 'center' },
   rowIconText: { fontSize: 15 },
-  rowTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
-  rowNote: { color: MUTED, fontSize: 9, lineHeight: 14, marginTop: 3 },
+  rowTitle: { color: TEXT, fontSize: 10, fontWeight: '900' },
+  rowNote: { color: MUTED, fontSize: 8, lineHeight: 13, marginTop: 2 },
   chevron: { color: '#98A2B3', fontSize: 22 },
   signOut: { marginTop: 25, height: 47, borderRadius: 12, borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFF8F7', alignItems: 'center', justifyContent: 'center' },
   signOutText: { color: '#B42318', fontSize: 11, fontWeight: '900' },
