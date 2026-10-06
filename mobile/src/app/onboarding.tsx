@@ -8,7 +8,6 @@ const BG = '#F7F9F8';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
-const LINE = '#E4E7EC';
 
 export default function OnboardingScreen() {
   const router = useRouter();
