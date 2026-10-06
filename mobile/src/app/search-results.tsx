@@ -14,7 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_URL, PublicTrip, searchTrips } from '@/lib/api';
 
 const BLUE = '#10B981';
-const BG = '#F6F8F7';
+const GREEN_DARK = '#087F5B';
+const BG = '#F7F9F8';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -107,20 +108,21 @@ export default function SearchResultsScreen() {
             <Text style={styles.backText}>‹</Text>
           </Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>RIDES FOR YOUR ROUTE</Text>
-            <Text style={styles.title}>
+            <Text style={styles.title}>Search Results</Text>
+            <Text style={styles.routeSubtitle}>
               {from || 'Anywhere'} → {to || 'Anywhere'}
             </Text>
           </View>
         </View>
 
         <View style={styles.summary}>
-          <View>
-            <Text style={styles.summaryLabel}>Date</Text>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>DATE</Text>
             <Text style={styles.summaryValue}>{searchSummary}</Text>
           </View>
-          <View>
-            <Text style={styles.summaryLabel}>Passengers</Text>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>PASSENGERS</Text>
             <Text style={styles.summaryValue}>{passengers}</Text>
           </View>
           <Pressable
@@ -131,8 +133,16 @@ export default function SearchResultsScreen() {
               })
             }
             style={({ pressed }) => [styles.modify, pressed && styles.pressed]}>
-            <Text style={styles.modifyText}>Modify</Text>
+            <Text style={styles.modifyText}>Edit</Text>
           </Pressable>
+        </View>
+
+        <View style={styles.filterRow}>
+          {['All', 'Morning', 'Afternoon', 'Evening'].map((label, index) => (
+            <View key={label} style={[styles.filterChip, index === 0 && styles.filterChipActive]}>
+              <Text style={[styles.filterText, index === 0 && styles.filterTextActive]}>{label}</Text>
+            </View>
+          ))}
         </View>
 
         {loading ? (
@@ -172,7 +182,7 @@ export default function SearchResultsScreen() {
               <Text style={styles.resultTitle}>
                 {trips.length} ride{trips.length === 1 ? '' : 's'} found
               </Text>
-              <Text style={styles.resultSort}>Best match</Text>
+              <Text style={styles.resultSort}>Price · time</Text>
             </View>
 
             {trips.map((trip) => {
@@ -234,7 +244,7 @@ export default function SearchResultsScreen() {
                   </View>
 
                   <View style={styles.routeLine}>
-                    <View>
+                    <View style={styles.timeBlock}>
                       <Text style={styles.time}>{departure.time}</Text>
                       <Text style={styles.place}>{trip.from}</Text>
                     </View>
@@ -243,33 +253,23 @@ export default function SearchResultsScreen() {
                       <View style={styles.track} />
                       <View style={[styles.dot, { backgroundColor: BLUE }]} />
                     </View>
-                    <View style={{ alignItems: 'flex-end' }}>
+                    <View style={[styles.timeBlock, { alignItems: 'flex-end' }]}>
                       <Text style={styles.time}>{departure.date}</Text>
                       <Text style={styles.place}>{trip.to}</Text>
                     </View>
                   </View>
 
-                  <View style={styles.tags}>
-                    <View style={styles.tag}>
-                      <Text style={styles.tagText}>{trip.driver.vehicle}</Text>
-                    </View>
-                    <View style={styles.tag}>
-                      <Text style={styles.tagText}>
-                        {trip.availableSeats} seat
-                        {trip.availableSeats === 1 ? '' : 's'} left
-                      </Text>
-                    </View>
-                    <View style={styles.tag}>
-                      <Text style={styles.tagText}>{trip.status}</Text>
-                    </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.vehicleText}>{trip.driver.vehicle}</Text>
+                    <Text style={styles.infoDot}>•</Text>
+                    <Text style={styles.vehicleText}>{trip.availableSeats} seats left</Text>
                   </View>
 
                   <View style={styles.pickupRow}>
-                    <View>
-                      <Text style={styles.pickupLabel}>Trip reference</Text>
-                      <Text style={styles.pickupValue}>{trip.id}</Text>
+                    <Text style={styles.pickupValue}>View trip details</Text>
+                    <View style={styles.arrowButton}>
+                      <Text style={styles.arrowButtonText}>›</Text>
                     </View>
-                    <Text style={styles.chevron}>›</Text>
                   </View>
                 </Pressable>
               );
@@ -305,34 +305,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backText: { color: TEXT, fontSize: 30, lineHeight: 30, marginTop: -3 },
-  eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
-  title: {
-    color: TEXT,
-    fontSize: 20,
-    fontWeight: '900',
-    marginTop: 3,
-    letterSpacing: -0.3,
-  },
-  summary: {
-    marginTop: 18,
-    backgroundColor: SURFACE,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: LINE,
-    padding: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  title: { color: TEXT, fontSize: 21, fontWeight: '900', letterSpacing: -0.35 },
+  routeSubtitle: { color: MUTED, fontSize: 10, marginTop: 3, fontWeight: '700' },
+  summary: { marginTop: 16, backgroundColor: SURFACE, borderRadius: 13, borderWidth: 1, borderColor: LINE, padding: 12, flexDirection: 'row', alignItems: 'center' },
+  summaryItem: { flex: 1 },
+  summaryDivider: { width: 1, height: 30, backgroundColor: LINE, marginHorizontal: 10 },
   summaryLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },
   summaryValue: { color: TEXT, fontSize: 11, fontWeight: '900', marginTop: 3 },
-  modify: {
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 9,
-    backgroundColor: '#E9F9F3',
-  },
-  modifyText: { color: BLUE, fontSize: 10, fontWeight: '900' },
+  modify: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, backgroundColor: '#E9F9F3' },
+  modifyText: { color: GREEN_DARK, fontSize: 9, fontWeight: '900' },
+  filterRow: { marginTop: 10, flexDirection: 'row', gap: 6 },
+  filterChip: { flex: 1, height: 32, borderRadius: 999, backgroundColor: '#EEF2F0', alignItems: 'center', justifyContent: 'center' },
+  filterChipActive: { backgroundColor: '#DFF7EC' },
+  filterText: { color: MUTED, fontSize: 8, fontWeight: '800' },
+  filterTextActive: { color: GREEN_DARK },
   resultHeader: {
     marginTop: 24,
     marginBottom: 10,
@@ -394,20 +380,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   errorButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
-  rideCard: {
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 18,
-    padding: 15,
-    marginBottom: 12,
-  },
+  rideCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DFE6E3', borderRadius: 15, padding: 13, marginBottom: 9 },
   cardPressed: { opacity: 0.78, transform: [{ scale: 0.995 }] },
   rideTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   driverAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#E7F3FF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -416,7 +395,7 @@ const styles = StyleSheet.create({
   driverAvatarImage: { width: '100%', height: '100%' },
   driverAvatarText: { color: BLUE, fontSize: 11, fontWeight: '900' },
   driverNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  driverName: { color: TEXT, fontSize: 13, fontWeight: '900' },
+  driverName: { color: TEXT, fontSize: 11, fontWeight: '900' },
   verified: {
     width: 15,
     height: 15,
@@ -426,12 +405,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   verifiedText: { color: '#FFF', fontSize: 9, fontWeight: '900' },
-  driverMeta: { color: MUTED, fontSize: 9, marginTop: 4 },
+  driverMeta: { color: MUTED, fontSize: 8, marginTop: 3 },
   priceBox: { alignItems: 'flex-end' },
-  price: { color: TEXT, fontSize: 17, fontWeight: '900' },
+  price: { color: TEXT, fontSize: 15, fontWeight: '900' },
   priceMeta: { color: MUTED, fontSize: 8, marginTop: 2 },
   routeLine: {
-    marginTop: 18,
+    marginTop: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -446,25 +425,14 @@ const styles = StyleSheet.create({
   },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#98A2B3' },
   track: { height: 1, backgroundColor: '#D0D5DD', flex: 1 },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 },
-  tag: {
-    backgroundColor: '#F2F4F7',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  tagText: { color: '#475467', fontSize: 9, fontWeight: '800' },
-  pickupRow: {
-    marginTop: 14,
-    paddingTop: 13,
-    borderTopWidth: 1,
-    borderTopColor: LINE,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  pickupLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },
-  pickupValue: { color: TEXT, fontSize: 11, fontWeight: '900', marginTop: 3 },
+  timeBlock: { minWidth: 80 },
+  infoRow: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  vehicleText: { color: MUTED, fontSize: 8, fontWeight: '700' },
+  infoDot: { color: '#C4CBC8', fontSize: 8 },
+  pickupRow: { marginTop: 11, paddingTop: 10, borderTopWidth: 1, borderTopColor: LINE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pickupValue: { color: GREEN_DARK, fontSize: 9, fontWeight: '900' },
+  arrowButton: { width: 28, height: 28, borderRadius: 14, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
+  arrowButtonText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900', marginTop: -2 },
   chevron: { color: '#98A2B3', fontSize: 23 },
   tip: { marginTop: 10, backgroundColor: '#E9F9F3', borderRadius: 15, padding: 14 },
   tipTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
