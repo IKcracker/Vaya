@@ -1958,13 +1958,19 @@ export async function getPassengerTripExperienceByEmail(
       departureAt: trips.departureAt,
       driverId: trips.driverId,
       driverName: trips.driverName,
+      driverEmail: drivers.email,
       driverStatus: drivers.status,
+      driverProfileImageUpdatedAt: sql<Date | null>`(
+        select p.profile_image_updated_at
+        from passengers p
+        where lower(p.email) = lower(${drivers.email})
+        limit 1
+      )`,
       vehicleMake: trips.vehicleMake,
       vehicleModel: trips.vehicleModel,
       vehicleYear: trips.vehicleYear,
       vehicleRegistration: trips.vehicleRegistration,
       vehicleColor: trips.vehicleColor,
-      profileImageUpdatedAt: passengers.profileImageUpdatedAt,
     })
     .from(bookings)
     .innerJoin(passengers, eq(bookings.passengerId, passengers.id))
@@ -2018,10 +2024,11 @@ export async function getPassengerTripExperienceByEmail(
     driver: {
       id: row.driverId ?? "",
       name: row.driverName,
+      email: row.driverEmail ?? "",
       verified: row.driverStatus === "Approved",
       profileImageUrl:
-        row.driverId && row.profileImageUpdatedAt
-          ? `/api/public/drivers/${row.driverId}/profile-image?version=${row.profileImageUpdatedAt.getTime()}`
+        row.driverId && row.driverProfileImageUpdatedAt
+          ? `/api/public/drivers/${row.driverId}/profile-image?version=${new Date(row.driverProfileImageUpdatedAt).getTime()}`
           : "",
     },
     vehicle: {
