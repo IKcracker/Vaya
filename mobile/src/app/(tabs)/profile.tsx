@@ -8,7 +8,7 @@ import { fetchMobileDriver, MobileDriver } from '@/lib/auth';
 import { API_URL } from '@/lib/api';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const GREEN='#16B364'; const GREEN_DARK='#087F5B'; const BG='#FFFFFF'; const SURFACE='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
+const GREEN='#16B364'; const GREEN_DARK='#087F5B'; const BG='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
 
 function initials(name:string){return name.split(/\s+/).filter(Boolean).map(v=>v[0]).join('').slice(0,2).toUpperCase();}
 function joinedLabel(value?:string){return value?`Member since ${new Intl.DateTimeFormat('en-ZA',{month:'short',year:'numeric'}).format(new Date(value))}`:'Vaya member';}
