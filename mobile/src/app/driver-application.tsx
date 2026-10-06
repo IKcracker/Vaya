@@ -25,8 +25,8 @@ import {
 } from '@/lib/driver-documents';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -355,7 +355,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const styles = StyleSheet.create({
-  documentProgress: { backgroundColor: '#EEF5FF', padding: 14, borderRadius: 14, marginBottom: 12 },
+  documentProgress: { backgroundColor: '#E9F9F3', padding: 14, borderRadius: 14, marginBottom: 12 },
   preview: { width: '100%', height: 150, borderRadius: 12, marginTop: 12, backgroundColor: '#F2F4F7' },
   consent: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 18, padding: 14, borderWidth: 1, borderColor: LINE, borderRadius: 14, backgroundColor: SURFACE },
   check: { color: BLUE, fontSize: 22 },
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   backText: { color: TEXT, fontSize: 30, lineHeight: 30, marginTop: -3 },
   eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
   title: { color: TEXT, fontSize: 21, fontWeight: '900', marginTop: 3 },
-  intro: { marginTop: 22, backgroundColor: '#0B1730', borderRadius: 18, padding: 17 },
+  intro: { marginTop: 22, backgroundColor: '#063C35', borderRadius: 18, padding: 17 },
   introTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
   introText: { color: '#A9B6CA', fontSize: 10, lineHeight: 17, marginTop: 5 },
   sectionHeading: { marginTop: 24, marginBottom: 9 },
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   required: { color: '#B42318', backgroundColor: '#FFF1F0', fontSize: 8, fontWeight: '900', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
   optional: { color: MUTED, backgroundColor: '#F2F4F7', fontSize: 8, fontWeight: '900', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
   documentDescription: { color: MUTED, fontSize: 9, lineHeight: 15, marginTop: 5 },
-  uploadButton: { height: 40, marginTop: 11, borderWidth: 1, borderColor: '#B2CCFF', backgroundColor: '#F5F9FF', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  uploadButton: { height: 40, marginTop: 11, borderWidth: 1, borderColor: '#B7EAD6', backgroundColor: '#F5F9FF', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   uploadText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   selectedFile: { marginTop: 11, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F8FAFC', borderRadius: 10, padding: 10 },
   selectedName: { color: TEXT, fontSize: 10, fontWeight: '900' },
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   replaceText: { color: BLUE, fontSize: 9, fontWeight: '900' },
   error: { marginTop: 14, borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFF8F7', borderRadius: 12, padding: 12 },
   errorText: { color: '#B42318', fontSize: 10, lineHeight: 16 },
-  reviewNote: { marginTop: 16, borderRadius: 14, backgroundColor: '#EEF5FF', padding: 14 },
+  reviewNote: { marginTop: 16, borderRadius: 14, backgroundColor: '#E9F9F3', padding: 14 },
   reviewTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
   reviewText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
   primary: { marginTop: 18, minHeight: 50, borderRadius: 12, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
