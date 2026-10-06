@@ -17,9 +17,9 @@ import {
 } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const NAVY = '#0B1730';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const NAVY = '#063C35';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   page: { padding: 18, paddingBottom: 120 },
   pressed: { opacity: 0.72 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  modeIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  modeIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   modeIconText: { color: BLUE, fontSize: 22, fontWeight: '900' },
   stateTitle: { color: TEXT, fontSize: 20, fontWeight: '900', marginTop: 15, textAlign: 'center' },
   stateText: { color: MUTED, fontSize: 11, lineHeight: 18, textAlign: 'center', marginTop: 6, maxWidth: 310 },
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   onboardingCard: { marginTop: 24, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 18, paddingHorizontal: 15 },
   step: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 15 },
   stepBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
-  stepNumber: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  stepNumber: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   stepNumberText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   stepTitle: { color: TEXT, fontSize: 12, fontWeight: '900' },
   stepText: { color: MUTED, fontSize: 10, lineHeight: 15, marginTop: 3 },
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   tripTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
   tripTime: { color: BLUE, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   tripRoute: { color: TEXT, fontSize: 18, fontWeight: '900', marginTop: 5 },
-  seatBadge: { backgroundColor: '#E7F3FF', paddingHorizontal: 9, paddingVertical: 7, borderRadius: 999 },
+  seatBadge: { backgroundColor: '#E9F9F3', paddingHorizontal: 9, paddingVertical: 7, borderRadius: 999 },
   seatText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   tripMetrics: { flexDirection: 'row', justifyContent: 'space-between' },
   metricLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },
