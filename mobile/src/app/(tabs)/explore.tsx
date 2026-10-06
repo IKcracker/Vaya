@@ -279,6 +279,15 @@ export default function DriverScreen() {
           </Pressable>
         </View>
 
+        <View style={styles.driverMenu}>
+          <DriverMenuRow title="My Rides" note="Manage upcoming and past trips" onPress={() => {}} />
+          <DriverMenuRow title="My Vehicles" note={`${approvedVehicles} verified vehicle${approvedVehicles === 1 ? '' : 's'}`} onPress={() => router.push('/driver-vehicle')} />
+          <DriverMenuRow title="Verification Status" note={driver.checks} onPress={() => router.push('/driver-verification')} success />
+          <DriverMenuRow title="Earnings" note="Payouts and trip income" onPress={() => router.push('/earnings')} />
+          <DriverMenuRow title="Driver Profile" note="Public profile and verified vehicles" onPress={() => router.push('/driver-profile')} />
+          <DriverMenuRow title="Settings" note="Account, privacy and app preferences" onPress={() => router.push('/settings')} last />
+        </View>
+
         <Text style={styles.sectionTitle}>Next departure</Text>
         {nextTrip ? (
           <Pressable
@@ -378,6 +387,33 @@ export default function DriverScreen() {
   );
 }
 
+function DriverMenuRow({
+  title,
+  note,
+  onPress,
+  success,
+  last,
+}: {
+  title: string;
+  note: string;
+  onPress: () => void;
+  success?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.menuRow, !last && styles.menuBorder, pressed && styles.pressed]}>
+      <View style={[styles.menuIcon, success && styles.menuIconSuccess]}>
+        <Text style={[styles.menuIconText, success && styles.menuIconTextSuccess]}>{success ? '✓' : '›'}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.menuTitle}>{title}</Text>
+        <Text style={styles.menuNote}>{note}</Text>
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
+  );
+}
+
 function Step({
   number,
   title,
@@ -471,6 +507,15 @@ const styles = StyleSheet.create({
   publishPressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
   plus: { color: '#FFFFFF', fontSize: 21, fontWeight: '700' },
   publishText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
+  driverMenu: { backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DFE6E3', borderRadius: 15, overflow: 'hidden', marginBottom: 22 },
+  menuRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 11 },
+  menuBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
+  menuIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#F1F5F3', alignItems: 'center', justifyContent: 'center' },
+  menuIconSuccess: { backgroundColor: '#ECFDF3' },
+  menuIconText: { color: '#667085', fontSize: 13, fontWeight: '900' },
+  menuIconTextSuccess: { color: '#027A48' },
+  menuTitle: { color: TEXT, fontSize: 9.5, fontWeight: '900' },
+  menuNote: { color: MUTED, fontSize: 7.8, marginTop: 2 },
   sectionTitle: { color: TEXT, fontSize: 18, fontWeight: '900', letterSpacing: -0.25, marginBottom: 10 },
   sectionRow: { marginTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   countText: { color: MUTED, fontSize: 10, fontWeight: '800' },
