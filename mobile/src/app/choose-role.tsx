@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const GREEN = '#10B981';
 const BG = '#F7F9F8';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
