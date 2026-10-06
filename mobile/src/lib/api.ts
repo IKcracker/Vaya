@@ -23,6 +23,21 @@ export type PublicTrip = {
   status: string;
 };
 
+
+export type RouteCoordinate = {
+  latitude: number;
+  longitude: number;
+};
+
+export type RoutePreview = {
+  origin: RouteCoordinate;
+  destination: RouteCoordinate;
+  path: RouteCoordinate[];
+  distanceKm: number;
+  durationMinutes: number;
+  routing: 'osrm' | 'estimate';
+};
+
 export type PublicBooking = {
   id: string;
   status: string;
@@ -164,6 +179,14 @@ export async function searchTrips(input: {
 
   return request<{ trips: PublicTrip[] }>(
     `/api/public/trips?${params.toString()}`
+  );
+}
+
+
+export async function getRoutePreview(from: string, to: string) {
+  const params = new URLSearchParams({ from, to });
+  return request<{ route: RoutePreview | null; error?: string }>(
+    `/api/public/route-preview?${params.toString()}`
   );
 }
 
