@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const GREEN='#16B364'; const BG='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
+const GREEN='#16B364'; const BG='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085';
 
 export default function OnboardingScreen(){
  const router=useRouter();
@@ -26,8 +26,7 @@ export default function OnboardingScreen(){
   </View>
 
   <View style={styles.copyWrap}>
-   <Text style={styles.title}>A safer, smarter{"
-"}way to travel</Text>
+   <Text style={styles.title}>A safer, smarter{"\n"}way to travel</Text>
    <Text style={styles.copy}>Share rides, save money and meet great people along the way.</Text>
    <View style={styles.dots}><View style={[styles.dot,styles.activeDot]}/><View style={styles.dot}/><View style={styles.dot}/><View style={styles.dot}/></View>
   </View>
