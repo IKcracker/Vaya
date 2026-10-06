@@ -31,7 +31,7 @@ export default function HomeScreen(){
  },[]);
 
  useEffect(()=>{
-  if(!session){setTripsLoading(false);return;}
+  if(!session)return;
   let active=true;
   fetchPassengerTrips(session)
    .then(r=>{if(active)setTrips(r.trips)})
