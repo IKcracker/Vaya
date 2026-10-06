@@ -19,8 +19,8 @@ import {
 } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   amountCard: {
     marginTop: 22,
     borderRadius: 20,
-    backgroundColor: '#0B1730',
+    backgroundColor: '#063C35',
     padding: 18,
   },
   amountLabel: { color: '#8FA0B8', fontSize: 9, fontWeight: '800' },
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   amountMeta: { color: '#A9B6CA', fontSize: 10, marginTop: 5 },
   infoCard: {
     marginTop: 16,
-    backgroundColor: '#EEF5FF',
+    backgroundColor: '#E9F9F3',
     borderRadius: 15,
     padding: 14,
   },
