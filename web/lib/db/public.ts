@@ -2175,6 +2175,10 @@ export async function getPassengerTripExperienceByEmail(
     existingReview && typeof existingReview.metadata.rating === "number"
       ? existingReview.metadata.rating
       : null;
+  const liveLocation =
+    row.tripStatus === "On schedule" || row.tripStatus === "Boarding"
+      ? await getTripLiveLocation(row.tripId)
+      : null;
 
   return {
     bookingId: row.bookingId,
@@ -2189,6 +2193,7 @@ export async function getPassengerTripExperienceByEmail(
     from: row.fromCity,
     to: row.toCity,
     departureAt: row.departureAt.toISOString(),
+    liveLocation,
     driver: {
       id: row.driverId ?? "",
       name: row.driverName,
