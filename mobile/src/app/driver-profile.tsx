@@ -53,7 +53,7 @@ export default function DriverProfileScreen() {
 
         <View style={styles.identity}>
           <Text style={styles.name}>{driver.name}</Text>
-          <View style={styles.verifiedRow}><Text style={styles.verifiedIcon}>✓</Text><Text style={styles.verifiedText}>Verified Driver</Text></View>
+          <View style={styles.verifiedRow}><Text style={styles.verifiedIcon}>{driver.status === 'Approved' ? '✓' : '•'}</Text><Text style={styles.verifiedText}>{driver.status === 'Approved' ? 'Verified Driver' : driver.status}</Text></View>
           <Text style={styles.rating}>{driver.stats?.ratingAverage ? `★ ${driver.stats.ratingAverage.toFixed(1)} (${driver.stats.ratingCount} review${driver.stats.ratingCount === 1 ? '' : 's'})` : 'No ratings yet'} · {driver.stats?.yearsDriving ?? 0}+ years</Text>
         </View>
 
