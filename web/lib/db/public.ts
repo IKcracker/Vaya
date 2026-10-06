@@ -1394,6 +1394,15 @@ export async function updateMobileDriverLiveLocationByEmail(
     throw new Error("TRIP_NOT_ACTIVE");
   }
 
+  await db
+    .delete(activityLogs)
+    .where(
+      and(
+        eq(activityLogs.eventType, "driver_live_location"),
+        sql`${activityLogs.metadata} ->> 'publicId' = ${trip.publicId}`
+      )
+    );
+
   await db.insert(activityLogs).values({
     eventType: "driver_live_location",
     title: "Driver live location",
@@ -1449,6 +1458,18 @@ export async function stopMobileDriverLiveLocationByEmail(
     .limit(1);
 
   if (!trip) throw new Error("TRIP_NOT_FOUND");
+
+  await db
+    .delete(activityLogs)
+    .where(
+      and(
+        or(
+          eq(activityLogs.eventType, "driver_live_location"),
+          eq(activityLogs.eventType, "driver_live_location_stopped")
+        ),
+        sql`${activityLogs.metadata} ->> 'publicId' = ${trip.publicId}`
+      )
+    );
 
   await db.insert(activityLogs).values({
     eventType: "driver_live_location_stopped",
