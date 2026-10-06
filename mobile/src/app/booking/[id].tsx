@@ -1,450 +1,61 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { createAuthenticatedBooking } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#10B981';
-const BG = '#F6F8F7';
-const SURFACE = '#FFFFFF';
-const TEXT = '#101828';
-const MUTED = '#667085';
-const LINE = '#E4E7EC';
+const GREEN='#16B364'; const BG='#FFFFFF'; const SURFACE='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
 
-type CreatedBooking = {
-  id: string;
-  status: string;
-  paymentStatus: string;
-  seats: number;
-  amount: string;
-  trip: {
-    id: string;
-    route: string;
-    departureAt: string;
-  };
-};
+type CreatedBooking={id:string;status:string;paymentStatus:string;seats:number;amount:string;trip:{id:string;route:string;departureAt:string}};
 
-export default function BookingScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams<{ id?: string; seats?: string }>();
-  const tripId = typeof params.id === 'string' ? params.id : '';
-  const seats = Math.max(
-    1,
-    Number(typeof params.seats === 'string' ? params.seats : '1') || 1
-  );
+export default function BookingScreen(){
+ const router=useRouter(); const params=useLocalSearchParams<{id?:string;seats?:string}>(); const tripId=typeof params.id==='string'?params.id:''; const seats=Math.max(1,Number(typeof params.seats==='string'?params.seats:'1')||1);
+ const {loading,session,passenger,refresh}=usePassengerAuth(); const [submitting,setSubmitting]=useState(false); const [booking,setBooking]=useState<CreatedBooking|null>(null); const [error,setError]=useState<string|null>(null);
 
-  const { loading, session, passenger, refresh } = usePassengerAuth();
-  const [submitting, setSubmitting] = useState(false);
-  const [booking, setBooking] = useState<CreatedBooking | null>(null);
-  const [error, setError] = useState<string | null>(null);
+ async function confirmBooking(){if(!session||!passenger||!tripId||submitting)return;setSubmitting(true);setError(null);try{const r=await createAuthenticatedBooking(session,{tripId,seats});setBooking(r.booking);await refresh()}catch(reason){setError(reason instanceof Error?reason.message:'Unable to create booking')}finally{setSubmitting(false)}}
 
-  async function confirmBooking() {
-    if (!session || !passenger || !tripId || submitting) return;
+ if(loading)return <SafeAreaView style={styles.safe}><View style={styles.center}><ActivityIndicator color={GREEN}/></View></SafeAreaView>;
+ if(!session)return <SafeAreaView style={styles.safe}><View style={styles.center}><Text style={styles.title}>Sign in to book</Text><Text style={styles.centerText}>Use your Vaya account to reserve seats and keep your trips together.</Text><Pressable onPress={()=>router.push({pathname:'/auth',params:{next:`/booking/${encodeURIComponent(tripId)}?seats=${seats}`}})} style={styles.primary}><Text style={styles.primaryText}>Sign In</Text></Pressable></View></SafeAreaView>;
+ if(!passenger)return <SafeAreaView style={styles.safe}><View style={styles.center}><Text style={styles.title}>Complete your profile</Text><Text style={styles.centerText}>A passenger profile is required before booking.</Text><Pressable onPress={()=>router.replace('/profile')} style={styles.primary}><Text style={styles.primaryText}>Open Profile</Text></Pressable></View></SafeAreaView>;
 
-    setSubmitting(true);
-    setError(null);
+ if(booking)return <SafeAreaView style={styles.safe}><View style={styles.success}>
+  <View style={styles.successIcon}><Text style={styles.successIconText}>✓</Text></View>
+  <Text style={styles.successTitle}>Booking confirmed</Text>
+  <Text style={styles.successText}>Your seat is reserved and waiting for payment.</Text>
+  <View style={styles.summaryList}><Row label="Route" value={booking.trip.route}/><Row label="Seats" value={String(booking.seats)}/><Row label="Amount" value={booking.amount}/><Row label="Payment" value={booking.paymentStatus} last/></View>
+  <Pressable onPress={()=>router.replace({pathname:'/payment/[id]',params:{id:booking.id}})} style={styles.primary}><Text style={styles.primaryText}>Pay Now · {booking.amount}</Text></Pressable>
+  <Pressable onPress={()=>router.replace('/trips')} style={styles.secondary}><Text style={styles.secondaryText}>View My Trips</Text></Pressable>
+ </View></SafeAreaView>;
 
-    try {
-      const response = await createAuthenticatedBooking(session, {
-        tripId,
-        seats,
-      });
+ return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
+  <View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable><Text style={styles.headerTitle}>Booking</Text><View style={{width:28}}/></View>
 
-      setBooking(response.booking);
-      await refresh();
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : 'Unable to create booking'
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  <View style={styles.summaryCard}><View><Text style={styles.summaryLabel}>Seats</Text><Text style={styles.summaryValue}>{seats}</Text></View><View style={{alignItems:'flex-end'}}><Text style={styles.summaryLabel}>Status</Text><Text style={styles.summaryValue}>Awaiting payment</Text></View></View>
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.centerState}>
-          <ActivityIndicator color={BLUE} />
-          <Text style={styles.stateTitle}>Checking your account</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  <Text style={styles.sectionTitle}>Passenger</Text>
+  <View style={styles.accountCard}><View style={styles.avatar}><Text style={styles.avatarText}>{passenger.name.split(' ').filter(Boolean).map(v=>v[0]).join('').slice(0,2).toUpperCase()}</Text></View><View style={{flex:1}}><Text style={styles.name}>{passenger.name}</Text><Text style={styles.meta}>{passenger.email}</Text><Text style={styles.meta}>{passenger.city}</Text></View><Text style={styles.verified}>✓</Text></View>
 
-  if (!session) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.centerState}>
-          <View style={styles.authIcon}>
-            <Text style={styles.authIconText}>✓</Text>
-          </View>
-          <Text style={styles.stateTitle}>Sign in to book this ride</Text>
-          <Text style={styles.stateText}>
-            Your passenger account is used for the booking and future trip history.
-          </Text>
-          <Pressable
-            onPress={() =>
-              router.push({
-                pathname: '/auth',
-                params: {
-                  next: `/booking/${encodeURIComponent(tripId)}?seats=${seats}`,
-                },
-              })
-            }
-            style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-            <Text style={styles.primaryText}>Sign in or create account</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  <Text style={styles.sectionTitle}>Booking summary</Text>
+  <View style={styles.summaryList}><Row label="Trip" value={tripId}/><Row label="Seats" value={String(seats)}/><Row label="Status" value="Awaiting payment" last/></View>
 
-  if (!passenger) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.centerState}>
-          <Text style={styles.stateTitle}>Passenger profile required</Text>
-          <Text style={styles.stateText}>
-            Your Neon Auth account is signed in, but no passenger profile is linked to this email yet.
-          </Text>
-          <Pressable
-            onPress={() => router.replace('/profile')}
-            style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-            <Text style={styles.primaryText}>Open profile</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  {error?<View style={styles.error}><Text style={styles.errorText}>{error}</Text></View>:null}
+  <View style={styles.notice}><Text style={styles.noticeTitle}>Seat availability is rechecked</Text><Text style={styles.noticeText}>Vaya confirms the booking only if your requested seats are still available.</Text></View>
 
-  if (booking) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.successPage}>
-          <View style={styles.successIcon}>
-            <Text style={styles.successIconText}>✓</Text>
-          </View>
-          <Text style={styles.successTitle}>Booking created</Text>
-          <Text style={styles.successCopy}>
-            Your seat reservation is saved in Vaya and is awaiting payment.
-          </Text>
-
-          <View style={styles.successCard}>
-            <Row label="Booking" value={booking.id} />
-            <Row label="Trip" value={booking.trip.route} />
-            <Row label="Seats" value={String(booking.seats)} />
-            <Row label="Amount" value={booking.amount} />
-            <Row label="Status" value={booking.status} />
-            <Row label="Payment" value={booking.paymentStatus} />
-          </View>
-
-          <Pressable
-            onPress={() =>
-              router.replace({
-                pathname: '/payment/[id]',
-                params: { id: booking.id },
-              })
-            }
-            style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-            <Text style={styles.primaryText}>Pay now · {booking.amount}</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.replace('/trips')}
-            style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
-            <Text style={styles.secondaryText}>Pay later</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
-        contentContainerStyle={styles.page}
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
-            <Text style={styles.backText}>‹</Text>
-          </Pressable>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>BOOK YOUR SEAT</Text>
-            <Text style={styles.title}>{tripId}</Text>
-          </View>
-        </View>
-
-        <View style={styles.summaryCard}>
-          <View>
-            <Text style={styles.summaryLabel}>Seats</Text>
-            <Text style={styles.summaryValue}>{seats}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.summaryLabel}>Booking status</Text>
-            <Text style={styles.summaryValue}>Awaiting payment</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Passenger account</Text>
-        <View style={styles.accountCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {passenger.name
-                .split(' ')
-                .filter(Boolean)
-                .map((value) => value[0])
-                .join('')
-                .slice(0, 2)
-                .toUpperCase()}
-            </Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.accountName}>{passenger.name}</Text>
-            <Text style={styles.accountEmail}>{passenger.email}</Text>
-            <Text style={styles.accountCity}>{passenger.city}</Text>
-          </View>
-          <View style={styles.secureBadge}>
-            <Text style={styles.secureText}>Signed in</Text>
-          </View>
-        </View>
-
-        {error ? (
-          <View style={styles.errorCard}>
-            <Text style={styles.errorTitle}>Booking couldn’t be completed</Text>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.note}>
-          <Text style={styles.noteTitle}>Seat availability is checked again</Text>
-          <Text style={styles.noteText}>
-            Vaya confirms the booking only if the requested seats are still available. Fare and passenger identity are controlled by the server.
-          </Text>
-        </View>
-
-        <Pressable
-          disabled={submitting || !tripId}
-          onPress={() => void confirmBooking()}
-          style={({ pressed }) => [
-            styles.primary,
-            (submitting || !tripId) && styles.primaryDisabled,
-            pressed && !submitting && tripId && styles.pressed,
-          ]}>
-          {submitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.primaryText}>Confirm booking</Text>
-          )}
-        </Pressable>
-      </ScrollView>
-    </SafeAreaView>
-  );
+  <Pressable disabled={submitting||!tripId} onPress={()=>void confirmBooking()} style={[styles.primary,(submitting||!tripId)&&styles.disabled]}>{submitting?<ActivityIndicator color="#FFFFFF"/>:<Text style={styles.primaryText}>Confirm Booking</Text>}</Pressable>
+ </ScrollView></SafeAreaView>
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
-    </View>
-  );
-}
+function Row({label,value,last}:{label:string;value:string;last?:boolean}){return <View style={[styles.row,!last&&styles.rowBorder]}><Text style={styles.rowLabel}>{label}</Text><Text style={styles.rowValue}>{value}</Text></View>}
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  page: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 40 },
-  pressed: { opacity: 0.72 },
-  centerState: {
-    flex: 1,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  authIcon: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: '#E9F9F3',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  authIconText: { color: BLUE, fontSize: 20, fontWeight: '900' },
-  stateTitle: { color: TEXT, fontSize: 18, fontWeight: '900', marginTop: 14 },
-  stateText: {
-    color: MUTED,
-    fontSize: 11,
-    lineHeight: 18,
-    textAlign: 'center',
-    marginTop: 6,
-    maxWidth: 310,
-  },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  back: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: LINE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backText: { color: TEXT, fontSize: 30, lineHeight: 30, marginTop: -3 },
-  eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
-  title: { color: TEXT, fontSize: 18, fontWeight: '900', marginTop: 3 },
-  summaryCard: {
-    marginTop: 22,
-    backgroundColor: '#063C35',
-    borderRadius: 16,
-    padding: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  summaryLabel: { color: '#8FA0B8', fontSize: 9, fontWeight: '700' },
-  summaryValue: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '900',
-    marginTop: 4,
-  },
-  sectionTitle: {
-    color: TEXT,
-    fontSize: 17,
-    fontWeight: '900',
-    marginTop: 24,
-    marginBottom: 10,
-  },
-  accountCard: {
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 16,
-    padding: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#E9F9F3',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: BLUE, fontSize: 11, fontWeight: '900' },
-  accountName: { color: TEXT, fontSize: 13, fontWeight: '900' },
-  accountEmail: { color: MUTED, fontSize: 9, marginTop: 3 },
-  accountCity: { color: MUTED, fontSize: 9, marginTop: 2 },
-  secureBadge: {
-    backgroundColor: '#ECFDF3',
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  secureText: { color: '#027A48', fontSize: 8, fontWeight: '900' },
-  errorCard: {
-    marginTop: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FFF8F7',
-    padding: 14,
-  },
-  errorTitle: { color: '#B42318', fontSize: 11, fontWeight: '900' },
-  errorText: { color: '#B42318', fontSize: 10, lineHeight: 16, marginTop: 4 },
-  note: {
-    marginTop: 16,
-    borderRadius: 14,
-    backgroundColor: '#E9F9F3',
-    padding: 14,
-  },
-  noteTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
-  noteText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
-  primary: {
-    marginTop: 18,
-    height: 50,
-    minWidth: 210,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    backgroundColor: BLUE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryDisabled: { backgroundColor: '#B7D5FA' },
-  primaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
-  secondary: {
-    marginTop: 10,
-    height: 48,
-    minWidth: 210,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: LINE,
-    backgroundColor: SURFACE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryText: { color: TEXT, fontSize: 12, fontWeight: '900' },
-  successPage: {
-    flex: 1,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  successIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#ECFDF3',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  successIconText: { color: '#12B76A', fontSize: 28, fontWeight: '900' },
-  successTitle: {
-    color: TEXT,
-    fontSize: 25,
-    fontWeight: '900',
-    marginTop: 18,
-    letterSpacing: -0.4,
-  },
-  successCopy: {
-    color: MUTED,
-    fontSize: 11,
-    lineHeight: 18,
-    textAlign: 'center',
-    marginTop: 7,
-    maxWidth: 320,
-  },
-  successCard: {
-    width: '100%',
-    marginTop: 24,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 16,
-    paddingHorizontal: 15,
-  },
-  row: {
-    minHeight: 47,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: LINE,
-  },
-  rowLabel: { color: MUTED, fontSize: 10, fontWeight: '700' },
-  rowValue: { color: TEXT, fontSize: 11, fontWeight: '900' },
+const styles=StyleSheet.create({
+ safe:{flex:1,backgroundColor:BG},page:{paddingHorizontal:14,paddingTop:8,paddingBottom:28},center:{flex:1,alignItems:'center',justifyContent:'center',padding:24},header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},back:{width:28,height:28,alignItems:'center',justifyContent:'center'},backText:{color:TEXT,fontSize:25,lineHeight:25,marginTop:-2},headerTitle:{color:TEXT,fontSize:13,fontWeight:'900'},
+ title:{color:TEXT,fontSize:15,fontWeight:'900'},centerText:{color:MUTED,fontSize:8.5,textAlign:'center',lineHeight:14,marginTop:5,maxWidth:260},
+ summaryCard:{marginTop:12,borderWidth:1,borderColor:LINE,borderRadius:9,padding:10,flexDirection:'row',justifyContent:'space-between'},summaryLabel:{color:MUTED,fontSize:6.8},summaryValue:{color:TEXT,fontSize:9.5,fontWeight:'900',marginTop:2},sectionTitle:{color:TEXT,fontSize:10,fontWeight:'900',marginTop:16,marginBottom:6},
+ accountCard:{height:60,borderWidth:1,borderColor:LINE,borderRadius:9,flexDirection:'row',alignItems:'center',gap:8,paddingHorizontal:10},avatar:{width:34,height:34,borderRadius:17,backgroundColor:'#E9F9F3',alignItems:'center',justifyContent:'center'},avatarText:{color:'#087F5B',fontSize:8.5,fontWeight:'900'},name:{color:TEXT,fontSize:9.2,fontWeight:'900'},meta:{color:MUTED,fontSize:7,marginTop:1},verified:{color:GREEN,fontSize:12,fontWeight:'900'},
+ summaryList:{borderWidth:1,borderColor:LINE,borderRadius:9,overflow:'hidden'},row:{minHeight:42,paddingHorizontal:10,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10},rowBorder:{borderBottomWidth:1,borderBottomColor:LINE},rowLabel:{color:MUTED,fontSize:7.3},rowValue:{color:TEXT,fontSize:8.5,fontWeight:'900',maxWidth:'65%',textAlign:'right'},
+ notice:{marginTop:12,borderRadius:8,backgroundColor:'#ECFDF3',padding:10},noticeTitle:{color:'#087F5B',fontSize:8.2,fontWeight:'900'},noticeText:{color:MUTED,fontSize:7.2,lineHeight:12,marginTop:2},error:{marginTop:12,borderRadius:8,backgroundColor:'#FFF1F0',padding:10},errorText:{color:'#B42318',fontSize:8.2},
+ primary:{height:42,borderRadius:8,backgroundColor:GREEN,alignItems:'center',justifyContent:'center',marginTop:14,paddingHorizontal:16},primaryText:{color:'#FFFFFF',fontSize:9.2,fontWeight:'900'},secondary:{height:40,borderRadius:8,borderWidth:1,borderColor:LINE,alignItems:'center',justifyContent:'center',marginTop:8},secondaryText:{color:TEXT,fontSize:8.8,fontWeight:'900'},disabled:{opacity:.45},
+ success:{flex:1,paddingHorizontal:18,justifyContent:'center',alignItems:'center'},successIcon:{width:48,height:48,borderRadius:24,backgroundColor:'#ECFDF3',alignItems:'center',justifyContent:'center'},successIconText:{color:GREEN,fontSize:22,fontWeight:'900'},successTitle:{color:TEXT,fontSize:18,fontWeight:'900',marginTop:12},successText:{color:MUTED,fontSize:8.5,textAlign:'center',marginTop:4},success: {flex:1,paddingHorizontal:18,justifyContent:'center',alignItems:'stretch'},successIcon:{alignSelf:'center',width:48,height:48,borderRadius:24,backgroundColor:'#ECFDF3',alignItems:'center',justifyContent:'center'},successTitle:{color:TEXT,fontSize:18,fontWeight:'900',textAlign:'center',marginTop:12},successText:{color:MUTED,fontSize:8.5,textAlign:'center',marginTop:4,marginBottom:18}
 });
