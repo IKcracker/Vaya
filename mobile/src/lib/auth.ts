@@ -614,6 +614,7 @@ export type PassengerTripExperience = {
   driver: {
     id: string;
     name: string;
+    email: string;
     verified: boolean;
     profileImageUrl: string;
   };
