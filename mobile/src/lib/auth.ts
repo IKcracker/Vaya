@@ -582,6 +582,52 @@ export type MobileDriver = {
   verification?: DriverVerification;
   vehicles?: MobileDriverVehicle[];
   profileImageUrl?: string;
+  stats?: {
+    totalTrips: number;
+    completedTrips: number;
+    memberSince: string;
+    yearsDriving: number;
+    ratingAverage: number | null;
+    ratingCount: number;
+  };
+  reviews?: {
+    rating: number;
+    comment: string;
+    createdAt: string;
+  }[];
+};
+
+
+export type PassengerTripExperience = {
+  bookingId: string;
+  bookingStatus: string;
+  paymentStatus: string;
+  seats: number;
+  amountCents: number;
+  amount: string;
+  tripId: string;
+  tripStatus: string;
+  route: string;
+  from: string;
+  to: string;
+  departureAt: string;
+  driver: {
+    id: string;
+    name: string;
+    email: string;
+    verified: boolean;
+    profileImageUrl: string;
+  };
+  vehicle: {
+    label: string;
+    registration: string;
+    color: string;
+  };
+  review: {
+    rating: number | null;
+    comment: string;
+    createdAt: string;
+  } | null;
 };
 
 export type MobileDriverTrip = {
@@ -601,6 +647,59 @@ export type MobileDriverTrip = {
   vehicleRegistration?: string;
   vehicleColor?: string;
 };
+
+
+export async function fetchPassengerTripExperience(
+  session: string,
+  tripId: string
+) {
+  return request<{ trip: PassengerTripExperience }>(
+    `/api/mobile/me/trips/${encodeURIComponent(tripId)}/experience`,
+    undefined,
+    session
+  );
+}
+
+export async function submitDriverReview(
+  session: string,
+  tripId: string,
+  input: { rating: number; comment: string }
+) {
+  return request<{
+    review: {
+      rating: number;
+      comment: string;
+      createdAt: string;
+    };
+  }>(
+    `/api/mobile/me/trips/${encodeURIComponent(tripId)}/experience`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function submitSupportRequest(
+  session: string,
+  input: { subject: string; message: string }
+) {
+  return request<{
+    supportRequest: {
+      reference: string;
+      status: string;
+      subject: string;
+    };
+  }>(
+    '/api/mobile/me/support',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
 
 export async function fetchMobileDriver(session: string) {
   return request<{

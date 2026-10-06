@@ -833,7 +833,7 @@ export async function getMobileDriverByEmail(email: string) {
 
   if (!driver) return null;
 
-  const [driverTrips, verification, vehicleRows, passenger] = await Promise.all([
+  const [driverTrips, verification, vehicleRows, passenger, reviewSummary] = await Promise.all([
     db
       .select()
       .from(trips)
@@ -851,6 +851,7 @@ export async function getMobileDriverByEmail(email: string) {
       .where(eq(passengers.email, normalized))
       .limit(1)
       .then((rows) => rows[0] ?? null),
+    getDriverReviewSummary(driver.id),
   ]);
 
   const vehicles = await Promise.all(
@@ -899,6 +900,21 @@ export async function getMobileDriverByEmail(email: string) {
         ? `/api/mobile/me/photo?version=${passenger.profileImageUpdatedAt.getTime()}`
         : "",
       verification,
+      stats: {
+        totalTrips: driverTrips.length,
+        completedTrips: driverTrips.filter((trip) => trip.status === "Completed").length,
+        memberSince: driver.submittedAt.toISOString(),
+        yearsDriving: Math.max(
+          0,
+          Math.floor(
+            (Date.now() - driver.submittedAt.getTime()) /
+              (365.25 * 24 * 60 * 60 * 1000)
+          )
+        ),
+        ratingAverage: reviewSummary.average,
+        ratingCount: reviewSummary.count,
+      },
+      reviews: reviewSummary.recent,
     },
     trips: driverTrips.map((trip) => ({
       id: trip.publicId,
@@ -1917,5 +1933,244 @@ export async function getDriverEarningsByEmail(email: string) {
       status: "Completed",
       createdAt: row.createdAt.toISOString(),
     })),
+  };
+}
+
+
+export async function getPassengerTripExperienceByEmail(
+  email: string,
+  tripPublicId: string
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [row] = await db
+    .select({
+      bookingId: bookings.publicId,
+      bookingStatus: bookings.status,
+      paymentStatus: bookings.paymentStatus,
+      seats: bookings.seats,
+      amountCents: bookings.amountCents,
+      tripId: trips.publicId,
+      tripStatus: trips.status,
+      fromCity: trips.fromCity,
+      toCity: trips.toCity,
+      departureAt: trips.departureAt,
+      driverId: trips.driverId,
+      driverName: trips.driverName,
+      driverEmail: drivers.email,
+      driverStatus: drivers.status,
+      driverProfileImageUpdatedAt: sql<Date | null>`(
+        select p.profile_image_updated_at
+        from passengers p
+        where lower(p.email) = lower(${drivers.email})
+        limit 1
+      )`,
+      vehicleMake: trips.vehicleMake,
+      vehicleModel: trips.vehicleModel,
+      vehicleYear: trips.vehicleYear,
+      vehicleRegistration: trips.vehicleRegistration,
+      vehicleColor: trips.vehicleColor,
+    })
+    .from(bookings)
+    .innerJoin(passengers, eq(bookings.passengerId, passengers.id))
+    .innerJoin(trips, eq(bookings.tripId, trips.id))
+    .leftJoin(drivers, eq(trips.driverId, drivers.id))
+    .where(
+      and(
+        eq(passengers.email, normalized),
+        eq(trips.publicId, tripPublicId)
+      )
+    )
+    .limit(1);
+
+  if (!row) return null;
+
+  const [existingReview] = await db
+    .select({
+      detail: activityLogs.detail,
+      metadata: activityLogs.metadata,
+      createdAt: activityLogs.createdAt,
+    })
+    .from(activityLogs)
+    .where(
+      and(
+        eq(activityLogs.eventType, "driver_review"),
+        sql`${activityLogs.metadata} ->> 'tripId' = ${tripPublicId}`,
+        sql`lower(${activityLogs.metadata} ->> 'passengerEmail') = ${normalized}`
+      )
+    )
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(1);
+
+  const reviewedRating =
+    existingReview && typeof existingReview.metadata.rating === "number"
+      ? existingReview.metadata.rating
+      : null;
+
+  return {
+    bookingId: row.bookingId,
+    bookingStatus: row.bookingStatus,
+    paymentStatus: row.paymentStatus,
+    seats: row.seats,
+    amountCents: row.amountCents,
+    amount: money(row.amountCents),
+    tripId: row.tripId,
+    tripStatus: row.tripStatus,
+    route: `${row.fromCity} → ${row.toCity}`,
+    from: row.fromCity,
+    to: row.toCity,
+    departureAt: row.departureAt.toISOString(),
+    driver: {
+      id: row.driverId ?? "",
+      name: row.driverName,
+      email: row.driverEmail ?? "",
+      verified: row.driverStatus === "Approved",
+      profileImageUrl:
+        row.driverId && row.driverProfileImageUpdatedAt
+          ? `/api/public/drivers/${row.driverId}/profile-image?version=${new Date(row.driverProfileImageUpdatedAt).getTime()}`
+          : "",
+    },
+    vehicle: {
+      label:
+        row.vehicleMake && row.vehicleModel
+          ? `${row.vehicleMake} ${row.vehicleModel}${row.vehicleYear ? ` · ${row.vehicleYear}` : ""}`
+          : "Vehicle details pending",
+      registration: row.vehicleRegistration ?? "",
+      color: row.vehicleColor ?? "",
+    },
+    review: existingReview
+      ? {
+          rating: reviewedRating,
+          comment: existingReview.detail,
+          createdAt: existingReview.createdAt.toISOString(),
+        }
+      : null,
+  };
+}
+
+export async function submitDriverReviewByEmail(
+  email: string,
+  input: {
+    tripId: string;
+    rating: number;
+    comment?: string;
+  }
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+  const trip = await getPassengerTripExperienceByEmail(normalized, input.tripId);
+
+  if (!trip) throw new Error("TRIP_NOT_FOUND");
+  if (trip.tripStatus !== "Completed") throw new Error("TRIP_NOT_COMPLETED");
+  if (!trip.driver.id) throw new Error("DRIVER_NOT_FOUND");
+  if (trip.review) throw new Error("REVIEW_ALREADY_EXISTS");
+
+  const rating = Math.max(1, Math.min(5, Math.round(input.rating)));
+  const comment = input.comment?.trim() ?? "";
+
+  const [review] = await db
+    .insert(activityLogs)
+    .values({
+      eventType: "driver_review",
+      title: `Driver review · ${trip.driver.name}`,
+      detail: comment,
+      metadata: {
+        passengerEmail: normalized,
+        driverId: trip.driver.id,
+        tripId: trip.tripId,
+        bookingId: trip.bookingId,
+        rating,
+        source: "mobile",
+      },
+    })
+    .returning({ createdAt: activityLogs.createdAt });
+
+  return {
+    rating,
+    comment,
+    createdAt: review.createdAt.toISOString(),
+  };
+}
+
+export async function getDriverReviewSummary(driverId: string) {
+  const db = getDb();
+
+  const rows = await db
+    .select({
+      detail: activityLogs.detail,
+      metadata: activityLogs.metadata,
+      createdAt: activityLogs.createdAt,
+    })
+    .from(activityLogs)
+    .where(
+      and(
+        eq(activityLogs.eventType, "driver_review"),
+        sql`${activityLogs.metadata} ->> 'driverId' = ${driverId}`
+      )
+    )
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(100);
+
+  const ratings = rows
+    .map((row) =>
+      typeof row.metadata.rating === "number" ? row.metadata.rating : Number(row.metadata.rating)
+    )
+    .filter((rating) => Number.isFinite(rating) && rating >= 1 && rating <= 5);
+
+  const average =
+    ratings.length > 0
+      ? Math.round((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length) * 10) / 10
+      : null;
+
+  return {
+    average,
+    count: ratings.length,
+    recent: rows.slice(0, 5).map((row) => ({
+      rating:
+        typeof row.metadata.rating === "number"
+          ? row.metadata.rating
+          : Number(row.metadata.rating),
+      comment: row.detail,
+      createdAt: row.createdAt.toISOString(),
+    })),
+  };
+}
+
+export async function createMobileSupportRequestByEmail(
+  email: string,
+  input: { subject: string; message: string }
+) {
+  const db = getDb();
+  const normalized = email.trim().toLowerCase();
+
+  const [passenger] = await db
+    .select({ id: passengers.id, name: passengers.name })
+    .from(passengers)
+    .where(eq(passengers.email, normalized))
+    .limit(1);
+
+  if (!passenger) throw new Error("PASSENGER_NOT_FOUND");
+
+  const reference = `SUP-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+
+  await db.insert(activityLogs).values({
+    eventType: "mobile_support_request",
+    title: input.subject.trim(),
+    detail: input.message.trim(),
+    metadata: {
+      reference,
+      passengerId: passenger.id,
+      passengerName: passenger.name,
+      email: normalized,
+      status: "Open",
+      source: "mobile",
+    },
+  });
+
+  return {
+    reference,
+    status: "Open",
+    subject: input.subject.trim(),
   };
 }

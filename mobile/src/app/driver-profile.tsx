@@ -53,18 +53,32 @@ export default function DriverProfileScreen() {
 
         <View style={styles.identity}>
           <Text style={styles.name}>{driver.name}</Text>
-          <View style={styles.verifiedRow}><Text style={styles.verifiedIcon}>✓</Text><Text style={styles.verifiedText}>Verified Driver</Text></View>
-          <Text style={styles.rating}>★ 4.8 (120) · 2+ years</Text>
+          <View style={styles.verifiedRow}><Text style={styles.verifiedIcon}>{driver.status === 'Approved' ? '✓' : '•'}</Text><Text style={styles.verifiedText}>{driver.status === 'Approved' ? 'Verified Driver' : driver.status}</Text></View>
+          <Text style={styles.rating}>{driver.stats?.ratingAverage ? `★ ${driver.stats.ratingAverage.toFixed(1)} (${driver.stats.ratingCount} review${driver.stats.ratingCount === 1 ? '' : 's'})` : 'No ratings yet'} · {driver.stats?.yearsDriving ?? 0}+ years</Text>
         </View>
 
         <View style={styles.stats}>
-          <Stat value="120" label="Trips" />
-          <Stat value="98%" label="On-time" />
-          <Stat value="2+" label="Years" />
+          <Stat value={String(driver.stats?.totalTrips ?? 0)} label="Trips" />
+          <Stat value={String(driver.stats?.completedTrips ?? 0)} label="Completed" />
+          <Stat value={String(driver.stats?.yearsDriving ?? 0)} label="Years" />
         </View>
 
-        <Text style={styles.sectionTitle}>About me</Text>
-        <View style={styles.card}><Text style={styles.body}>Friendly, safe and reliable driver. I enjoy meeting new people and travelling between cities with verified Vaya passengers.</Text></View>
+        <Text style={styles.sectionTitle}>Driver details</Text>
+        <View style={styles.card}>
+          <Text style={styles.body}>Operating area: {driver.location}</Text>
+          <Text style={styles.body}>Verification: {driver.status}</Text>
+          <Text style={styles.body}>Member since: {driver.stats?.memberSince ? new Intl.DateTimeFormat('en-ZA', { month: 'short', year: 'numeric' }).format(new Date(driver.stats.memberSince)) : 'Not available'}</Text>
+        </View>
+
+        <Text style={styles.sectionTitle}>Recent reviews</Text>
+        <View style={styles.card}>
+          {driver.reviews?.length ? driver.reviews.map((review, index) => (
+            <View key={`${review.createdAt}-${index}`} style={[styles.reviewRow, index < driver.reviews!.length - 1 && styles.reviewBorder]}>
+              <Text style={styles.reviewRating}>{'★'.repeat(Math.max(1, Math.min(5, Math.round(review.rating))))}</Text>
+              <Text style={styles.reviewComment}>{review.comment || 'No written comment'}</Text>
+            </View>
+          )) : <Text style={styles.body}>No passenger reviews yet.</Text>}
+        </View>
 
         <View style={styles.sectionRow}><Text style={styles.sectionTitle}>Vehicles ({vehicles.length})</Text><Pressable onPress={() => router.push('/driver-vehicle')}><Text style={styles.link}>View all</Text></Pressable></View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.vehicles}>
@@ -78,8 +92,8 @@ export default function DriverProfileScreen() {
         </ScrollView>
 
         <View style={styles.actions}>
-          <Pressable style={styles.secondary}><Text style={styles.secondaryText}>Message</Text></Pressable>
-          <Pressable onPress={() => router.push('/explore')} style={styles.primaryFlex}><Text style={styles.primaryText}>View Rides</Text></Pressable>
+          <Pressable onPress={() => router.push('/profile-edit')} style={styles.secondary}><Text style={styles.secondaryText}>Edit Profile</Text></Pressable>
+          <Pressable onPress={() => router.push('/driver-rides')} style={styles.primaryFlex}><Text style={styles.primaryText}>My Rides</Text></Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -113,7 +127,11 @@ const styles = StyleSheet.create({
   statLabel: { color: MUTED, fontSize: 8, marginTop: 3 },
   sectionTitle: { color: TEXT, fontSize: 13, fontWeight: '900', marginHorizontal: 16, marginTop: 20, marginBottom: 8 },
   card: { marginHorizontal: 16, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 14, padding: 13 },
-  body: { color: MUTED, fontSize: 9, lineHeight: 15 },
+  body: { color: MUTED, fontSize: 9, lineHeight: 15, marginBottom: 3 },
+  reviewRow: { paddingVertical: 8 },
+  reviewBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
+  reviewRating: { color: GREEN, fontSize: 10, fontWeight: '900' },
+  reviewComment: { color: MUTED, fontSize: 8.5, lineHeight: 14, marginTop: 3 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   link: { color: '#087F5B', fontSize: 8, fontWeight: '900', marginRight: 16, marginTop: 16 },
   vehicles: { paddingHorizontal: 16, gap: 9 },
