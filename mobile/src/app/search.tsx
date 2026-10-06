@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const BLUE = '#1877F2';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     backgroundColor: SURFACE,
   },
-  chipActive: { borderColor: '#9DC5FA', backgroundColor: '#E7F3FF' },
+  chipActive: { borderColor: '#9DC5FA', backgroundColor: '#E9F9F3' },
   chipText: { color: MUTED, fontSize: 10, fontWeight: '800' },
   chipTextActive: { color: BLUE },
   passengerRow: {
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   note: {
     marginTop: 18,
     borderRadius: 14,
-    backgroundColor: '#EEF5FF',
+    backgroundColor: '#E9F9F3',
     padding: 14,
   },
   noteTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
