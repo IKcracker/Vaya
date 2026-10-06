@@ -201,7 +201,7 @@ export default function TripsScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.driverName}>{trip.driver}</Text>
                     <Text style={styles.vehicleText}>
-                      {trip.vehicle || 'Verified Vaya vehicle'}
+                      Verified Vaya vehicle
                     </Text>
                   </View>
                   <Text style={styles.amount}>{trip.amount}</Text>
