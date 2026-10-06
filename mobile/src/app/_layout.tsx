@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import '@/lib/background-driver-location';
 import { PassengerAuthProvider } from '@/providers/passenger-auth-provider';
 
 SplashScreen.preventAutoHideAsync();
