@@ -4,11 +4,11 @@ export default function AppTabs() {
   return (
     <NativeTabs
       backgroundColor="#FFFFFF"
-      indicatorColor="#E7F3FF"
-      tintColor="#1877F2"
-      labelStyle={{ selected: { color: '#1877F2' } }}>
+      indicatorColor="#E9F9F3"
+      tintColor="#10B981"
+      labelStyle={{ selected: { color: '#087F5B', fontWeight: '700' } }}>
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Ride</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf={{ default: 'car', selected: 'car.fill' }}
           md={{ default: 'directions_car', selected: 'directions_car_filled' }}
