@@ -1,363 +1,64 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const BLUE = '#10B981';
-const BG = '#F6F8F7';
-const SURFACE = '#FFFFFF';
-const TEXT = '#101828';
-const MUTED = '#667085';
-const LINE = '#E4E7EC';
+import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-function isoDate(date: Date) {
-  return date.toISOString().slice(0, 10);
+const GREEN='#16B364'; const GREEN_DARK='#087F5B'; const BG='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
+
+function isoDate(date:Date){return date.toISOString().slice(0,10);}
+function dateLabel(date:Date){return new Intl.DateTimeFormat('en-ZA',{weekday:'short',day:'2-digit',month:'short'}).format(date);}
+
+export default function SearchScreen(){
+ const router=useRouter();
+ const params=useLocalSearchParams<{from?:string;to?:string}>();
+ const {passenger}=usePassengerAuth();
+ const [from,setFrom]=useState(typeof params.from==='string'?params.from:passenger?.city??'');
+ const [to,setTo]=useState(typeof params.to==='string'?params.to:'');
+ const [date,setDate]=useState('');
+ const [passengers,setPassengers]=useState(1);
+
+ const dateOptions=useMemo(()=>{
+  const today=new Date();
+  const tomorrow=new Date(today); tomorrow.setDate(today.getDate()+1);
+  const nextFriday=new Date(today); const daysUntilFriday=(5-today.getDay()+7)%7||7; nextFriday.setDate(today.getDate()+daysUntilFriday);
+  return [{label:'Any date',value:''},{label:dateLabel(tomorrow),value:isoDate(tomorrow)},{label:dateLabel(nextFriday),value:isoDate(nextFriday)}];
+ },[]);
+
+ const canSearch=from.trim().length>1&&to.trim().length>1&&from.trim().toLowerCase()!==to.trim().toLowerCase();
+
+ function submit(){
+  if(!canSearch)return;
+  router.push({pathname:'/search-results',params:{from:from.trim(),to:to.trim(),date,passengers:String(passengers)}});
+ }
+
+ return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+  <View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable><Text style={styles.title}>Find a Ride</Text><View style={{width:28}}/></View>
+
+  <View style={styles.routeCard}>
+   <View style={styles.routeRow}><View style={styles.dotStart}/><View style={{flex:1}}><Text style={styles.label}>Leaving from</Text><TextInput value={from} onChangeText={setFrom} placeholder="City or town" placeholderTextColor="#98A2B3" autoCapitalize="words" style={styles.input}/></View></View>
+   <View style={styles.routeDivider}/>
+   <View style={styles.routeRow}><View style={styles.dotEnd}/><View style={{flex:1}}><Text style={styles.label}>Going to</Text><TextInput value={to} onChangeText={setTo} placeholder="City or town" placeholderTextColor="#98A2B3" autoCapitalize="words" style={styles.input}/></View></View>
+  </View>
+
+  {passenger?.city&&from.trim().toLowerCase()!==passenger.city.trim().toLowerCase()?<Pressable onPress={()=>setFrom(passenger.city)} style={styles.homeCity}><Text style={styles.homeCityText}>Use home city · {passenger.city}</Text></Pressable>:null}
+
+  <Text style={styles.section}>Travel date</Text>
+  <View style={styles.chips}>{dateOptions.map(option=><Pressable key={option.label} onPress={()=>setDate(option.value)} style={[styles.chip,date===option.value&&styles.chipActive]}><Text style={[styles.chipText,date===option.value&&styles.chipTextActive]}>{option.label}</Text></Pressable>)}</View>
+
+  <View style={styles.passengerRow}><View><Text style={styles.section}>Passengers</Text><Text style={styles.hint}>Choose how many seats you need.</Text></View><View style={styles.stepper}><Pressable disabled={passengers<=1} onPress={()=>setPassengers(v=>Math.max(1,v-1))} style={[styles.stepButton,passengers<=1&&styles.stepDisabled]}><Text style={styles.stepText}>−</Text></Pressable><Text style={styles.count}>{passengers}</Text><Pressable disabled={passengers>=8} onPress={()=>setPassengers(v=>Math.min(8,v+1))} style={[styles.stepButton,passengers>=8&&styles.stepDisabled]}><Text style={styles.stepText}>＋</Text></Pressable></View></View>
+
+  <Pressable disabled={!canSearch} onPress={submit} style={[styles.primary,!canSearch&&styles.disabled]}><Text style={styles.primaryText}>Search Rides</Text></Pressable>
+  <Text style={styles.footer}>Results come directly from published Vaya trips with enough available seats.</Text>
+ </ScrollView></SafeAreaView>
 }
 
-function dateLabel(date: Date) {
-  return new Intl.DateTimeFormat('en-ZA', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-  }).format(date);
-}
-
-export default function SearchScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams<{ from?: string; to?: string }>();
-  const [from, setFrom] = useState(
-    typeof params.from === 'string' ? params.from : 'Johannesburg'
-  );
-  const [to, setTo] = useState(
-    typeof params.to === 'string' ? params.to : 'Durban'
-  );
-  const [date, setDate] = useState('');
-  const [passengers, setPassengers] = useState(1);
-
-  const dateOptions = useMemo(() => {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-
-    const nextFriday = new Date(today);
-    const daysUntilFriday = (5 - today.getDay() + 7) % 7 || 7;
-    nextFriday.setDate(today.getDate() + daysUntilFriday);
-
-    return [
-      { label: 'Any date', value: '' },
-      { label: dateLabel(tomorrow), value: isoDate(tomorrow) },
-      { label: dateLabel(nextFriday), value: isoDate(nextFriday) },
-    ];
-  }, []);
-
-  const canSearch = from.trim().length > 1 && to.trim().length > 1;
-
-  function submit() {
-    if (!canSearch) return;
-
-    router.push({
-      pathname: '/search-results',
-      params: {
-        from: from.trim(),
-        to: to.trim(),
-        date,
-        passengers: String(passengers),
-      },
-    });
-  }
-
-  return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
-        contentContainerStyle={styles.page}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
-            <Text style={styles.backText}>‹</Text>
-          </Pressable>
-          <View>
-            <Text style={styles.eyebrow}>PLAN A TRIP</Text>
-            <Text style={styles.title}>Search available rides</Text>
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.routeRow}>
-            <View style={styles.rail}>
-              <View style={styles.dotMuted} />
-              <View style={styles.line} />
-              <View style={styles.dotBlue} />
-            </View>
-
-            <View style={styles.fields}>
-              <View style={styles.field}>
-                <Text style={styles.label}>Leaving from</Text>
-                <TextInput
-                  value={from}
-                  onChangeText={setFrom}
-                  placeholder="City or town"
-                  placeholderTextColor="#98A2B3"
-                  autoCapitalize="words"
-                  returnKeyType="next"
-                  style={styles.input}
-                />
-              </View>
-
-              <View style={styles.field}>
-                <Text style={styles.label}>Going to</Text>
-                <TextInput
-                  value={to}
-                  onChangeText={setTo}
-                  placeholder="City or town"
-                  placeholderTextColor="#98A2B3"
-                  autoCapitalize="words"
-                  returnKeyType="done"
-                  style={styles.input}
-                />
-              </View>
-            </View>
-          </View>
-
-          <Text style={styles.groupLabel}>Travel date</Text>
-          <View style={styles.chips}>
-            {dateOptions.map((option) => (
-              <Pressable
-                key={option.label}
-                onPress={() => setDate(option.value)}
-                style={({ pressed }) => [
-                  styles.chip,
-                  date === option.value && styles.chipActive,
-                  pressed && styles.pressed,
-                ]}>
-                <Text
-                  style={[
-                    styles.chipText,
-                    date === option.value && styles.chipTextActive,
-                  ]}>
-                  {option.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <View style={styles.passengerRow}>
-            <View>
-              <Text style={styles.groupLabel}>Passengers</Text>
-              <Text style={styles.passengerHint}>
-                Reserve the correct number of seats.
-              </Text>
-            </View>
-            <View style={styles.stepper}>
-              <Pressable
-                disabled={passengers <= 1}
-                onPress={() => setPassengers((value) => Math.max(1, value - 1))}
-                style={({ pressed }) => [
-                  styles.stepButton,
-                  passengers <= 1 && styles.stepDisabled,
-                  pressed && styles.pressed,
-                ]}>
-                <Text style={styles.stepText}>−</Text>
-              </Pressable>
-              <Text style={styles.count}>{passengers}</Text>
-              <Pressable
-                disabled={passengers >= 8}
-                onPress={() => setPassengers((value) => Math.min(8, value + 1))}
-                style={({ pressed }) => [
-                  styles.stepButton,
-                  passengers >= 8 && styles.stepDisabled,
-                  pressed && styles.pressed,
-                ]}>
-                <Text style={styles.stepText}>＋</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-
-        <Pressable
-          disabled={!canSearch}
-          onPress={submit}
-          style={({ pressed }) => [
-            styles.primary,
-            !canSearch && styles.primaryDisabled,
-            pressed && canSearch && styles.primaryPressed,
-          ]}>
-          <Text style={styles.primaryText}>Search rides</Text>
-        </Pressable>
-
-        <View style={styles.note}>
-          <Text style={styles.noteTitle}>What Vaya checks</Text>
-          <Text style={styles.noteText}>
-            Results only include trips with enough available seats. Driver,
-            vehicle, fare and departure details are returned from the Vaya
-            backend.
-          </Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  page: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 40 },
-  pressed: { opacity: 0.72 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  back: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: LINE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backText: { color: TEXT, fontSize: 30, lineHeight: 30, marginTop: -3 },
-  eyebrow: {
-    color: BLUE,
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 1.1,
-  },
-  title: {
-    color: TEXT,
-    fontSize: 20,
-    fontWeight: '900',
-    letterSpacing: -0.3,
-    marginTop: 3,
-  },
-  card: {
-    marginTop: 24,
-    backgroundColor: SURFACE,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: LINE,
-    padding: 16,
-  },
-  routeRow: { flexDirection: 'row' },
-  rail: {
-    width: 25,
-    alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 24,
-  },
-  dotMuted: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#98A2B3',
-  },
-  dotBlue: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: BLUE,
-  },
-  line: {
-    flex: 1,
-    width: 1,
-    backgroundColor: '#D0D5DD',
-    marginVertical: 3,
-  },
-  fields: { flex: 1, gap: 10 },
-  field: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 12,
-    paddingHorizontal: 13,
-    paddingVertical: 10,
-  },
-  label: { color: MUTED, fontSize: 9, fontWeight: '800' },
-  input: {
-    color: TEXT,
-    fontSize: 14,
-    fontWeight: '800',
-    paddingVertical: 5,
-    marginTop: 2,
-  },
-  groupLabel: {
-    color: TEXT,
-    fontSize: 11,
-    fontWeight: '900',
-    marginTop: 20,
-  },
-  chips: {
-    marginTop: 9,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 10,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    backgroundColor: SURFACE,
-  },
-  chipActive: { borderColor: '#9DC5FA', backgroundColor: '#E9F9F3' },
-  chipText: { color: MUTED, fontSize: 10, fontWeight: '800' },
-  chipTextActive: { color: BLUE },
-  passengerRow: {
-    marginTop: 4,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  passengerHint: { color: MUTED, fontSize: 9, marginTop: 4 },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 11,
-    overflow: 'hidden',
-  },
-  stepButton: {
-    width: 38,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
-  },
-  stepDisabled: { opacity: 0.35 },
-  stepText: { color: TEXT, fontSize: 18, fontWeight: '800' },
-  count: {
-    width: 34,
-    textAlign: 'center',
-    color: TEXT,
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  primary: {
-    marginTop: 16,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: BLUE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryDisabled: { backgroundColor: '#B7D5FA' },
-  primaryPressed: { opacity: 0.88, transform: [{ scale: 0.995 }] },
-  primaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
-  note: {
-    marginTop: 18,
-    borderRadius: 14,
-    backgroundColor: '#E9F9F3',
-    padding: 14,
-  },
-  noteTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
-  noteText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
+const styles=StyleSheet.create({
+ safe:{flex:1,backgroundColor:BG},page:{paddingHorizontal:14,paddingTop:8,paddingBottom:28},header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},back:{width:28,height:28,alignItems:'center',justifyContent:'center'},backText:{color:TEXT,fontSize:25,lineHeight:25,marginTop:-2},title:{color:TEXT,fontSize:13,fontWeight:'900'},
+ routeCard:{marginTop:14,borderWidth:1,borderColor:LINE,borderRadius:9,overflow:'hidden'},routeRow:{minHeight:61,flexDirection:'row',alignItems:'center',gap:9,paddingHorizontal:11},routeDivider:{height:1,backgroundColor:LINE,marginLeft:28},dotStart:{width:8,height:8,borderRadius:4,backgroundColor:GREEN},dotEnd:{width:8,height:8,borderRadius:4,borderWidth:2,borderColor:'#98A2B3'},label:{color:MUTED,fontSize:6.8},input:{color:TEXT,fontSize:10,fontWeight:'800',paddingVertical:4,marginTop:1},
+ homeCity:{alignSelf:'flex-start',marginTop:8,borderRadius:14,backgroundColor:'#ECFDF3',paddingHorizontal:9,paddingVertical:6},homeCityText:{color:GREEN_DARK,fontSize:7.3,fontWeight:'900'},
+ section:{color:TEXT,fontSize:9.5,fontWeight:'900',marginTop:17},chips:{marginTop:7,flexDirection:'row',gap:6,flexWrap:'wrap'},chip:{height:31,paddingHorizontal:10,borderRadius:16,borderWidth:1,borderColor:LINE,alignItems:'center',justifyContent:'center'},chipActive:{backgroundColor:'#ECFDF3',borderColor:'#C7EEDF'},chipText:{color:MUTED,fontSize:7.2,fontWeight:'800'},chipTextActive:{color:GREEN_DARK},
+ passengerRow:{marginTop:2,flexDirection:'row',alignItems:'flex-end',justifyContent:'space-between',gap:10},hint:{color:MUTED,fontSize:6.8,marginTop:2},stepper:{flexDirection:'row',alignItems:'center',borderWidth:1,borderColor:LINE,borderRadius:8,overflow:'hidden'},stepButton:{width:34,height:34,alignItems:'center',justifyContent:'center',backgroundColor:'#F8FAF9'},stepDisabled:{opacity:.35},stepText:{color:TEXT,fontSize:16,fontWeight:'800'},count:{width:30,textAlign:'center',color:TEXT,fontSize:9,fontWeight:'900'},
+ primary:{height:42,borderRadius:8,backgroundColor:GREEN,alignItems:'center',justifyContent:'center',marginTop:18},primaryText:{color:'#FFFFFF',fontSize:9.5,fontWeight:'900'},disabled:{opacity:.4},footer:{color:MUTED,fontSize:7.2,lineHeight:12,textAlign:'center',marginTop:10}
 });

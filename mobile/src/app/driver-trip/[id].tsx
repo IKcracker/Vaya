@@ -10,11 +10,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { RouteMap, RouteMapFallback } from '@/components/route-map';
 import {
   fetchMobileDriver,
   MobileDriverTrip,
   updateDriverTripStatus,
 } from '@/lib/auth';
+import { getRoutePreview, RoutePreview } from '@/lib/api';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
 const BLUE = '#10B981';
@@ -42,6 +44,8 @@ export default function DriverTripScreen() {
   const { loading: authLoading, session } = usePassengerAuth();
 
   const [trip, setTrip] = useState<MobileDriverTrip | null>(null);
+  const [route, setRoute] = useState<RoutePreview | null>(null);
+  const [routeMessage, setRouteMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(Boolean(session && id));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(
@@ -70,7 +74,19 @@ export default function DriverTripScreen() {
         if (!active) return;
         const found = response.trips.find((item) => item.id === id) ?? null;
         setTrip(found);
-        if (!found) setError('This trip was not found in your driver account.');
+        if (!found) {
+          setError('This trip was not found in your driver account.');
+          return;
+        }
+        getRoutePreview(found.from, found.to)
+          .then((routeResponse) => {
+            if (!active) return;
+            setRoute(routeResponse.route);
+            setRouteMessage(routeResponse.error ?? null);
+          })
+          .catch(() => {
+            if (active) setRouteMessage('Map route unavailable');
+          });
       })
       .catch((reason: unknown) => {
         if (active) {
@@ -182,6 +198,18 @@ export default function DriverTripScreen() {
             <Metric label="Expected" value={expected} dark />
           </View>
         </View>
+
+        <Text style={styles.sectionTitle}>Route map</Text>
+        {route ? (
+          <RouteMap route={route} from={trip.from} to={trip.to} height={190} />
+        ) : (
+          <RouteMapFallback
+            from={trip.from}
+            to={trip.to}
+            message={routeMessage ?? 'Loading road route...'}
+            height={190}
+          />
+        )}
 
         {editable ? (
           <Pressable
