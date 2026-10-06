@@ -244,7 +244,7 @@ export default function DriverVehicleScreen() {
         </View>
 
         <Pressable
-          onPress={startAdd}
+          onPress={() => router.push('/add-vehicle')}
           style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
           <Text style={styles.addPlus}>＋</Text>
           <Text style={styles.addText}>Add vehicle</Text>
