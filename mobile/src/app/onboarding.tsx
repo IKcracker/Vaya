@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +12,11 @@ const LINE = '#E4E7EC';
 
 export default function OnboardingScreen() {
   const router = useRouter();
+
+  async function continueToAuth() {
+    await SecureStore.setItemAsync('vaya.onboarding.completed', '1');
+    router.replace('/auth');
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -47,7 +53,7 @@ export default function OnboardingScreen() {
             <View style={styles.dot} />
           </View>
 
-          <Pressable onPress={() => router.replace('/auth')} style={styles.primary}>
+          <Pressable onPress={() => void continueToAuth()} style={styles.primary}>
             <Text style={styles.primaryText}>Next</Text>
           </Pressable>
 
