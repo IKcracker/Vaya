@@ -16,8 +16,8 @@ import { fetchMobileDriver, MobileDriver } from '@/lib/auth';
 import { API_URL } from '@/lib/api';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -214,15 +214,15 @@ const styles = StyleSheet.create({
   title: { color: TEXT, fontSize: 25, fontWeight: '900', marginTop: 3, letterSpacing: -0.4 },
   primary: { marginTop: 18, height: 48, paddingHorizontal: 18, borderRadius: 12, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
   primaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
-  accountCard: { marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, backgroundColor: '#0B1730', padding: 15 },
-  avatar: { width: 54, height: 54, borderRadius: 27, overflow: 'hidden', backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  accountCard: { marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, backgroundColor: '#063C35', padding: 15 },
+  avatar: { width: 54, height: 54, borderRadius: 27, overflow: 'hidden', backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   avatarImage: { width: '100%', height: '100%' },
   avatarText: { color: BLUE, fontSize: 15, fontWeight: '900' },
   accountName: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
   accountEmail: { color: '#C5D0DF', fontSize: 9, marginTop: 4 },
   accountMeta: { color: '#8FA0B8', fontSize: 8, marginTop: 4 },
-  editButton: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: '#15284A' },
-  editText: { color: '#D7E6FF', fontSize: 9, fontWeight: '900' },
+  editButton: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: '#0B5148' },
+  editText: { color: '#D7F5E8', fontSize: 9, fontWeight: '900' },
   section: { marginTop: 23 },
   sectionTitle: { color: TEXT, fontSize: 15, fontWeight: '900', marginBottom: 8 },
   sectionCard: { borderWidth: 1, borderColor: LINE, borderRadius: 16, backgroundColor: SURFACE, overflow: 'hidden' },
