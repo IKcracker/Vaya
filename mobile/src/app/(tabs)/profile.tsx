@@ -159,34 +159,28 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.actionCard}>
           <AccountRow
-            title="Personal details"
-            note={passenger?.phone ? `${passenger.phone} · ${passenger.city}` : 'Add your phone number and home city'}
+            title="Personal Details"
+            note={passenger?.phone ? `${passenger.phone} · ${passenger.city}` : 'Name, phone, city and profile photo'}
             icon="👤"
             onPress={() => router.push('/profile-edit')}
           />
           <AccountRow
-            title="Trips"
-            note="Upcoming bookings and travel history"
-            icon="🎫"
-            onPress={() => router.push('/trips')}
-          />
-          <AccountRow
-            title="Payments"
-            note="Payment attempts, references and settled transactions"
+            title="Payment Methods"
+            note="Cards and preferred payment method"
             icon="💳"
-            onPress={() => router.push('/profile-payments')}
-          />
-          <AccountRow
-            title="Safety"
-            note="Report a trip or travel safety concern"
-            icon="🛡"
-            onPress={() => router.push('/profile-safety')}
+            onPress={() => router.push('/payment-methods')}
           />
           <AccountRow
             title="Settings"
-            note="Account, privacy, vehicles, verification and app information"
+            note="Privacy, notifications, vehicles and app preferences"
             icon="⚙"
             onPress={() => router.push('/settings')}
+          />
+          <AccountRow
+            title="Help & Support"
+            note="FAQs, support and issue reporting"
+            icon="?"
+            onPress={() => router.push('/help-support')}
             last
           />
         </View>
@@ -224,9 +218,9 @@ export default function ProfileScreen() {
                 <Text style={styles.vehicleButtonText}>Manage vehicles</Text>
               </Pressable>
               <Pressable
-                onPress={() => router.push('/explore')}
+                onPress={() => router.push('/driver-profile')}
                 style={({ pressed }) => [styles.driverButton, styles.driverButtonFlex, pressed && styles.pressed]}>
-                <Text style={styles.driverButtonText}>Open driver mode</Text>
+                <Text style={styles.driverButtonText}>View driver profile</Text>
               </Pressable>
             </View>
           ) : (

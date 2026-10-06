@@ -65,7 +65,7 @@ export default function PassengerAuthScreen() {
         }
       }
 
-      router.replace(next as never);
+      router.replace((mode === 'sign-up' ? '/choose-role' : next) as never);
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -97,12 +97,13 @@ export default function PassengerAuthScreen() {
         </Pressable>
 
         <View style={styles.hero}>
+          <View style={styles.brandMark}><View style={styles.brandMarkInner} /></View>
           <Text style={styles.brand}>Vaya</Text>
           <Text style={styles.heroTitle}>
-            {mode === 'sign-in' ? 'Welcome back' : 'Create your Vaya account'}
+            {mode === 'sign-in' ? 'Welcome back' : 'Create your account'}
           </Text>
           <Text style={styles.heroText}>
-            Ride together with verified drivers, trusted vehicles and one secure Vaya account.
+            {mode === 'sign-in' ? 'Sign in to continue to Vaya' : 'Join Vaya and travel better together'}
           </Text>
         </View>
 
@@ -256,22 +257,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backText: { color: TEXT, fontSize: 30, lineHeight: 30, marginTop: -3 },
-  hero: {
-    marginTop: 24,
-    backgroundColor: NAVY,
-    borderRadius: 20,
-    padding: 20,
-  },
-  brand: { color: '#FFFFFF', fontSize: 24, fontWeight: '900', letterSpacing: -1.1 },
-  dot: { color: '#34D399' },
-  heroTitle: {
-    color: '#FFFFFF',
-    fontSize: 25,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-    marginTop: 28,
-  },
-  heroText: { color: '#B9D7CE', fontSize: 11, lineHeight: 18, marginTop: 7 },
+  hero: { marginTop: 16, alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 },
+  brandMark: { width: 48, height: 60, borderRadius: 25, backgroundColor: BLUE, transform: [{ rotate: '18deg' }], overflow: 'hidden' },
+  brandMarkInner: { position: 'absolute', left: 13, top: 12, width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFFFFF' },
+  brand: { color: NAVY, fontSize: 24, fontWeight: '900', letterSpacing: -1.1, marginTop: 10 },
+  heroTitle: { color: TEXT, fontSize: 22, fontWeight: '900', letterSpacing: -0.4, marginTop: 18 },
+  heroText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 5, textAlign: 'center' },
   segment: {
     marginTop: 18,
     backgroundColor: '#E8EFEC',

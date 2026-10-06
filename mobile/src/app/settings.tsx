@@ -89,48 +89,21 @@ export default function SettingsScreen() {
         </View>
 
         <Section title="Account">
-          <Row icon="👤" title="Personal details" note="Name, phone, home city and profile photo" onPress={() => router.push('/profile-edit')} />
-          <Row icon="🎫" title="My trips" note="Upcoming bookings and travel history" onPress={() => router.push('/trips')} />
-          <Row icon="💳" title="Payments" note="Payment attempts, references and settled transactions" onPress={() => router.push('/profile-payments')} last />
-        </Section>
-
-        <Section title="Safety">
-          <Row icon="🛡" title="Safety centre" note="Report a trip or travel safety concern" onPress={() => router.push('/profile-safety')} />
-          <InfoRow icon="✓" title="Account session" note="Signed in securely on this device" last />
-        </Section>
-
-        {driver ? (
-          <Section title="Driver account">
-            <Row
-              icon="✓"
-              title="Driver verification"
-              note={`${driver.status} · ${driver.checks}`}
-              onPress={() => router.push('/driver-verification')}
-            />
-            <Row
-              icon="◆"
-              title="Vehicles"
-              note={`${vehicleCount} vehicle${vehicleCount === 1 ? '' : 's'} · ${approvedVehicles} approved`}
-              onPress={() => router.push('/driver-vehicle')}
-            />
-            <Row
-              icon="↗"
-              title="Driver trips"
-              note="Publish and manage your journeys"
-              onPress={() => router.push('/explore')}
-              last
-            />
-          </Section>
-        ) : (
-          <Section title="Drive with Vaya">
-            <Row icon="↗" title="Become a driver" note="Apply, verify your identity and add verified vehicles" onPress={() => router.push('/explore')} last />
-          </Section>
-        )}
-
-        <Section title="Privacy & app">
-          <InfoRow icon="🔒" title="Your data" note="Profile and trip information is linked to your authenticated Vaya account." />
-          <InfoRow icon="!" title="Emergency situations" note="If you are in immediate danger, contact local emergency services first, then report the trip in Vaya." />
-          <InfoRow icon="i" title="Vaya version" note={`Version ${version}`} last />
+          <Row icon="👤" title="Account" note="Personal details and profile photo" onPress={() => router.push('/profile-edit')} />
+          <Row icon="💳" title="Payment Methods" note="Cards and preferred payment method" onPress={() => router.push('/payment-methods')} />
+          <Row icon="🛡" title="Safety" note="Report a trip or safety concern" onPress={() => router.push('/profile-safety')} />
+          {driver ? (
+            <>
+              <Row icon="✓" title="Driver Verification" note={`${driver.status} · ${driver.checks}`} onPress={() => router.push('/driver-verification')} />
+              <Row icon="🚙" title="Vehicles (Drivers)" note={`${vehicleCount} vehicle${vehicleCount === 1 ? '' : 's'} · ${approvedVehicles} approved`} onPress={() => router.push('/driver-vehicle')} />
+            </>
+          ) : null}
+          <Row icon="🔒" title="Privacy & Security" note="Visibility, location sharing and sessions" onPress={() => router.push('/privacy-security')} />
+          <Row icon="🔔" title="Notifications" note="Trip, verification and payment alerts" onPress={() => router.push('/notifications')} />
+          <Row icon="?" title="Help & Support" note="FAQs, support and issue reporting" onPress={() => router.push('/help-support')} />
+          <InfoRow icon="文" title="Language" note="English" />
+          <InfoRow icon="◐" title="Appearance" note="System" />
+          <InfoRow icon="i" title="App Information" note={`Vaya version ${version}`} last />
         </Section>
 
         <Pressable onPress={() => void signOut()} style={({ pressed }) => [styles.signOut, pressed && styles.pressed]}>
