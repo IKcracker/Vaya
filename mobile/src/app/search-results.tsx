@@ -13,8 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { API_URL, PublicTrip, searchTrips } from '@/lib/api';
 
-const BLUE = '#1877F2';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -107,7 +107,7 @@ export default function SearchResultsScreen() {
             <Text style={styles.backText}>‹</Text>
           </Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>AVAILABLE RIDES</Text>
+            <Text style={styles.eyebrow}>RIDES FOR YOUR ROUTE</Text>
             <Text style={styles.title}>
               {from || 'Anywhere'} → {to || 'Anywhere'}
             </Text>
@@ -172,7 +172,7 @@ export default function SearchResultsScreen() {
               <Text style={styles.resultTitle}>
                 {trips.length} ride{trips.length === 1 ? '' : 's'} found
               </Text>
-              <Text style={styles.resultSort}>Soonest first</Text>
+              <Text style={styles.resultSort}>Best match</Text>
             </View>
 
             {trips.map((trip) => {
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: '#E7F3FF',
+    backgroundColor: '#E9F9F3',
   },
   modifyText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   resultHeader: {
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     minHeight: 210,
     borderWidth: 1,
     borderColor: LINE,
-    borderRadius: 18,
+    borderRadius: 16,
     backgroundColor: SURFACE,
     alignItems: 'center',
     justifyContent: 'center',
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   pickupLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },
   pickupValue: { color: TEXT, fontSize: 11, fontWeight: '900', marginTop: 3 },
   chevron: { color: '#98A2B3', fontSize: 23 },
-  tip: { marginTop: 10, backgroundColor: '#EEF5FF', borderRadius: 15, padding: 14 },
+  tip: { marginTop: 10, backgroundColor: '#E9F9F3', borderRadius: 15, padding: 14 },
   tipTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
   tipText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
 });
