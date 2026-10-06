@@ -3,91 +3,44 @@ import * as SecureStore from 'expo-secure-store';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const GREEN = '#10B981';
-const BG = '#F7F9F8';
-const SURFACE = '#FFFFFF';
-const TEXT = '#101828';
-const MUTED = '#667085';
+const GREEN='#16B364'; const BG='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085';
 
-export default function OnboardingScreen() {
-  const router = useRouter();
+export default function OnboardingScreen(){
+ const router=useRouter();
+ async function continueToAuth(){await SecureStore.setItemAsync('vaya.onboarding.completed','1');router.replace('/auth');}
+ return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
+  <View style={styles.visual}>
+   <View style={styles.sky}/>
+   <View style={styles.mountainBack}/>
+   <View style={styles.mountainFront}/>
+   <View style={styles.road}/>
+   <View style={styles.car}>
+    <View style={styles.carTop}/>
+    <View style={styles.windshield}/>
+    <View style={styles.carBody}/>
+    <View style={[styles.wheel,{left:18}]}/><View style={[styles.wheel,{right:18}]}/>
+   </View>
+   <View style={styles.people}>
+    {[0,1,2].map((item)=><View key={item} style={[styles.person,{left:54+item*48}]}><View style={styles.head}/><View style={styles.body}/></View>)}
+   </View>
+  </View>
 
-  async function continueToAuth() {
-    await SecureStore.setItemAsync('vaya.onboarding.completed', '1');
-    router.replace('/auth');
-  }
+  <View style={styles.copyWrap}>
+   <Text style={styles.title}>A safer, smarter{"\n"}way to travel</Text>
+   <Text style={styles.copy}>Share rides, save money and meet great people along the way.</Text>
+   <View style={styles.dots}><View style={[styles.dot,styles.activeDot]}/><View style={styles.dot}/><View style={styles.dot}/><View style={styles.dot}/></View>
+  </View>
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
-        <View style={styles.visual}>
-          <View style={styles.sun} />
-          <View style={styles.mountainOne} />
-          <View style={styles.mountainTwo} />
-          <View style={styles.road} />
-          <View style={styles.car}>
-            <View style={styles.carRoof} />
-            <View style={styles.carBody} />
-          </View>
-          <View style={styles.peopleRow}>
-            {['A', 'B', 'C'].map((label, index) => (
-              <View key={label} style={[styles.person, { left: 36 + index * 46 }]}>
-                <View style={styles.personHead} />
-                <View style={styles.personBody} />
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.title}>A safer, smarter way to travel</Text>
-          <Text style={styles.copy}>
-            Share rides, save money and meet great people along the way.
-          </Text>
-
-          <View style={styles.dots}>
-            <View style={[styles.dot, styles.dotActive]} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-          </View>
-
-          <Pressable onPress={() => void continueToAuth()} style={styles.primary}>
-            <Text style={styles.primaryText}>Next</Text>
-          </Pressable>
-
-          <Pressable onPress={() => router.replace('/auth')} style={styles.skip}>
-            <Text style={styles.skipText}>Skip for now</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+  <Pressable onPress={()=>void continueToAuth()} style={styles.primary}><Text style={styles.primaryText}>Next</Text></Pressable>
+ </ScrollView></SafeAreaView>
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  page: { flexGrow: 1, padding: 16, justifyContent: 'space-between' },
-  visual: { height: 330, borderRadius: 28, overflow: 'hidden', backgroundColor: '#EAF4FF', position: 'relative' },
-  sun: { position: 'absolute', right: 38, top: 42, width: 52, height: 52, borderRadius: 26, backgroundColor: '#FFD66B' },
-  mountainOne: { position: 'absolute', left: -40, right: 90, bottom: 112, height: 140, backgroundColor: '#D7E2FF', transform: [{ rotate: '-8deg' }], borderRadius: 70 },
-  mountainTwo: { position: 'absolute', left: 100, right: -50, bottom: 100, height: 120, backgroundColor: '#C9D9F8', transform: [{ rotate: '10deg' }], borderRadius: 60 },
-  road: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 114, backgroundColor: '#8DB59B' },
-  car: { position: 'absolute', left: 56, right: 56, bottom: 40, height: 94 },
-  carRoof: { position: 'absolute', left: 28, right: 28, top: 0, height: 40, borderTopLeftRadius: 25, borderTopRightRadius: 25, backgroundColor: '#063C35' },
-  carBody: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 62, borderRadius: 18, backgroundColor: '#10B981' },
-  peopleRow: { position: 'absolute', left: 0, right: 0, bottom: 83, height: 90 },
-  person: { position: 'absolute', bottom: 0, width: 34, alignItems: 'center' },
-  personHead: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#C98C62' },
-  personBody: { width: 30, height: 42, borderTopLeftRadius: 15, borderTopRightRadius: 15, backgroundColor: SURFACE },
-  content: { paddingHorizontal: 8, paddingTop: 26, paddingBottom: 8 },
-  title: { color: TEXT, fontSize: 27, lineHeight: 33, fontWeight: '900', textAlign: 'center', letterSpacing: -0.7 },
-  copy: { color: MUTED, fontSize: 12, lineHeight: 19, textAlign: 'center', marginTop: 10, paddingHorizontal: 18 },
-  dots: { marginTop: 22, flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#D0D5DD' },
-  dotActive: { width: 18, backgroundColor: GREEN },
-  primary: { marginTop: 24, height: 50, borderRadius: 12, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
-  primaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
-  skip: { marginTop: 12, alignSelf: 'center', padding: 8 },
-  skipText: { color: MUTED, fontSize: 10, fontWeight: '800' },
+const styles=StyleSheet.create({
+ safe:{flex:1,backgroundColor:BG},page:{flexGrow:1,paddingHorizontal:14,paddingTop:16,paddingBottom:20},
+ visual:{height:320,borderRadius:18,overflow:'hidden',position:'relative',backgroundColor:'#EAF2F8'},sky:{position:'absolute',top:0,right:0,bottom:0,left:0,backgroundColor:'#EEF6FB'},
+ mountainBack:{position:'absolute',left:-30,right:90,bottom:128,height:105,borderRadius:70,backgroundColor:'#D7E1F3',transform:[{rotate:'-8deg'}]},mountainFront:{position:'absolute',left:120,right:-60,bottom:120,height:120,borderRadius:70,backgroundColor:'#C9D8EB',transform:[{rotate:'9deg'}]},road:{position:'absolute',left:0,right:0,bottom:0,height:120,backgroundColor:'#8EAA99'},
+ car:{position:'absolute',left:42,right:42,bottom:32,height:100},carTop:{position:'absolute',left:36,right:36,top:0,height:42,borderTopLeftRadius:24,borderTopRightRadius:24,backgroundColor:'#0F4039'},windshield:{position:'absolute',left:48,right:48,top:10,height:25,borderTopLeftRadius:15,borderTopRightRadius:15,backgroundColor:'#CDE7F1'},carBody:{position:'absolute',left:0,right:0,bottom:12,height:62,borderRadius:18,backgroundColor:GREEN},wheel:{position:'absolute',bottom:0,width:24,height:24,borderRadius:12,backgroundColor:'#1F2937',borderWidth:4,borderColor:'#0F172A'},
+ people:{position:'absolute',left:0,right:0,bottom:95,height:72},person:{position:'absolute',bottom:0,width:34,alignItems:'center'},head:{width:20,height:20,borderRadius:10,backgroundColor:'#C98C62'},body:{width:30,height:40,borderTopLeftRadius:14,borderTopRightRadius:14,backgroundColor:'#FFFFFF'},
+ copyWrap:{alignItems:'center',paddingHorizontal:18,marginTop:22},title:{color:TEXT,fontSize:21,lineHeight:27,fontWeight:'900',textAlign:'center',letterSpacing:-.4},copy:{color:MUTED,fontSize:9.5,lineHeight:15,textAlign:'center',marginTop:9,maxWidth:260},dots:{flexDirection:'row',gap:5,marginTop:16},dot:{width:5,height:5,borderRadius:3,backgroundColor:'#D0D5DD'},activeDot:{width:14,backgroundColor:GREEN},
+ primary:{marginTop:'auto',height:44,borderRadius:8,backgroundColor:GREEN,alignItems:'center',justifyContent:'center'},primaryText:{color:'#FFFFFF',fontSize:10,fontWeight:'900'}
 });
