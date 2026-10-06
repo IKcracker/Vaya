@@ -52,6 +52,59 @@ export type PassengerTrip = {
   createdAt: string;
 };
 
+export type MobilePrivacyPreferences = {
+  profileVisible: boolean;
+  sharePhone: boolean;
+  locationSharing: boolean;
+};
+
+export type MobileNotification = {
+  id: string;
+  kind: string;
+  title: string;
+  text: string;
+  createdAt: string;
+};
+
+export type MobileMessageThread = {
+  id: string;
+  participant: {
+    name: string;
+    email: string;
+  };
+  tripId: string;
+  route: string;
+  lastMessage: string;
+  lastAt: string;
+  unread: boolean;
+};
+
+export type MobileMessage = {
+  id: string;
+  body: string;
+  senderEmail: string;
+  sentAt: string;
+};
+
+export type DriverEarnings = {
+  totalCents: number;
+  total: string;
+  thisMonthCents: number;
+  thisMonth: string;
+  chart: {
+    label: string;
+    amountCents: number;
+  }[];
+  payouts: {
+    reference: string;
+    route: string;
+    amountCents: number;
+    amount: string;
+    status: string;
+    createdAt: string;
+  }[];
+};
+
 async function writeStoredSession(value: string | null) {
   if (Platform.OS === 'web') {
     if (typeof localStorage === 'undefined') return;
@@ -254,6 +307,89 @@ export async function submitPassengerSafetyReport(
 export async function fetchPassengerTrips(session: string) {
   return request<{ trips: PassengerTrip[] }>(
     '/api/mobile/me/trips',
+    undefined,
+    session
+  );
+}
+
+
+export async function fetchMobilePrivacyPreferences(session: string) {
+  return request<{ preferences: MobilePrivacyPreferences }>(
+    '/api/mobile/me/privacy',
+    undefined,
+    session
+  );
+}
+
+export async function updateMobilePrivacyPreferences(
+  session: string,
+  input: Partial<MobilePrivacyPreferences>
+) {
+  return request<{ preferences: MobilePrivacyPreferences }>(
+    '/api/mobile/me/privacy',
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function fetchMobileNotifications(session: string) {
+  return request<{ notifications: MobileNotification[] }>(
+    '/api/mobile/me/notifications',
+    undefined,
+    session
+  );
+}
+
+export async function fetchMobileMessageThreads(session: string) {
+  return request<{ threads: MobileMessageThread[] }>(
+    '/api/mobile/me/messages',
+    undefined,
+    session
+  );
+}
+
+export async function fetchMobileConversation(
+  session: string,
+  recipientEmail: string
+) {
+  const params = new URLSearchParams({ recipient: recipientEmail });
+  return request<{
+    conversation: {
+      participant: {
+        email: string;
+        name: string;
+        tripId: string;
+        route: string;
+      };
+      messages: MobileMessage[];
+    };
+  }>(
+    `/api/mobile/me/messages?${params.toString()}`,
+    undefined,
+    session
+  );
+}
+
+export async function sendMobileMessage(
+  session: string,
+  input: { recipientEmail: string; body: string }
+) {
+  return request<{ message: MobileMessage }>(
+    '/api/mobile/me/messages',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function fetchDriverEarnings(session: string) {
+  return request<{ earnings: DriverEarnings }>(
+    '/api/mobile/driver/earnings',
     undefined,
     session
   );
