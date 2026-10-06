@@ -14,10 +14,10 @@ function relative(value:string){const diff=Math.max(0,Date.now()-new Date(value)
 
 export default function NotificationsScreen(){
  const router=useRouter(); const {session}=usePassengerAuth();
- const [items,setItems]=useState<MobileNotification[]>([]); const [loading,setLoading]=useState(Boolean(session)); const [tab,setTab]=useState<'all'|'recent'>('all'); const [error,setError]=useState<string|null>(null);
+ const [items,setItems]=useState<MobileNotification[]>([]); const [loading,setLoading]=useState(Boolean(session)); const [tab,setTab]=useState<'all'|'recent'>('all'); const [error,setError]=useState<string|null>(null); const [now]=useState(()=>Date.now());
 
  useEffect(()=>{if(!session)return;let active=true;fetchMobileNotifications(session).then(r=>{if(active)setItems(r.notifications)}).catch((reason:unknown)=>{if(active)setError(reason instanceof Error?reason.message:'Unable to load notifications')}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[session]);
- const visible=useMemo(()=>tab==='all'?items:items.filter(item=>Date.now()-new Date(item.createdAt).getTime()<24*60*60*1000),[items,tab]);
+ const visible=useMemo(()=>tab==='all'?items:items.filter(item=>now-new Date(item.createdAt).getTime()<24*60*60*1000),[items,now,tab]);
 
  return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
    <Header title="Notifications" onBack={()=>router.back()}/>
