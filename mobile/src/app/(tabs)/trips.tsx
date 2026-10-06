@@ -169,10 +169,14 @@ export default function TripsScreen() {
                 onPress={() =>
                   tab === 'upcoming' && trip.paymentStatus !== 'Paid'
                     ? router.push({ pathname: '/payment/[id]', params: { id: trip.id } })
-                    : router.push({
-                        pathname: '/trip/[id]',
-                        params: { id: trip.tripId, passengers: String(trip.seats) },
-                      })
+                    : ['Boarding', 'On schedule'].includes(trip.tripStatus)
+                      ? router.push({ pathname: '/trip-progress/[id]', params: { id: trip.tripId } })
+                      : trip.tripStatus === 'Completed'
+                        ? router.push({ pathname: '/trip-completed/[id]', params: { id: trip.tripId } })
+                        : router.push({
+                            pathname: '/trip/[id]',
+                            params: { id: trip.tripId, passengers: String(trip.seats) },
+                          })
                 }
                 style={({ pressed }) => [styles.tripCard, pressed && styles.pressed]}>
                 <View style={styles.cardTop}>
