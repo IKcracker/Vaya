@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 
+import { stopBackgroundDriverTracking } from '@/lib/background-driver-location';
 import {
   AuthUser,
   fetchPassengerSession,
@@ -153,6 +154,7 @@ export function PassengerAuthProvider({ children }: PropsWithChildren) {
     setUser(null);
     setPassenger(null);
     setLoading(false);
+    await stopBackgroundDriverTracking().catch(() => {});
     await passengerSignOut(session);
   }, [session]);
 
