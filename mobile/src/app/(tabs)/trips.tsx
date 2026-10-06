@@ -15,12 +15,13 @@ import { fetchPassengerTrips, PassengerTrip } from '@/lib/auth';
 import { API_URL } from '@/lib/api';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#10B981';
-const BG = '#F6F8F7';
+const GREEN = '#10B981';
+const GREEN_DARK = '#087F5B';
+const BG = '#F7F9F8';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
-const LINE = '#E4E7EC';
+const LINE = '#E5E7EB';
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-ZA', {
@@ -33,15 +34,14 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function statusTone(value: string) {
-  const normalized = value.toLowerCase();
-  if (normalized.includes('confirmed') || normalized.includes('completed')) {
-    return { bg: '#ECFDF3', text: '#027A48' };
-  }
-  if (normalized.includes('cancel')) {
-    return { bg: '#FFF1F0', text: '#B42318' };
-  }
-  return { bg: '#FFFAEB', text: '#B54708' };
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 export default function TripsScreen() {
@@ -51,10 +51,10 @@ export default function TripsScreen() {
   const [now] = useState(() => Date.now());
   const [loading, setLoading] = useState(Boolean(session));
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<'upcoming' | 'history'>('upcoming');
 
   useEffect(() => {
     if (!session) return;
-
     let active = true;
 
     fetchPassengerTrips(session)
@@ -63,9 +63,7 @@ export default function TripsScreen() {
       })
       .catch((reason: unknown) => {
         if (active) {
-          setError(
-            reason instanceof Error ? reason.message : 'Unable to load your trips'
-          );
+          setError(reason instanceof Error ? reason.message : 'Unable to load your trips');
         }
       })
       .finally(() => {
@@ -101,8 +99,7 @@ export default function TripsScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.centerState}>
-          <ActivityIndicator color={BLUE} />
-          <Text style={styles.stateTitle}>Loading your account</Text>
+          <ActivityIndicator color={GREEN} />
         </View>
       </SafeAreaView>
     );
@@ -112,191 +109,144 @@ export default function TripsScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.centerState}>
-          <View style={styles.lockIcon}><Text style={styles.lockText}>✓</Text></View>
+          <View style={styles.emptyIcon}><Text style={styles.emptyIconText}>✓</Text></View>
           <Text style={styles.stateTitle}>Sign in to see your trips</Text>
-          <Text style={styles.stateText}>
-            Your bookings and trip history will stay synced across Vaya.
-          </Text>
+          <Text style={styles.stateText}>Your bookings and travel history stay synced to your Vaya account.</Text>
           <Pressable
             onPress={() => router.push({ pathname: '/auth', params: { next: '/trips' } })}
-            style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-            <Text style={styles.primaryText}>Sign in or create account</Text>
+            style={styles.primary}>
+            <Text style={styles.primaryText}>Sign in</Text>
           </Pressable>
         </View>
       </SafeAreaView>
     );
   }
 
+  const data = tab === 'upcoming' ? upcoming : history;
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
-        <Text style={styles.eyebrow}>YOUR TRAVEL</Text>
-        <Text style={styles.title}>Trips</Text>
-        <Text style={styles.subtitle}>
-          Live bookings and journeys linked to your passenger account.
-        </Text>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>My Trips</Text>
+            <Text style={styles.subtitle}>Your bookings and ride history</Text>
+          </View>
+          <View style={styles.countPill}>
+            <Text style={styles.countText}>{trips.length}</Text>
+          </View>
+        </View>
+
+        <View style={styles.tabs}>
+          <Pressable
+            onPress={() => setTab('upcoming')}
+            style={[styles.tab, tab === 'upcoming' && styles.tabActive]}>
+            <Text style={[styles.tabText, tab === 'upcoming' && styles.tabTextActive]}>
+              Upcoming ({upcoming.length})
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setTab('history')}
+            style={[styles.tab, tab === 'history' && styles.tabActive]}>
+            <Text style={[styles.tabText, tab === 'history' && styles.tabTextActive]}>
+              History ({history.length})
+            </Text>
+          </Pressable>
+        </View>
 
         {loading ? (
-          <View style={styles.loadingCard}>
-            <ActivityIndicator color={BLUE} />
-            <Text style={styles.stateTitle}>Loading your trips</Text>
-          </View>
+          <View style={styles.stateCard}><ActivityIndicator color={GREEN} /></View>
         ) : error ? (
           <View style={styles.errorCard}>
             <Text style={styles.errorTitle}>Couldn’t load trips</Text>
             <Text style={styles.errorText}>{error}</Text>
           </View>
-        ) : (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Upcoming</Text>
-              <Text style={styles.sectionMeta}>
-                {upcoming.length} booking{upcoming.length === 1 ? '' : 's'}
-              </Text>
-            </View>
-
-            {upcoming.length ? (
-              upcoming.map((trip) => {
-                const tone = statusTone(trip.bookingStatus);
-                return (
-                  <Pressable
-                    key={trip.id}
-                    onPress={() =>
-                      trip.paymentStatus === 'Paid'
-                        ? router.push({
-                            pathname: '/trip/[id]',
-                            params: { id: trip.tripId, passengers: String(trip.seats) },
-                          })
-                        : router.push({
-                            pathname: '/payment/[id]',
-                            params: { id: trip.id },
-                          })
-                    }
-                    style={({ pressed }) => [styles.upcomingCard, pressed && styles.pressed]}>
-                    <View style={styles.statusRow}>
-                      <View style={[styles.statusBadge, { backgroundColor: tone.bg }]}>
-                        <Text style={[styles.statusText, { color: tone.text }]}>
-                          {trip.bookingStatus}
-                        </Text>
-                      </View>
-                      <Text style={styles.bookingId}>{trip.id}</Text>
-                    </View>
-                    <Text style={styles.route}>{trip.route}</Text>
-                    <Text style={styles.date}>{formatDate(trip.departureAt)}</Text>
-
-                    <View style={styles.driverLine}>
-                      <View style={styles.driverAvatar}>
-                        {trip.driverProfileImageUrl ? (
-                          <Image
-                            source={{ uri: `${API_URL}${trip.driverProfileImageUrl}` }}
-                            style={styles.driverAvatarImage}
-                            contentFit="cover"
-                          />
-                        ) : (
-                          <Text style={styles.driverAvatarText}>
-                            {trip.driver.split(/\s+/).filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
-                          </Text>
-                        )}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.driverLineLabel}>Driver</Text>
-                        <Text style={styles.driverLineName}>{trip.driver}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.divider} />
-                    <View style={styles.detailRow}>
-                      <View>
-                        <Text style={styles.detailLabel}>Seats</Text>
-                        <Text style={styles.detailValue}>{trip.seats}</Text>
-                      </View>
-                      <View>
-                        <Text style={styles.detailLabel}>Amount</Text>
-                        <Text style={styles.detailValue}>{trip.amount}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.paymentRow}>
-                      <View>
-                        <Text style={styles.paymentLabel}>Payment</Text>
-                        <Text style={styles.paymentValue}>{trip.paymentStatus}</Text>
-                      </View>
-                      {trip.paymentStatus !== 'Paid' ? (
-                        <View style={styles.payBadge}>
-                          <Text style={styles.payBadgeText}>Pay now ›</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </Pressable>
-                );
-              })
-            ) : (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyTitle}>No upcoming trips</Text>
-                <Text style={styles.emptyText}>
-                  Search a route and your next booking will appear here automatically.
-                </Text>
-                <Pressable
-                  onPress={() => router.push('/search')}
-                  style={({ pressed }) => [styles.smallButton, pressed && styles.pressed]}>
-                  <Text style={styles.smallButtonText}>Find a ride</Text>
-                </Pressable>
-              </View>
-            )}
-
-            <View style={[styles.sectionHeader, { marginTop: 28 }]}>
-              <Text style={styles.sectionTitle}>Past trips</Text>
-              <Text style={styles.sectionMeta}>{history.length} records</Text>
-            </View>
-
-            <View style={styles.historyList}>
-              {history.length ? (
-                history.map((trip, index) => (
-                  <Pressable
-                    key={trip.id}
-                    onPress={() =>
-                      router.push({
+        ) : data.length ? (
+          <View style={styles.tripList}>
+            {data.map((trip) => (
+              <Pressable
+                key={trip.id}
+                onPress={() =>
+                  tab === 'upcoming' && trip.paymentStatus !== 'Paid'
+                    ? router.push({ pathname: '/payment/[id]', params: { id: trip.id } })
+                    : router.push({
                         pathname: '/trip/[id]',
                         params: { id: trip.tripId, passengers: String(trip.seats) },
                       })
-                    }
-                    style={({ pressed }) => [
-                      styles.historyRow,
-                      index < history.length - 1 && styles.historyBorder,
-                      pressed && styles.pressed,
-                    ]}>
-                    <View style={styles.historyAvatar}>
-                      {trip.driverProfileImageUrl ? (
-                        <Image
-                          source={{ uri: `${API_URL}${trip.driverProfileImageUrl}` }}
-                          style={styles.driverAvatarImage}
-                          contentFit="cover"
-                        />
-                      ) : (
-                        <Text style={styles.historyAvatarText}>
-                          {trip.driver.split(/\s+/).filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
-                        </Text>
-                      )}
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.historyRoute}>{trip.route}</Text>
-                      <Text style={styles.historyMeta}>
-                        {formatDate(trip.departureAt)} · {trip.driver}
+                }
+                style={({ pressed }) => [styles.tripCard, pressed && styles.pressed]}>
+                <View style={styles.cardTop}>
+                  <View style={styles.statusBadge}>
+                    <Text style={styles.statusText}>
+                      {tab === 'upcoming' ? 'Upcoming' : trip.bookingStatus}
+                    </Text>
+                  </View>
+                  <Text style={styles.date}>{formatDate(trip.departureAt)}</Text>
+                </View>
+
+                <Text style={styles.route}>{trip.route}</Text>
+
+                <View style={styles.driverRow}>
+                  <View style={styles.avatar}>
+                    {trip.driverProfileImageUrl ? (
+                      <Image
+                        source={{ uri: `${API_URL}${trip.driverProfileImageUrl}` }}
+                        style={styles.avatarImage}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <Text style={styles.avatarText}>{initials(trip.driver)}</Text>
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.driverName}>{trip.driver}</Text>
+                    <Text style={styles.vehicleText}>
+                      Verified Vaya vehicle
+                    </Text>
+                  </View>
+                  <Text style={styles.amount}>{trip.amount}</Text>
+                </View>
+
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaText}>{trip.seats} seat{trip.seats === 1 ? '' : 's'}</Text>
+                  <View style={styles.metaDot} />
+                  <Text style={styles.metaText}>{trip.paymentStatus}</Text>
+                  <View style={styles.metaDot} />
+                  <Text style={styles.metaText}>{trip.tripStatus}</Text>
+                </View>
+
+                <View style={styles.cardActions}>
+                  <View style={styles.secondaryAction}>
+                    <Text style={styles.secondaryActionText}>View details</Text>
+                  </View>
+                  {tab === 'upcoming' ? (
+                    <View style={styles.primaryAction}>
+                      <Text style={styles.primaryActionText}>
+                        {trip.paymentStatus === 'Paid' ? 'Trip ready' : 'Pay now'}
                       </Text>
                     </View>
-                    <View style={styles.historyRight}>
-                      <Text style={styles.historyAmount}>{trip.amount}</Text>
-                      <Text style={styles.chevron}>›</Text>
-                    </View>
-                  </Pressable>
-                ))
-              ) : (
-                <View style={styles.emptyHistory}>
-                  <Text style={styles.emptyText}>No past trips yet.</Text>
+                  ) : null}
                 </View>
-              )}
-            </View>
-          </>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIcon}><Text style={styles.emptyIconText}>↗</Text></View>
+            <Text style={styles.emptyTitle}>
+              {tab === 'upcoming' ? 'No upcoming trips' : 'No trip history yet'}
+            </Text>
+            <Text style={styles.emptyText}>
+              {tab === 'upcoming'
+                ? 'Search a route and your next booking will appear here.'
+                : 'Completed and cancelled journeys will appear here.'}
+            </Text>
+            {tab === 'upcoming' ? (
+              <Pressable onPress={() => router.push('/search')} style={styles.smallButton}>
+                <Text style={styles.smallButtonText}>Find a ride</Text>
+              </Pressable>
+            ) : null}
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -305,148 +255,54 @@ export default function TripsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-  page: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 120 },
+  page: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 120 },
   pressed: { opacity: 0.72 },
-  centerState: {
-    flex: 1,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lockIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#E9F9F3',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lockText: { color: BLUE, fontSize: 20, fontWeight: '900' },
-  stateTitle: { color: TEXT, fontSize: 17, fontWeight: '900', marginTop: 14 },
-  stateText: {
-    color: MUTED,
-    fontSize: 11,
-    lineHeight: 18,
-    marginTop: 6,
-    textAlign: 'center',
-    maxWidth: 300,
-  },
-  primary: {
-    marginTop: 18,
-    height: 48,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: BLUE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
-  eyebrow: { color: BLUE, fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
-  title: { color: TEXT, fontSize: 30, fontWeight: '900', letterSpacing: -0.7, marginTop: 4 },
-  subtitle: { color: MUTED, fontSize: 12, lineHeight: 18, marginTop: 5, maxWidth: 330 },
-  loadingCard: {
-    minHeight: 180,
-    marginTop: 24,
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 18,
-    backgroundColor: SURFACE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorCard: {
-    marginTop: 24,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 16,
-    backgroundColor: '#FFF8F7',
-    padding: 16,
-  },
-  errorTitle: { color: '#B42318', fontSize: 13, fontWeight: '900' },
-  errorText: { color: '#B42318', fontSize: 10, lineHeight: 16, marginTop: 4 },
-  sectionHeader: {
-    marginTop: 24,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionTitle: { color: TEXT, fontSize: 18, fontWeight: '900' },
-  sectionMeta: { color: MUTED, fontSize: 11, fontWeight: '700' },
-  upcomingCard: {
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 10,
-  },
-  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  statusBadge: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: 999 },
-  statusText: { fontSize: 10, fontWeight: '900' },
-  bookingId: { color: MUTED, fontSize: 10, fontWeight: '800' },
-  route: { color: TEXT, fontSize: 20, fontWeight: '900', marginTop: 16, letterSpacing: -0.3 },
-  date: { color: BLUE, fontSize: 12, fontWeight: '800', marginTop: 5 },
-  divider: { height: 1, backgroundColor: LINE, marginVertical: 15 },
-  driverLine: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
-  driverAvatar: { width: 38, height: 38, borderRadius: 19, overflow: 'hidden', backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
-  driverAvatarImage: { width: '100%', height: '100%' },
-  driverAvatarText: { color: BLUE, fontSize: 10, fontWeight: '900' },
-  driverLineLabel: { color: MUTED, fontSize: 8, fontWeight: '700' },
-  driverLineName: { color: TEXT, fontSize: 11, fontWeight: '900', marginTop: 3 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  detailLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },
-  detailValue: { color: TEXT, fontSize: 11, fontWeight: '900', marginTop: 4 },
-  paymentRow: {
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: LINE,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  paymentLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },
-  paymentValue: { color: TEXT, fontSize: 10, fontWeight: '900', marginTop: 3 },
-  payBadge: {
-    borderRadius: 9,
-    backgroundColor: '#E9F9F3',
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-  },
-  payBadgeText: { color: BLUE, fontSize: 9, fontWeight: '900' },
-  emptyCard: {
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 16,
-    backgroundColor: SURFACE,
-    padding: 18,
-  },
-  emptyTitle: { color: TEXT, fontSize: 13, fontWeight: '900' },
-  emptyText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
-  smallButton: {
-    marginTop: 13,
-    alignSelf: 'flex-start',
-    backgroundColor: '#E9F9F3',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 9,
-  },
-  smallButtonText: { color: BLUE, fontSize: 10, fontWeight: '900' },
-  historyList: {
-    backgroundColor: SURFACE,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: LINE,
-    overflow: 'hidden',
-  },
-  historyRow: { padding: 15, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  historyAvatar: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
-  historyAvatarText: { color: BLUE, fontSize: 9, fontWeight: '900' },
-  historyBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
-  historyRoute: { color: TEXT, fontSize: 13, fontWeight: '900' },
-  historyMeta: { color: MUTED, fontSize: 10, marginTop: 4 },
-  historyRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  historyAmount: { color: TEXT, fontSize: 12, fontWeight: '900' },
-  chevron: { color: '#98A2B3', fontSize: 22 },
-  emptyHistory: { padding: 18 },
+  centerState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 },
+  stateTitle: { color: TEXT, fontSize: 17, fontWeight: '900', marginTop: 12 },
+  stateText: { color: MUTED, fontSize: 10, lineHeight: 16, textAlign: 'center', marginTop: 5, maxWidth: 290 },
+  primary: { marginTop: 16, height: 44, paddingHorizontal: 18, borderRadius: 11, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
+  primaryText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title: { color: TEXT, fontSize: 24, fontWeight: '900', letterSpacing: -0.45 },
+  subtitle: { color: MUTED, fontSize: 9, marginTop: 3 },
+  countPill: { minWidth: 30, height: 30, paddingHorizontal: 9, borderRadius: 15, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
+  countText: { color: GREEN_DARK, fontSize: 9, fontWeight: '900' },
+  tabs: { marginTop: 18, flexDirection: 'row', backgroundColor: '#EEF2F0', borderRadius: 11, padding: 3 },
+  tab: { flex: 1, height: 38, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  tabActive: { backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DDE5E2' },
+  tabText: { color: MUTED, fontSize: 9, fontWeight: '800' },
+  tabTextActive: { color: GREEN_DARK },
+  stateCard: { minHeight: 160, marginTop: 18, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  errorCard: { marginTop: 18, borderRadius: 14, borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFF8F7', padding: 14 },
+  errorTitle: { color: '#B42318', fontSize: 11, fontWeight: '900' },
+  errorText: { color: '#B42318', fontSize: 9, marginTop: 4 },
+  tripList: { marginTop: 14, gap: 10 },
+  tripCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DFE6E3', borderRadius: 15, padding: 13 },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  statusBadge: { backgroundColor: '#ECFDF3', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5 },
+  statusText: { color: '#027A48', fontSize: 7.5, fontWeight: '900' },
+  date: { color: MUTED, fontSize: 8.5, fontWeight: '700' },
+  route: { color: TEXT, fontSize: 13, fontWeight: '900', marginTop: 11 },
+  driverRow: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  avatar: { width: 34, height: 34, borderRadius: 17, overflow: 'hidden', backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: '100%', height: '100%' },
+  avatarText: { color: GREEN_DARK, fontSize: 8.5, fontWeight: '900' },
+  driverName: { color: TEXT, fontSize: 10, fontWeight: '900' },
+  vehicleText: { color: MUTED, fontSize: 8, marginTop: 2 },
+  amount: { color: TEXT, fontSize: 13, fontWeight: '900' },
+  metaRow: { marginTop: 11, paddingTop: 10, borderTopWidth: 1, borderTopColor: LINE, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  metaText: { color: MUTED, fontSize: 7.5, fontWeight: '700' },
+  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#C4CBC8' },
+  cardActions: { marginTop: 11, flexDirection: 'row', gap: 7 },
+  secondaryAction: { flex: 1, height: 36, borderRadius: 9, backgroundColor: '#F2F4F3', alignItems: 'center', justifyContent: 'center' },
+  secondaryActionText: { color: TEXT, fontSize: 8.5, fontWeight: '900' },
+  primaryAction: { flex: 1, height: 36, borderRadius: 9, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
+  primaryActionText: { color: '#FFFFFF', fontSize: 8.5, fontWeight: '900' },
+  emptyCard: { marginTop: 14, minHeight: 180, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 15, padding: 22, alignItems: 'center', justifyContent: 'center' },
+  emptyIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
+  emptyIconText: { color: GREEN_DARK, fontSize: 14, fontWeight: '900' },
+  emptyTitle: { color: TEXT, fontSize: 12, fontWeight: '900', marginTop: 11 },
+  emptyText: { color: MUTED, fontSize: 9, lineHeight: 14, textAlign: 'center', marginTop: 4 },
+  smallButton: { marginTop: 12, height: 36, paddingHorizontal: 12, borderRadius: 9, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
+  smallButtonText: { color: GREEN_DARK, fontSize: 8.5, fontWeight: '900' },
 });

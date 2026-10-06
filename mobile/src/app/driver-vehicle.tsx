@@ -24,7 +24,6 @@ import {
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
 const BLUE = '#10B981';
-const NAVY = '#063C35';
 const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
@@ -239,26 +238,16 @@ export default function DriverVehicleScreen() {
           </View>
         </View>
 
-        <View style={styles.summary}>
-          <View>
-            <Text style={styles.summaryLabel}>VEHICLES</Text>
-            <Text style={styles.summaryValue}>{vehicles.length}</Text>
-          </View>
-          <View>
-            <Text style={styles.summaryLabel}>APPROVED</Text>
-            <Text style={styles.summaryValue}>{approvedCount}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.summaryLabel}>TRIP RULE</Text>
-            <Text style={styles.summaryText}>Only approved vehicles can publish trips.</Text>
-          </View>
+        <View style={styles.countRow}>
+          <Text style={styles.countLabel}>My vehicles</Text>
+          <Text style={styles.countMeta}>{vehicles.length} total · {approvedCount} approved</Text>
         </View>
 
         <Pressable
           onPress={startAdd}
           style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
           <Text style={styles.addPlus}>＋</Text>
-          <Text style={styles.addText}>Add another vehicle</Text>
+          <Text style={styles.addText}>Add vehicle</Text>
         </Pressable>
 
         {showForm ? (
@@ -322,8 +311,11 @@ export default function DriverVehicleScreen() {
                 </View>
 
                 <View style={styles.checkRow}>
-                  <Text style={styles.checkLabel}>Verification</Text>
-                  <Text style={styles.checkValue}>{vehicle.checks}</Text>
+                  <View style={styles.verificationDot} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.checkLabel}>Verification</Text>
+                    <Text style={styles.checkValue}>{vehicle.checks}</Text>
+                  </View>
                 </View>
 
                 <View style={styles.actions}>
@@ -379,13 +371,12 @@ const styles = StyleSheet.create({
   muted: { color: MUTED, fontSize: 11, lineHeight: 17, marginTop: 5 },
   primary: { marginTop: 16, height: 48, paddingHorizontal: 18, borderRadius: 12, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
   primaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
-  summary: { marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 20, backgroundColor: NAVY, borderRadius: 17, padding: 16 },
-  summaryLabel: { color: '#8FA0B8', fontSize: 8, fontWeight: '900', letterSpacing: 0.6 },
-  summaryValue: { color: '#FFFFFF', fontSize: 22, fontWeight: '900', marginTop: 4 },
-  summaryText: { color: '#D7E1EE', fontSize: 9, lineHeight: 14, marginTop: 4 },
-  addButton: { marginTop: 14, height: 50, borderRadius: 13, borderWidth: 1, borderColor: '#B7EAD6', backgroundColor: '#F5F9FF', flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
-  addPlus: { color: BLUE, fontSize: 19, fontWeight: '700' },
-  addText: { color: BLUE, fontSize: 11, fontWeight: '900' },
+  countRow: { marginTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  countLabel: { color: TEXT, fontSize: 15, fontWeight: '900' },
+  countMeta: { color: MUTED, fontSize: 8.5, fontWeight: '700' },
+  addButton: { marginTop: 10, height: 44, borderRadius: 11, backgroundColor: BLUE, flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
+  addPlus: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+  addText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
   formCard: { marginTop: 14, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, padding: 15, gap: 13 },
   formHeader: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   formTitle: { color: TEXT, fontSize: 15, fontWeight: '900' },
@@ -401,9 +392,9 @@ const styles = StyleSheet.create({
   errorBox: { marginTop: 14, borderRadius: 12, backgroundColor: '#FFF1F0', padding: 12 },
   errorText: { color: '#B42318', fontSize: 10, lineHeight: 16 },
   list: { marginTop: 18, gap: 12 },
-  vehicleCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 17, padding: 15 },
+  vehicleCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DFE6E3', borderRadius: 15, padding: 13 },
   vehicleTop: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  carIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
+  carIcon: { width: 44, height: 36, borderRadius: 10, backgroundColor: '#F1F5F3', alignItems: 'center', justifyContent: 'center' },
   carIconText: { color: BLUE, fontSize: 13 },
   vehicleNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   vehicleName: { color: TEXT, fontSize: 13, fontWeight: '900' },
@@ -412,12 +403,13 @@ const styles = StyleSheet.create({
   primaryBadgeText: { color: BLUE, fontSize: 7, fontWeight: '900' },
   status: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5 },
   statusText: { fontSize: 8, fontWeight: '900' },
-  checkRow: { marginTop: 13, paddingTop: 12, borderTopWidth: 1, borderTopColor: LINE },
+  checkRow: { marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: LINE, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  verificationDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: BLUE },
   checkLabel: { color: MUTED, fontSize: 8, fontWeight: '800' },
   checkValue: { color: TEXT, fontSize: 10, lineHeight: 15, marginTop: 3, fontWeight: '700' },
-  actions: { marginTop: 13, flexDirection: 'row', gap: 8 },
-  verifyButton: { flex: 1, height: 39, borderRadius: 10, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
-  verifyText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+  actions: { marginTop: 11, flexDirection: 'row', gap: 7 },
+  verifyButton: { flex: 1, height: 36, borderRadius: 9, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
+  verifyText: { color: '#087F5B', fontSize: 8.5, fontWeight: '900' },
   secondaryButton: { width: 72, height: 39, borderRadius: 10, borderWidth: 1, borderColor: LINE, alignItems: 'center', justifyContent: 'center' },
   secondaryText: { color: TEXT, fontSize: 9, fontWeight: '900' },
   footerActions: { marginTop: 13, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

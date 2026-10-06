@@ -111,36 +111,33 @@ export default function TripDetailScreen() {
         ) : (
           <>
             <View style={styles.hero}>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>{trip.status}</Text>
+              <View style={styles.heroTop}>
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusText}>{trip.status}</Text>
+                </View>
+                <Text style={styles.reference}>{trip.id}</Text>
               </View>
-              <Text style={styles.route}>
-                {trip.from} → {trip.to}
-              </Text>
-              <Text style={styles.departure}>
-                {formatDeparture(trip.departureAt)}
-              </Text>
+              <Text style={styles.route}>{trip.from} → {trip.to}</Text>
+              <Text style={styles.departure}>{formatDeparture(trip.departureAt)}</Text>
 
-              <View style={styles.heroDivider} />
-
-              <View style={styles.heroMetrics}>
+              <View style={styles.priceStrip}>
                 <View>
-                  <Text style={styles.metricLabel}>Per seat</Text>
+                  <Text style={styles.metricLabel}>Fare per seat</Text>
                   <Text style={styles.metricValue}>{trip.fare}</Text>
                 </View>
                 <View>
                   <Text style={styles.metricLabel}>Passengers</Text>
                   <Text style={styles.metricValue}>{passengers}</Text>
                 </View>
-                <View>
-                  <Text style={styles.metricLabel}>Trip total</Text>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.metricLabel}>Total</Text>
                   <Text style={styles.metricValue}>{total}</Text>
                 </View>
               </View>
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Driver & vehicle</Text>
+              <Text style={styles.sectionTitle}>Driver</Text>
               <View style={styles.driverCard}>
                 <View style={styles.avatar}>
                   {trip.driver.profileImageUrl ? (
@@ -176,34 +173,31 @@ export default function TripDetailScreen() {
                 </View>
               </View>
 
-              <View style={styles.infoGrid}>
-                <View style={styles.infoCard}>
-                  <Text style={styles.infoLabel}>Vehicle</Text>
-                  <Text style={styles.infoValue}>{trip.driver.vehicle}</Text>
-                </View>
-                <View style={styles.infoCard}>
-                  <Text style={styles.infoLabel}>Driver area</Text>
-                  <Text style={styles.infoValue}>
-                    {trip.driver.location || 'Not provided'}
-                  </Text>
-                </View>
+              <View style={styles.verificationRow}>
+                <View style={styles.verifyItem}><Text style={styles.verifyIcon}>✓</Text><Text style={styles.verifyText}>Identity</Text></View>
+                <View style={styles.verifyItem}><Text style={styles.verifyIcon}>✓</Text><Text style={styles.verifyText}>Licence</Text></View>
+                <View style={styles.verifyItem}><Text style={styles.verifyIcon}>✓</Text><Text style={styles.verifyText}>Vehicle</Text></View>
               </View>
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Availability</Text>
-              <View style={styles.availabilityCard}>
-                <View>
-                  <Text style={styles.infoLabel}>Seats remaining</Text>
-                  <Text style={styles.availabilityValue}>
-                    {trip.availableSeats}
-                  </Text>
+              <Text style={styles.sectionTitle}>Trip information</Text>
+              <View style={styles.infoList}>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Departure</Text>
+                  <Text style={styles.infoValue}>{formatDeparture(trip.departureAt)}</Text>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.infoLabel}>Capacity</Text>
-                  <Text style={styles.availabilitySub}>
-                    {trip.seatsBooked}/{trip.seatCapacity} booked
-                  </Text>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Vehicle</Text>
+                  <Text style={styles.infoValue}>{trip.driver.vehicle}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Seats remaining</Text>
+                  <Text style={styles.infoValue}>{trip.availableSeats} of {trip.seatCapacity}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Driver area</Text>
+                  <Text style={styles.infoValue}>{trip.driver.location || 'Not provided'}</Text>
                 </View>
               </View>
             </View>
@@ -282,34 +276,30 @@ const styles = StyleSheet.create({
   },
   errorTitle: { color: '#B42318', fontSize: 14, fontWeight: '900' },
   errorText: { color: '#B42318', fontSize: 10, lineHeight: 16, marginTop: 5 },
-  hero: { marginTop: 22, backgroundColor: NAVY, borderRadius: 20, padding: 18 },
+  hero: { marginTop: 18, backgroundColor: SURFACE, borderRadius: 15, borderWidth: 1, borderColor: '#DFE6E3', padding: 14 },
+  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  reference: { color: MUTED, fontSize: 8.5, fontWeight: '700' },
   statusBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#1C2D49',
+    backgroundColor: '#ECFDF3',
     borderRadius: 999,
     paddingHorizontal: 9,
     paddingVertical: 6,
   },
-  statusText: { color: '#A9CFFF', fontSize: 9, fontWeight: '900' },
+  statusText: { color: '#027A48', fontSize: 8, fontWeight: '900' },
   route: {
-    color: '#FFFFFF',
-    fontSize: 24,
+    color: TEXT,
+    fontSize: 17,
     fontWeight: '900',
     letterSpacing: -0.5,
     marginTop: 16,
   },
-  departure: { color: '#A9B6CA', fontSize: 11, marginTop: 6 },
-  heroDivider: { height: 1, backgroundColor: '#263955', marginVertical: 17 },
-  heroMetrics: { flexDirection: 'row', justifyContent: 'space-between' },
-  metricLabel: { color: '#8FA0B8', fontSize: 9, fontWeight: '700' },
-  metricValue: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '900',
-    marginTop: 4,
-  },
+  departure: { color: MUTED, fontSize: 9.5, marginTop: 5 },
+  priceStrip: { marginTop: 13, paddingTop: 11, borderTopWidth: 1, borderTopColor: LINE, flexDirection: 'row', justifyContent: 'space-between' },
+  metricLabel: { color: MUTED, fontSize: 8, fontWeight: '700' },
+  metricValue: { color: TEXT, fontSize: 12, fontWeight: '900', marginTop: 3 },
   section: { marginTop: 24 },
-  sectionTitle: { color: TEXT, fontSize: 17, fontWeight: '900', marginBottom: 10 },
+  sectionTitle: { color: TEXT, fontSize: 14, fontWeight: '900', marginBottom: 8 },
   driverCard: {
     backgroundColor: SURFACE,
     borderWidth: 1,
@@ -343,30 +333,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   verifiedText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
-  infoGrid: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  infoCard: {
-    flex: 1,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 14,
-    padding: 13,
-  },
-  infoLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },
-  infoValue: { color: TEXT, fontSize: 11, fontWeight: '900', marginTop: 5 },
-  availabilityCard: {
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 15,
-    padding: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  availabilityValue: { color: BLUE, fontSize: 24, fontWeight: '900', marginTop: 4 },
-  availabilitySub: { color: TEXT, fontSize: 11, fontWeight: '900', marginTop: 6 },
+  verificationRow: { marginTop: 10, flexDirection: 'row', gap: 7 },
+  verifyItem: { flex: 1, minHeight: 40, borderRadius: 10, backgroundColor: '#ECFDF3', alignItems: 'center', justifyContent: 'center' },
+  verifyIcon: { color: '#027A48', fontSize: 10, fontWeight: '900' },
+  verifyText: { color: '#027A48', fontSize: 7.5, fontWeight: '800', marginTop: 2 },
+  infoList: { backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DFE6E3', borderRadius: 14, overflow: 'hidden' },
+  infoRow: { minHeight: 54, paddingHorizontal: 13, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: LINE },
+  infoLabel: { color: MUTED, fontSize: 8, fontWeight: '700' },
+  infoValue: { color: TEXT, fontSize: 10, fontWeight: '900', marginTop: 3 },
   safety: {
-    marginTop: 24,
+    marginTop: 18,
     borderRadius: 15,
     backgroundColor: '#E9F9F3',
     padding: 14,
@@ -374,8 +350,8 @@ const styles = StyleSheet.create({
   safetyTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
   safetyText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
   primary: {
-    marginTop: 18,
-    height: 50,
+    marginTop: 16,
+    height: 46,
     borderRadius: 12,
     backgroundColor: BLUE,
     alignItems: 'center',

@@ -225,22 +225,31 @@ export default function DriverVerificationScreen() {
           </View>
         </View>
 
-        <View style={styles.summary}>
+        <View style={styles.stepper}>
+          {[1, 2, 3].map((step, index) => {
+            const activeStep = approved ? 3 : (verification?.uploadedRequiredCount ?? 0) >= requiredCount ? 2 : 1;
+            const active = step <= activeStep;
+            return (
+              <View key={step} style={styles.stepperItem}>
+                <View style={[styles.stepCircle, active && styles.stepCircleActive]}>
+                  <Text style={[styles.stepCircleText, active && styles.stepCircleTextActive]}>{step}</Text>
+                </View>
+                {index < 2 ? <View style={[styles.stepLine, activeStep > step && styles.stepLineActive]} /> : null}
+              </View>
+            );
+          })}
+        </View>
+
+        <View style={styles.summaryCard}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.summaryLabel}>{(vehicleId ? selectedVehicle?.status ?? 'Needs info' : driver.status).toUpperCase()}</Text>
-            <Text style={styles.summaryValue}>{nextAction}</Text>
-            <Text style={styles.summaryMeta}>{progress}</Text>
+            <Text style={styles.summaryTitle}>{nextAction}</Text>
+            <Text style={styles.summaryMeta}>{explanation}</Text>
           </View>
           <View style={styles.summaryBadge}>
-            <Text style={styles.summaryBadgeText}>
-              {verification?.uploadedRequiredCount ?? 0}/{requiredCount} uploaded
-            </Text>
+            <Text style={styles.summaryBadgeText}>{progress}</Text>
           </View>
         </View>
 
-        <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${requiredCount ? ((verification?.approvedRequiredCount ?? 0) / requiredCount) * 100 : 0}%` }]} /></View>
-        <Text style={styles.explanation}>{explanation}</Text>
-        <View style={styles.metrics}>{[{ label: 'Uploaded', count: verification?.uploadedRequiredCount ?? 0 }, { label: 'Approved', count: verification?.approvedRequiredCount ?? 0 }, { label: 'Needs attention', count: (verification?.missingKinds.length ?? 0) + (verification?.needsAttentionKinds.length ?? 0) }].map((item) => <View key={item.label} style={styles.metric}><Text style={styles.metricValue}>{item.count}</Text><Text style={styles.metricLabel}>{item.label}</Text></View>)}</View>
         {notice ? <View style={styles.approvedStrip}><Text style={styles.approvedText}>{notice}</Text></View> : null}
 
         {error ? (
@@ -264,9 +273,13 @@ export default function DriverVerificationScreen() {
                   index < requirements.length - 1 && styles.rowBorder,
                 ]}>
                 <View style={styles.rowTop}>
+                  <View style={[styles.docIcon, status === 'Approved' && styles.docIconApproved]}>
+                    <Text style={[styles.docIconText, status === 'Approved' && styles.docIconTextApproved]}>
+                      {status === 'Approved' ? '✓' : '□'}
+                    </Text>
+                  </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.docTitle}>{requirement.label}</Text>
-                    <Text style={styles.requirement}>{requirement.required ? 'Required for approval' : 'Optional'}</Text>
                     <Text style={styles.docDescription}>{requirement.description}</Text>
                   </View>
                   <View style={[styles.status, { backgroundColor: statusTone.bg }]}>
@@ -330,14 +343,14 @@ export default function DriverVerificationScreen() {
 }
 
 const styles = StyleSheet.create({
-  progressTrack: { height: 6, backgroundColor: '#E4E7EC', borderRadius: 8, overflow: 'hidden' },
-  progressFill: { height: 6, backgroundColor: BLUE, borderRadius: 8 },
-  explanation: { color: MUTED, fontSize: 13, lineHeight: 21, marginTop: 12, marginBottom: 18 },
-  metrics: { flexDirection: 'row', gap: 9, marginBottom: 20 },
-  metric: { flex: 1, padding: 14, backgroundColor: SURFACE, borderRadius: 14, borderWidth: 1, borderColor: LINE },
-  metricValue: { fontSize: 24, fontWeight: '800', color: TEXT },
-  metricLabel: { fontSize: 10, color: MUTED, marginTop: 4 },
-  requirement: { fontSize: 10, color: BLUE, marginTop: 4, fontWeight: '700' },
+  stepper: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, paddingHorizontal: 4 },
+  stepperItem: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  stepCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#EEF2F0', alignItems: 'center', justifyContent: 'center' },
+  stepCircleActive: { backgroundColor: BLUE },
+  stepCircleText: { color: MUTED, fontSize: 9, fontWeight: '900' },
+  stepCircleTextActive: { color: '#FFFFFF' },
+  stepLine: { flex: 1, height: 2, backgroundColor: '#E1E7E4', marginHorizontal: 6 },
+  stepLineActive: { backgroundColor: '#8FE3C1' },
   safe: { flex: 1, backgroundColor: BG },
   page: { padding: 18, paddingBottom: 50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
@@ -351,20 +364,23 @@ const styles = StyleSheet.create({
   muted: { color: MUTED, fontSize: 11, lineHeight: 18, marginTop: 6, textAlign: 'center' },
   primary: { marginTop: 16, backgroundColor: BLUE, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 13 },
   primaryText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
-  summary: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#063C35', borderRadius: 18, padding: 16, marginBottom: 16 },
-  summaryLabel: { color: '#A9B6CA', fontSize: 9, fontWeight: '800' },
-  summaryValue: { color: '#FFFFFF', fontSize: 18, fontWeight: '900', marginTop: 3 },
-  summaryMeta: { color: '#A9B6CA', fontSize: 10, marginTop: 4 },
-  summaryBadge: { backgroundColor: '#0B5148', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999 },
-  summaryBadgeText: { color: '#D7F5E8', fontSize: 9, fontWeight: '900' },
+  summaryCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DFE6E3', borderRadius: 14, padding: 13, marginBottom: 12 },
+  summaryTitle: { color: TEXT, fontSize: 12, fontWeight: '900' },
+  summaryMeta: { color: MUTED, fontSize: 8.5, lineHeight: 14, marginTop: 3 },
+  summaryBadge: { backgroundColor: '#E9F9F3', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 999 },
+  summaryBadgeText: { color: '#087F5B', fontSize: 8, fontWeight: '900' },
   error: { borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFF8F7', borderRadius: 12, padding: 12, marginBottom: 14 },
   errorText: { color: '#B42318', fontSize: 10, lineHeight: 16 },
-  list: { gap: 12, marginTop: 12 },
-  row: { padding: 18, borderRadius: 16, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE },
-  rowBorder: {},
-  rowTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  docTitle: { color: TEXT, fontSize: 15, fontWeight: '800' },
-  docDescription: { color: MUTED, fontSize: 12, lineHeight: 18, marginTop: 6 },
+  list: { backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DFE6E3', borderRadius: 14, overflow: 'hidden', marginTop: 10 },
+  row: { padding: 13, backgroundColor: SURFACE },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
+  rowTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  docIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#F2F4F3', alignItems: 'center', justifyContent: 'center' },
+  docIconApproved: { backgroundColor: '#ECFDF3' },
+  docIconText: { color: MUTED, fontSize: 12, fontWeight: '900' },
+  docIconTextApproved: { color: '#027A48' },
+  docTitle: { color: TEXT, fontSize: 10.5, fontWeight: '900' },
+  docDescription: { color: MUTED, fontSize: 8, lineHeight: 13, marginTop: 2 },
   status: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5 },
   statusText: { fontSize: 10, fontWeight: '800' },
   fileBox: { marginTop: 10, flexDirection: 'row', backgroundColor: '#F8FAFC', borderRadius: 10, padding: 10 },
@@ -373,8 +389,8 @@ const styles = StyleSheet.create({
   note: { marginTop: 10, backgroundColor: '#FFF7ED', borderRadius: 10, padding: 10 },
   noteTitle: { color: '#9A3412', fontSize: 8, fontWeight: '900' },
   noteText: { color: '#7C2D12', fontSize: 9, lineHeight: 14, marginTop: 3 },
-  uploadButton: { height: 40, marginTop: 10, borderWidth: 1, borderColor: '#B7EAD6', backgroundColor: '#F5F9FF', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  uploadText: { color: BLUE, fontSize: 10, fontWeight: '900' },
+  uploadButton: { height: 36, marginTop: 9, borderWidth: 1, borderColor: '#C7EEDF', backgroundColor: '#E9F9F3', borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  uploadText: { color: '#087F5B', fontSize: 8.5, fontWeight: '900' },
   approvedStrip: { marginTop: 10, backgroundColor: '#ECFDF3', borderRadius: 10, padding: 10 },
   approvedText: { color: '#027A48', fontSize: 9, fontWeight: '900' },
   help: { marginTop: 16, backgroundColor: '#E9F9F3', borderRadius: 14, padding: 14 },

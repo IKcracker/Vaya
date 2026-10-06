@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -10,43 +11,37 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ScreenReveal } from '@/components/screen-reveal';
 import { fetchPassengerTrips, PassengerTrip } from '@/lib/auth';
+import { API_URL } from '@/lib/api';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#10B981';
-const NAVY = '#063C35';
-const BG = '#F6F8F7';
+const GREEN = '#10B981';
+const GREEN_DARK = '#087F5B';
+const MINT = '#E9F9F3';
+const BG = '#F7F9F8';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
-const LINE = '#E4E7EC';
+const LINE = '#E5E7EB';
 
-const corridors = [
-  ['Johannesburg', 'Durban', 'Gauteng → KwaZulu-Natal'],
-  ['Cape Town', 'Gqeberha', 'Western Cape → Eastern Cape'],
-  ['Polokwane', 'Pretoria', 'Limpopo → Gauteng'],
-  ['Mbombela', 'Pretoria', 'Mpumalanga → Gauteng'],
+const popularRoutes = [
+  { from: 'Johannesburg', to: 'Cape Town', fare: 'From R450', code: 'JHB → CPT' },
+  { from: 'Johannesburg', to: 'Durban', fare: 'From R380', code: 'JHB → DBN' },
+  { from: 'Pretoria', to: 'Gqeberha', fare: 'From R420', code: 'PTA → GQE' },
+  { from: 'Cape Town', to: 'Gqeberha', fare: 'From R460', code: 'CPT → GQE' },
 ];
-
-function openSearch(from: string, to: string) {
-  router.push({
-    pathname: '/search',
-    params: { from, to },
-  });
-}
 
 function initials(name: string) {
   return name
-    .split(' ')
+    .split(/\s+/)
     .filter(Boolean)
-    .map((value) => value[0])
+    .map((part) => part[0])
     .join('')
     .slice(0, 2)
     .toUpperCase();
 }
 
-function formatDeparture(value: string) {
+function formatTripDate(value: string) {
   return new Intl.DateTimeFormat('en-ZA', {
     weekday: 'short',
     day: '2-digit',
@@ -58,14 +53,13 @@ function formatDeparture(value: string) {
 }
 
 export default function HomeScreen() {
-  const { loading: authLoading, session, passenger, user } = usePassengerAuth();
+  const { loading, session, passenger, user } = usePassengerAuth();
   const [trips, setTrips] = useState<PassengerTrip[]>([]);
-  const [now] = useState(() => Date.now());
   const [tripsLoading, setTripsLoading] = useState(Boolean(session));
+  const [now] = useState(() => Date.now());
 
   useEffect(() => {
     if (!session) return;
-
     let active = true;
 
     fetchPassengerTrips(session)
@@ -81,6 +75,8 @@ export default function HomeScreen() {
     };
   }, [session]);
 
+  const displayName = passenger?.name || user?.name || 'Traveller';
+  const firstName = displayName.split(/\s+/)[0] || 'Traveller';
   const nextTrip = useMemo(
     () =>
       trips.find(
@@ -92,202 +88,165 @@ export default function HomeScreen() {
     [now, trips]
   );
 
-  const displayName = passenger?.name || user?.name || '';
+  const imageSource =
+    passenger?.profileImageUrl && session
+      ? {
+          uri: `${API_URL}${passenger.profileImageUrl}`,
+          headers: { 'x-vaya-session': session },
+        }
+      : null;
+
+  const openRoute = (from: string, to: string) => {
+    router.push({
+      pathname: '/search',
+      params: { from, to },
+    });
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
-        <ScreenReveal>
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.brand}>Vaya</Text>
-              <Text style={styles.subtitle}>Ride together. Go further.</Text>
-            </View>
-            <Pressable
-              onPress={() => router.push('/profile')}
-              style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}>
-              {authLoading ? (
-                <ActivityIndicator size="small" color={BLUE} />
-              ) : (
-                <Text style={styles.avatarText}>
-                  {session ? initials(displayName) || 'VP' : 'V'}
-                </Text>
-              )}
-            </Pressable>
+        <View style={styles.topbar}>
+          <View>
+            <Text style={styles.brand}>Vaya</Text>
+            <Text style={styles.tagline}>Ride together. Go further.</Text>
           </View>
-        </ScreenReveal>
+          <Pressable onPress={() => router.push('/profile')} style={styles.avatar}>
+            {loading ? (
+              <ActivityIndicator color={GREEN} size="small" />
+            ) : imageSource ? (
+              <Image source={imageSource} style={styles.avatarImage} contentFit="cover" />
+            ) : (
+              <Text style={styles.avatarText}>{session ? initials(displayName) || 'V' : 'V'}</Text>
+            )}
+          </Pressable>
+        </View>
 
-        <ScreenReveal delay={70}>
-          <View style={styles.heroCopy}>
-            <Text style={styles.eyebrow}>SAFE · AFFORDABLE · VERIFIED</Text>
-            <Text style={styles.heroTitle}>Where would you like to go?</Text>
-            <Text style={styles.heroBody}>
-              Find trusted inter-city rides with verified drivers and vehicles across South Africa.
+        <View style={styles.welcomeRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.welcome}>Where would you like to go?</Text>
+            <Text style={styles.welcomeMeta}>
+              {session ? `Hi ${firstName}, find your next inter-city ride.` : 'Find safe, verified rides across South Africa.'}
             </Text>
           </View>
-        </ScreenReveal>
-
-        <ScreenReveal delay={120}>
-          <View style={styles.searchCard}>
-            <View style={styles.routeBlock}>
-              <View style={styles.routeRail}>
-                <View style={styles.routeDotMuted} />
-                <View style={styles.routeLine} />
-                <View style={styles.routeDotBlue} />
-              </View>
-
-              <View style={styles.routeFields}>
-                <View style={styles.routeField}>
-                  <Text style={styles.fieldLabel}>Leaving from</Text>
-                  <Text style={styles.fieldValue}>Johannesburg</Text>
-                </View>
-                <View style={styles.routeField}>
-                  <Text style={styles.fieldLabel}>Going to</Text>
-                  <Text style={styles.fieldValue}>Durban</Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.optionsRow}>
-              <View style={styles.option}>
-                <Text style={styles.optionLabel}>Date</Text>
-                <Text style={styles.optionValue}>Choose in search</Text>
-              </View>
-              <View style={styles.option}>
-                <Text style={styles.optionLabel}>Passengers</Text>
-                <Text style={styles.optionValue}>Choose seats</Text>
-              </View>
-            </View>
-
-            <Pressable
-              onPress={() => openSearch('Johannesburg', 'Durban')}
-              style={({ pressed }) => [styles.primary, pressed && styles.primaryPressed]}>
-              <Text style={styles.primaryText}>Search rides</Text>
-            </Pressable>
+          <View style={styles.safeBadge}>
+            <Text style={styles.safeBadgeIcon}>✓</Text>
+            <Text style={styles.safeBadgeText}>Verified</Text>
           </View>
-        </ScreenReveal>
+        </View>
 
-        <ScreenReveal delay={190}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Your next trip</Text>
-              <Text style={styles.sectionSubtitle}>
-                {session ? 'Synced from your passenger account' : 'Sign in to sync bookings'}
-              </Text>
-            </View>
-            <Pressable onPress={() => router.push('/trips')}>
-              <Text style={styles.sectionAction}>View trips</Text>
-            </Pressable>
-          </View>
-
-          {session && tripsLoading ? (
-            <View style={styles.tripState}>
-              <ActivityIndicator color={BLUE} />
-            </View>
-          ) : nextTrip ? (
-            <Pressable
-              onPress={() =>
-                nextTrip.paymentStatus === 'Paid'
-                  ? router.push('/trips')
-                  : router.push({
-                      pathname: '/payment/[id]',
-                      params: { id: nextTrip.id },
-                    })
-              }
-              style={({ pressed }) => [styles.nextTrip, pressed && styles.routePressed]}>
-              <View style={styles.nextTripTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.nextTripStatus}>{nextTrip.bookingStatus.toUpperCase()}</Text>
-                  <Text style={styles.nextTripRoute}>{nextTrip.route}</Text>
-                  <Text style={styles.nextTripDate}>{formatDeparture(nextTrip.departureAt)}</Text>
-                </View>
-                <Text style={styles.nextTripFare}>{nextTrip.amount}</Text>
-              </View>
-              <View style={styles.nextTripDivider} />
-              <View style={styles.nextTripBottom}>
-                <View>
-                  <Text style={styles.nextTripLabel}>Driver</Text>
-                  <Text style={styles.nextTripValue}>{nextTrip.driver}</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.nextTripLabel}>Payment</Text>
-                  <Text style={styles.nextTripValue}>{nextTrip.paymentStatus}</Text>
-                </View>
-              </View>
-            </Pressable>
-          ) : (
-            <View style={styles.emptyTrip}>
-              <Text style={styles.emptyTripTitle}>
-                {session ? 'No upcoming booking yet' : 'Keep your trips in one place'}
-              </Text>
-              <Text style={styles.emptyTripText}>
-                {session
-                  ? 'Search for a route and your next confirmed reservation will appear here.'
-                  : 'Create a passenger account to sync bookings and travel history.'}
-              </Text>
-              <Pressable
-                onPress={() =>
-                  session
-                    ? router.push('/search')
-                    : router.push({ pathname: '/auth', params: { next: '/' } })
-                }
-                style={({ pressed }) => [styles.emptyTripButton, pressed && styles.pressed]}>
-                <Text style={styles.emptyTripButtonText}>
-                  {session ? 'Find a ride' : 'Sign in or create account'}
-                </Text>
-              </Pressable>
-            </View>
-          )}
-        </ScreenReveal>
-
-        <ScreenReveal delay={260}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Popular routes</Text>
-              <Text style={styles.sectionSubtitle}>Long-distance corridors across South Africa</Text>
-            </View>
-          </View>
-
-          <View style={styles.routeList}>
-            {corridors.map(([from, to, province], index) => (
-              <Pressable
-                key={from + to}
-                onPress={() => openSearch(from, to)}
-                style={({ pressed }) => [
-                  styles.routeCard,
-                  index < corridors.length - 1 && styles.routeBorder,
-                  pressed && styles.routePressed,
-                ]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.routeTitle}>{from} → {to}</Text>
-                  <Text style={styles.routeMeta}>{province}</Text>
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScreenReveal>
-
-        <ScreenReveal delay={340}>
+        <View style={styles.searchCard}>
           <Pressable
-            onPress={() => router.push('/explore')}
-            style={({ pressed }) => [styles.driverStrip, pressed && styles.routePressed]}>
-            <View style={styles.driverBadge}><Text style={styles.driverBadgeText}>↗</Text></View>
+            onPress={() => router.push('/search')}
+            style={({ pressed }) => [styles.searchField, pressed && styles.pressed]}>
+            <View style={styles.pinCircle}><Text style={styles.pinText}>●</Text></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.driverTitle}>Already making the trip?</Text>
-              <Text style={styles.driverCopy}>Publish your route and put empty seats to work.</Text>
+              <Text style={styles.fieldLabel}>From</Text>
+              <Text style={styles.fieldValue}>Current location</Text>
             </View>
-            <Text style={styles.driverArrow}>›</Text>
+            <Text style={styles.chevron}>›</Text>
           </Pressable>
 
-          <View style={styles.safetyStrip}>
-            <View style={styles.safetyBadge}><Text style={styles.safetyBadgeText}>✓</Text></View>
+          <View style={styles.fieldDivider} />
+
+          <Pressable
+            onPress={() => router.push('/search')}
+            style={({ pressed }) => [styles.searchField, pressed && styles.pressed]}>
+            <View style={[styles.pinCircle, styles.pinCircleDestination]}>
+              <Text style={[styles.pinText, styles.pinTextDestination]}>●</Text>
+            </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.safetyTitle}>Travel with more clarity</Text>
-              <Text style={styles.safetyCopy}>Verified drivers, trip records and vehicle information stay linked to every journey.</Text>
+              <Text style={styles.fieldLabel}>To</Text>
+              <Text style={styles.fieldValue}>Enter destination</Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/search')}
+            style={({ pressed }) => [styles.searchButton, pressed && styles.pressed]}>
+            <Text style={styles.searchButtonText}>Search rides</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Popular routes</Text>
+          <Pressable onPress={() => router.push('/search')}>
+            <Text style={styles.sectionAction}>See all</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.popularGrid}>
+          {popularRoutes.map((route) => (
+            <Pressable
+              key={route.code}
+              onPress={() => openRoute(route.from, route.to)}
+              style={({ pressed }) => [styles.popularCard, pressed && styles.pressed]}>
+              <View style={styles.routeVisual}>
+                <View style={styles.routeVisualDot} />
+                <View style={styles.routeVisualLine} />
+                <View style={[styles.routeVisualDot, styles.routeVisualDotEnd]} />
+              </View>
+              <Text style={styles.popularCode}>{route.code}</Text>
+              <Text style={styles.popularFare}>{route.fare}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Your next trip</Text>
+          <Pressable onPress={() => router.push('/trips')}>
+            <Text style={styles.sectionAction}>My trips</Text>
+          </Pressable>
+        </View>
+
+        {session && tripsLoading ? (
+          <View style={styles.stateCard}><ActivityIndicator color={GREEN} /></View>
+        ) : nextTrip ? (
+          <Pressable
+            onPress={() => router.push('/trips')}
+            style={({ pressed }) => [styles.tripCard, pressed && styles.pressed]}>
+            <View style={styles.tripStatusRow}>
+              <View style={styles.tripStatusBadge}>
+                <Text style={styles.tripStatusText}>UPCOMING</Text>
+              </View>
+              <Text style={styles.tripFare}>{nextTrip.amount}</Text>
+            </View>
+            <Text style={styles.tripRoute}>{nextTrip.route}</Text>
+            <Text style={styles.tripDate}>{formatTripDate(nextTrip.departureAt)}</Text>
+            <View style={styles.tripBottom}>
+              <View>
+                <Text style={styles.tripLabel}>Driver</Text>
+                <Text style={styles.tripValue}>{nextTrip.driver}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={styles.tripLabel}>Payment</Text>
+                <Text style={styles.tripValue}>{nextTrip.paymentStatus}</Text>
+              </View>
+            </View>
+          </Pressable>
+        ) : (
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIcon}><Text style={styles.emptyIconText}>↗</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.emptyTitle}>{session ? 'No upcoming trips' : 'Your trips will live here'}</Text>
+              <Text style={styles.emptyText}>
+                {session ? 'Search a route and book your next inter-city trip.' : 'Sign in to keep bookings and trip history together.'}
+              </Text>
             </View>
           </View>
-        </ScreenReveal>
+        )}
+
+        <Pressable
+          onPress={() => router.push('/explore')}
+          style={({ pressed }) => [styles.driverBanner, pressed && styles.pressed]}>
+          <View style={styles.driverBannerIcon}><Text style={styles.driverBannerIconText}>↗</Text></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.driverBannerTitle}>Driving somewhere?</Text>
+            <Text style={styles.driverBannerText}>Publish your route and share the trip with verified passengers.</Text>
+          </View>
+          <Text style={styles.driverBannerArrow}>›</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -295,71 +254,63 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-  page: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 120 },
-  pressed: { opacity: 0.72 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  brand: { color: TEXT, fontSize: 29, fontWeight: '900', letterSpacing: -1.2 },
-  brandDot: { color: BLUE },
-  subtitle: { color: MUTED, fontSize: 11, marginTop: 2 },
-  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E9F9F3', borderWidth: 1, borderColor: '#C7EEDF', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: BLUE, fontWeight: '900', fontSize: 11 },
-  heroCopy: { marginBottom: 16 },
-  eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.15 },
-  heroTitle: { color: TEXT, fontSize: 30, fontWeight: '900', letterSpacing: -0.8, lineHeight: 35, marginTop: 5, maxWidth: 320 },
-  heroBody: { color: MUTED, fontSize: 11, lineHeight: 18, marginTop: 7, maxWidth: 330 },
-  searchCard: { backgroundColor: NAVY, borderRadius: 18, padding: 16, marginBottom: 27 },
-  routeBlock: { flexDirection: 'row' },
-  routeRail: { width: 25, alignItems: 'center', paddingTop: 21, paddingBottom: 21 },
-  routeDotMuted: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#98A2B3' },
-  routeDotBlue: { width: 8, height: 8, borderRadius: 4, backgroundColor: BLUE },
-  routeLine: { flex: 1, width: 1, backgroundColor: '#34445E', marginVertical: 3 },
-  routeFields: { flex: 1, gap: 9 },
-  routeField: { borderRadius: 12, backgroundColor: '#13233F', paddingHorizontal: 13, paddingVertical: 12, borderWidth: 1, borderColor: '#243552' },
-  fieldLabel: { color: '#8FA0B8', fontSize: 9, fontWeight: '700' },
-  fieldValue: { color: '#FFFFFF', fontSize: 13, fontWeight: '900', marginTop: 4 },
-  optionsRow: { flexDirection: 'row', gap: 9, marginTop: 11 },
-  option: { flex: 1, borderRadius: 11, backgroundColor: '#13233F', paddingHorizontal: 12, paddingVertical: 11, borderWidth: 1, borderColor: '#243552' },
-  optionLabel: { color: '#8FA0B8', fontSize: 9, fontWeight: '700' },
-  optionValue: { color: '#FFFFFF', fontSize: 11, fontWeight: '900', marginTop: 4 },
-  primary: { height: 49, backgroundColor: BLUE, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginTop: 13 },
-  primaryPressed: { opacity: 0.86, transform: [{ scale: 0.995 }] },
-  primaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
-  sectionHeader: { marginBottom: 11, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  sectionTitle: { color: TEXT, fontSize: 18, fontWeight: '900', letterSpacing: -0.3 },
-  sectionSubtitle: { color: MUTED, fontSize: 10, marginTop: 3 },
-  sectionAction: { color: BLUE, fontSize: 10, fontWeight: '900' },
-  tripState: { minHeight: 110, borderWidth: 1, borderColor: LINE, borderRadius: 16, backgroundColor: SURFACE, alignItems: 'center', justifyContent: 'center', marginBottom: 25 },
-  nextTrip: { backgroundColor: SURFACE, borderRadius: 17, borderWidth: 1, borderColor: LINE, padding: 15, marginBottom: 25 },
-  nextTripTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  nextTripStatus: { color: '#027A48', fontSize: 9, fontWeight: '900', letterSpacing: .5 },
-  nextTripRoute: { color: TEXT, fontSize: 16, fontWeight: '900', marginTop: 6 },
-  nextTripDate: { color: MUTED, fontSize: 10, marginTop: 4 },
-  nextTripFare: { color: TEXT, fontSize: 18, fontWeight: '900' },
-  nextTripDivider: { height: 1, backgroundColor: LINE, marginVertical: 14 },
-  nextTripBottom: { flexDirection: 'row', justifyContent: 'space-between' },
-  nextTripLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },
-  nextTripValue: { color: TEXT, fontSize: 10, fontWeight: '900', marginTop: 3 },
-  emptyTrip: { borderWidth: 1, borderColor: LINE, borderRadius: 16, backgroundColor: SURFACE, padding: 16, marginBottom: 25 },
-  emptyTripTitle: { color: TEXT, fontSize: 13, fontWeight: '900' },
-  emptyTripText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
-  emptyTripButton: { alignSelf: 'flex-start', marginTop: 12, borderRadius: 9, backgroundColor: '#E9F9F3', paddingHorizontal: 11, paddingVertical: 8 },
-  emptyTripButtonText: { color: BLUE, fontSize: 10, fontWeight: '900' },
-  routeList: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, overflow: 'hidden' },
-  routeCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 14 },
-  routeBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
-  routePressed: { opacity: 0.72 },
-  routeTitle: { color: TEXT, fontSize: 12, fontWeight: '900' },
-  routeMeta: { color: MUTED, fontSize: 9, marginTop: 4 },
-  chevron: { color: '#98A2B3', fontSize: 22 },
-  driverStrip: { flexDirection: 'row', gap: 11, alignItems: 'center', marginTop: 26, backgroundColor: '#0B1730', borderRadius: 16, padding: 14 },
-  driverBadge: { width: 34, height: 34, borderRadius: 11, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
-  driverBadgeText: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
-  driverTitle: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
-  driverCopy: { color: '#A9B6CA', fontSize: 9, marginTop: 3 },
-  driverArrow: { color: '#98A2B3', fontSize: 22 },
-  safetyStrip: { flexDirection: 'row', gap: 11, alignItems: 'center', marginTop: 12, backgroundColor: '#EDF5FF', borderRadius: 16, padding: 14 },
-  safetyBadge: { width: 32, height: 32, borderRadius: 16, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
-  safetyBadgeText: { color: '#FFFFFF', fontWeight: '900' },
-  safetyTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
-  safetyCopy: { color: MUTED, fontSize: 9, lineHeight: 15, marginTop: 3 },
+  page: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 120 },
+  pressed: { opacity: 0.74 },
+  topbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  brand: { color: TEXT, fontSize: 27, fontWeight: '900', letterSpacing: -1.2 },
+  tagline: { color: MUTED, fontSize: 9, marginTop: 1 },
+  avatar: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#D9E5E0', backgroundColor: MINT, alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: '100%', height: '100%' },
+  avatarText: { color: GREEN_DARK, fontSize: 11, fontWeight: '900' },
+  welcomeRow: { flexDirection: 'row', gap: 12, alignItems: 'center', marginTop: 24, marginBottom: 12 },
+  welcome: { color: TEXT, fontSize: 21, fontWeight: '900', letterSpacing: -0.35 },
+  welcomeMeta: { color: MUTED, fontSize: 10, marginTop: 4 },
+  safeBadge: { flexDirection: 'row', gap: 4, alignItems: 'center', backgroundColor: MINT, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 6 },
+  safeBadgeIcon: { color: GREEN_DARK, fontSize: 9, fontWeight: '900' },
+  safeBadgeText: { color: GREEN_DARK, fontSize: 8, fontWeight: '900' },
+  searchCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DDE5E2', borderRadius: 17, padding: 12 },
+  searchField: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 2 },
+  pinCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: MINT, alignItems: 'center', justifyContent: 'center' },
+  pinCircleDestination: { backgroundColor: '#FFF2E8' },
+  pinText: { color: GREEN, fontSize: 10 },
+  pinTextDestination: { color: '#F97316' },
+  fieldLabel: { color: MUTED, fontSize: 8, fontWeight: '700' },
+  fieldValue: { color: TEXT, fontSize: 12, fontWeight: '800', marginTop: 3 },
+  fieldDivider: { height: 1, backgroundColor: LINE, marginLeft: 40 },
+  chevron: { color: '#98A2B3', fontSize: 20 },
+  searchButton: { marginTop: 10, height: 46, borderRadius: 11, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
+  searchButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
+  sectionHeader: { marginTop: 24, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionTitle: { color: TEXT, fontSize: 15, fontWeight: '900' },
+  sectionAction: { color: GREEN_DARK, fontSize: 9, fontWeight: '900' },
+  popularGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+  popularCard: { width: '48.5%', minHeight: 96, borderRadius: 14, backgroundColor: SURFACE, borderWidth: 1, borderColor: '#E1E7E4', padding: 11 },
+  routeVisual: { height: 30, borderRadius: 9, backgroundColor: '#F0F6F3', paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center' },
+  routeVisualDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: GREEN },
+  routeVisualLine: { flex: 1, height: 2, marginHorizontal: 4, backgroundColor: '#A9DCC7' },
+  routeVisualDotEnd: { backgroundColor: '#0E7490' },
+  popularCode: { color: TEXT, fontSize: 10, fontWeight: '900', marginTop: 9 },
+  popularFare: { color: MUTED, fontSize: 8, marginTop: 3 },
+  stateCard: { minHeight: 100, borderRadius: 14, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, alignItems: 'center', justifyContent: 'center' },
+  tripCard: { borderRadius: 15, backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DEE6E2', padding: 14 },
+  tripStatusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  tripStatusBadge: { backgroundColor: '#ECFDF3', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5 },
+  tripStatusText: { color: '#027A48', fontSize: 7, fontWeight: '900' },
+  tripFare: { color: TEXT, fontSize: 15, fontWeight: '900' },
+  tripRoute: { color: TEXT, fontSize: 13, fontWeight: '900', marginTop: 10 },
+  tripDate: { color: MUTED, fontSize: 9, marginTop: 4 },
+  tripBottom: { marginTop: 13, paddingTop: 12, borderTopWidth: 1, borderTopColor: LINE, flexDirection: 'row', justifyContent: 'space-between' },
+  tripLabel: { color: MUTED, fontSize: 8 },
+  tripValue: { color: TEXT, fontSize: 9, fontWeight: '800', marginTop: 3 },
+  emptyCard: { minHeight: 84, borderRadius: 14, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, flexDirection: 'row', gap: 10, alignItems: 'center', padding: 13 },
+  emptyIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: MINT, alignItems: 'center', justifyContent: 'center' },
+  emptyIconText: { color: GREEN_DARK, fontWeight: '900', fontSize: 14 },
+  emptyTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
+  emptyText: { color: MUTED, fontSize: 9, lineHeight: 14, marginTop: 3 },
+  driverBanner: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 15, backgroundColor: '#063C35', padding: 14 },
+  driverBannerIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
+  driverBannerIconText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
+  driverBannerTitle: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
+  driverBannerText: { color: '#B9D7CE', fontSize: 8.5, lineHeight: 13, marginTop: 3 },
+  driverBannerArrow: { color: '#B9D7CE', fontSize: 20 },
 });

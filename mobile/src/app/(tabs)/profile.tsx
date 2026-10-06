@@ -16,7 +16,6 @@ import { API_URL } from '@/lib/api';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
 const BLUE = '#10B981';
-const NAVY = '#063C35';
 const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
@@ -120,14 +119,11 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
         <View style={styles.topRow}>
-          <View>
-            <Text style={styles.eyebrow}>PROFILE</Text>
-            <Text style={styles.pageTitle}>Account</Text>
-          </View>
+          <Text style={styles.pageTitle}>My Profile</Text>
           <Pressable
-            onPress={() => router.push('/profile-edit')}
-            style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}>
-            <Text style={styles.editButtonText}>Edit</Text>
+            onPress={() => router.push('/settings')}
+            style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}>
+            <Text style={styles.settingsButtonText}>⚙</Text>
           </Pressable>
         </View>
 
@@ -154,7 +150,13 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Your account</Text>
+        <Pressable
+          onPress={() => router.push('/profile-edit')}
+          style={({ pressed }) => [styles.editProfileButton, pressed && styles.pressed]}>
+          <Text style={styles.editProfileButtonText}>Edit profile</Text>
+        </Pressable>
+
+        <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.actionCard}>
           <AccountRow
             title="Personal details"
@@ -302,7 +304,7 @@ function AccountRow({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-  page: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 120 },
+  page: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 120 },
   pressed: { opacity: 0.7 },
   centerState: { flex: 1, paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center' },
   stateTitle: { color: TEXT, fontSize: 18, fontWeight: '900', marginTop: 14 },
@@ -310,11 +312,12 @@ const styles = StyleSheet.create({
   primary: { marginTop: 18, height: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
   primaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
-  pageTitle: { color: TEXT, fontSize: 28, fontWeight: '900', letterSpacing: -0.6, marginTop: 2 },
-  editButton: { borderWidth: 1, borderColor: LINE, backgroundColor: SURFACE, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 8 },
-  editButtonText: { color: BLUE, fontSize: 10, fontWeight: '900' },
-  profileCard: { marginTop: 18, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 18, overflow: 'hidden' },
+  pageTitle: { color: TEXT, fontSize: 24, fontWeight: '900', letterSpacing: -0.45 },
+  settingsButton: { width: 38, height: 38, borderRadius: 11, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, alignItems: 'center', justifyContent: 'center' },
+  settingsButtonText: { fontSize: 16 },
+  editProfileButton: { marginTop: 10, height: 42, borderRadius: 10, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
+  editProfileButtonText: { color: '#087F5B', fontSize: 9.5, fontWeight: '900' },
+  profileCard: { marginTop: 16, backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DFE6E3', borderRadius: 15, overflow: 'hidden' },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 16 },
   avatar: { width: 58, height: 58, borderRadius: 29, overflow: 'hidden', backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   avatarImage: { width: '100%', height: '100%' },
@@ -327,29 +330,29 @@ const styles = StyleSheet.create({
   stat: { flex: 1, paddingHorizontal: 10, paddingVertical: 13, alignItems: 'center' },
   statValue: { color: TEXT, fontSize: 11, fontWeight: '900', maxWidth: '100%' },
   statLabel: { color: MUTED, fontSize: 8, fontWeight: '700', marginTop: 3 },
-  sectionTitle: { color: TEXT, fontSize: 17, fontWeight: '900', marginTop: 24, marginBottom: 9 },
+  sectionTitle: { color: TEXT, fontSize: 14, fontWeight: '900', marginTop: 22, marginBottom: 8 },
   actionCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, overflow: 'hidden' },
-  actionRow: { minHeight: 67, flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13 },
+  actionRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 11 },
   actionBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
-  actionIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: '#F2F4F7', alignItems: 'center', justifyContent: 'center' },
+  actionIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#F1F5F3', alignItems: 'center', justifyContent: 'center' },
   actionIconText: { fontSize: 16 },
   actionTitle: { color: TEXT, fontSize: 12, fontWeight: '900' },
   actionNote: { color: MUTED, fontSize: 9, lineHeight: 14, marginTop: 3 },
   chevron: { color: '#98A2B3', fontSize: 22 },
-  driverCard: { backgroundColor: NAVY, borderRadius: 18, padding: 15 },
+  driverCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DFE6E3', borderRadius: 15, padding: 13 },
   driverTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  driverIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#0B5148', alignItems: 'center', justifyContent: 'center' },
-  driverIconText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900' },
-  driverTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
-  driverCopy: { color: '#A9B6CA', fontSize: 9, lineHeight: 15, marginTop: 4 },
+  driverIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
+  driverIconText: { color: '#087F5B', fontSize: 15, fontWeight: '900' },
+  driverTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
+  driverCopy: { color: MUTED, fontSize: 8.5, lineHeight: 14, marginTop: 3 },
   driverStatus: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5 },
   driverStatusText: { fontSize: 8, fontWeight: '900' },
   driverActions: { marginTop: 14, flexDirection: 'row', gap: 8 },
-  vehicleButton: { flex: 1, height: 42, borderRadius: 10, borderWidth: 1, borderColor: '#34517F', alignItems: 'center', justifyContent: 'center' },
-  vehicleButtonText: { color: '#D7F5E8', fontSize: 10, fontWeight: '900' },
-  driverButton: { marginTop: 14, height: 42, borderRadius: 10, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
+  vehicleButton: { flex: 1, height: 38, borderRadius: 9, borderWidth: 1, borderColor: '#DDE5E2', alignItems: 'center', justifyContent: 'center' },
+  vehicleButtonText: { color: '#087F5B', fontSize: 8.5, fontWeight: '900' },
+  driverButton: { marginTop: 12, height: 38, borderRadius: 9, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
   driverButtonFlex: { flex: 1, marginTop: 0 },
-  driverButtonText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+  driverButtonText: { color: '#FFFFFF', fontSize: 8.5, fontWeight: '900' },
   securityCard: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#ECFDF3', borderRadius: 14, padding: 13 },
   securityDot: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#12B76A', alignItems: 'center', justifyContent: 'center' },
   securityDotText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
