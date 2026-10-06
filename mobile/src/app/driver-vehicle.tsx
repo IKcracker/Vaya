@@ -24,7 +24,6 @@ import {
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
 const BLUE = '#10B981';
-const NAVY = '#063C35';
 const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
