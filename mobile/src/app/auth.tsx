@@ -65,7 +65,7 @@ export default function PassengerAuthScreen() {
         }
       }
 
-      router.replace(next as never);
+      router.replace((mode === 'sign-up' ? '/choose-role' : next) as never);
     } catch (reason) {
       setError(
         reason instanceof Error
