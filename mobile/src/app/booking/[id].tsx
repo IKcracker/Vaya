@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { createAuthenticatedBooking } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const GREEN='#16B364'; const BG='#FFFFFF'; const SURFACE='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
+const GREEN='#16B364'; const BG='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
 
 type CreatedBooking={id:string;status:string;paymentStatus:string;seats:number;amount:string;trip:{id:string;route:string;departureAt:string}};
 
