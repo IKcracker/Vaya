@@ -36,8 +36,6 @@ export default function SearchResultsScreen(){
 
  useEffect(()=>{
   let active=true;
-  setLoading(true);
-  setError(null);
 
   Promise.all([
    searchTrips({from,to,date,passengers}),
