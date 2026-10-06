@@ -10,8 +10,7 @@ export default function TripCompletedScreen(){
   <View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable><Text style={styles.headerTitle}>Trip Completed</Text><View style={{width:38}}/></View>
   <View style={styles.confetti}><Text style={styles.confettiText}>🎉</Text></View>
   <Text style={styles.title}>Thanks for riding with James!</Text>
-  <Text style={styles.subtitle}>Nairobi → Mombasa{'
-'}Fri, 16 May · 8:00 AM</Text>
+  <Text style={styles.subtitle}>Nairobi → Mombasa{"\n"}Fri, 16 May · 8:00 AM</Text>
   <View style={styles.card}><Text style={styles.label}>How was your trip?</Text><View style={styles.stars}>{[1,2,3,4,5].map((s)=><Text key={s} style={styles.star}>★</Text>)}</View><TextInput multiline placeholder="Add a comment (optional)" placeholderTextColor="#98A2B3" style={styles.input}/></View>
   <Pressable onPress={()=>router.replace('/trips')} style={styles.primary}><Text style={styles.primaryText}>Submit Review</Text></Pressable>
  </ScrollView></SafeAreaView>
