@@ -107,13 +107,6 @@ export default function DriverVehicleScreen() {
     };
   }, [session]);
 
-  function startAdd() {
-    setEditing(null);
-    setDraft(EMPTY);
-    setShowForm(true);
-    setError(null);
-  }
-
   function startEdit(vehicle: MobileDriverVehicle) {
     setEditing(vehicle);
     setDraft({
