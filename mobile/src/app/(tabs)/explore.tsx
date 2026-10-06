@@ -243,7 +243,7 @@ export default function DriverScreen() {
             </View>
             <View style={styles.heroStatus}>
               <View style={styles.heroStatusDot} />
-              <Text style={styles.heroStatusText}>Online</Text>
+              <Text style={styles.heroStatusText}>Approved</Text>
             </View>
           </View>
 
@@ -280,7 +280,7 @@ export default function DriverScreen() {
         </View>
 
         <View style={styles.driverMenu}>
-          <DriverMenuRow title="My Rides" note="Manage upcoming and past trips" onPress={() => {}} />
+          <DriverMenuRow title="My Rides" note="Manage upcoming and past trips" onPress={() => router.push('/driver-rides')} />
           <DriverMenuRow title="My Vehicles" note={`${approvedVehicles} verified vehicle${approvedVehicles === 1 ? '' : 's'}`} onPress={() => router.push('/driver-vehicle')} />
           <DriverMenuRow title="Verification Status" note={driver.checks} onPress={() => router.push('/driver-verification')} success />
           <DriverMenuRow title="Earnings" note="Payouts and trip income" onPress={() => router.push('/earnings')} />
