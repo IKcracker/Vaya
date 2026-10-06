@@ -21,9 +21,9 @@ import {
 } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const NAVY = '#0B1730';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const NAVY = '#063C35';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
   },
   notice: {
     marginTop: 16,
-    backgroundColor: '#EEF5FF',
+    backgroundColor: '#E9F9F3',
     borderRadius: 14,
     padding: 13,
   },
