@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { API_URL, getTrip, PublicTrip } from '@/lib/api';
+import { RouteMap, RouteMapFallback } from '@/components/route-map';
+import { API_URL, getRoutePreview, getTrip, PublicTrip, RoutePreview } from '@/lib/api';
 
 const GREEN='#16B364'; const GREEN_DARK='#087F5B'; const BG='#FFFFFF'; const SURFACE='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085'; const LINE='#E4E7EC';
 
@@ -13,8 +14,8 @@ function initials(name:string){return name.split(/\s+/).filter(Boolean).map(p=>p
 
 export default function TripDetailScreen(){
  const router=useRouter(); const params=useLocalSearchParams<{id?:string;passengers?:string}>(); const id=typeof params.id==='string'?params.id:''; const passengers=Math.max(1,Number(typeof params.passengers==='string'?params.passengers:'1')||1);
- const [trip,setTrip]=useState<PublicTrip|null>(null); const [loading,setLoading]=useState(Boolean(id)); const [error,setError]=useState<string|null>(id?null:'Trip reference is missing.');
- useEffect(()=>{if(!id)return;let active=true;getTrip(id).then(r=>{if(active)setTrip(r.trip)}).catch((reason:unknown)=>{if(active)setError(reason instanceof Error?reason.message:'Unable to load this trip')}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[id]);
+ const [trip,setTrip]=useState<PublicTrip|null>(null); const [route,setRoute]=useState<RoutePreview|null>(null); const [routeMessage,setRouteMessage]=useState<string|null>(null); const [loading,setLoading]=useState(Boolean(id)); const [error,setError]=useState<string|null>(id?null:'Trip reference is missing.');
+ useEffect(()=>{if(!id)return;let active=true;getTrip(id).then(async r=>{if(!active)return;setTrip(r.trip);const routeResponse=await getRoutePreview(r.trip.from,r.trip.to).catch(()=>({route:null,error:'Map route unavailable'}));if(active){setRoute(routeResponse.route);setRouteMessage(routeResponse.error??null)}}).catch((reason:unknown)=>{if(active)setError(reason instanceof Error?reason.message:'Unable to load this trip')}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[id]);
  const total=useMemo(()=>trip?`R${((trip.fareCents*passengers)/100).toFixed(trip.fareCents%100===0?0:2)}`:'R0',[passengers,trip]);
 
  return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
@@ -25,6 +26,9 @@ export default function TripDetailScreen(){
     <View style={styles.timeline}><View style={styles.timelineDot}/><View style={styles.timelineLine}/><View style={[styles.timelineDot,{backgroundColor:GREEN}]}/></View>
     <View style={styles.fareRow}><View><Text style={styles.label}>Fare</Text><Text style={styles.value}>{trip.fare}</Text></View><View><Text style={styles.label}>Seats</Text><Text style={styles.value}>{passengers}</Text></View><View style={{alignItems:'flex-end'}}><Text style={styles.label}>Total</Text><Text style={styles.total}>{total}</Text></View></View>
    </View>
+
+   <Text style={styles.sectionTitle}>Route map</Text>
+   {route?<RouteMap route={route} from={trip.from} to={trip.to} height={170}/>:<RouteMapFallback from={trip.from} to={trip.to} message={routeMessage??'Loading road route...'} height={170}/>}
 
    <Text style={styles.sectionTitle}>Driver</Text>
    <View style={styles.driverCard}><View style={styles.avatar}>{trip.driver.profileImageUrl?<Image source={{uri:`${API_URL}${trip.driver.profileImageUrl}`}} style={styles.avatarImage} contentFit="cover"/>:<Text style={styles.avatarText}>{initials(trip.driver.name)}</Text>}</View><View style={{flex:1}}><View style={styles.nameRow}><Text style={styles.driverName}>{trip.driver.name}</Text>{trip.driver.verified?<Text style={styles.verified}>✓</Text>:null}</View><Text style={styles.driverMeta}>{trip.driver.verified?'Verified driver':'Verification pending'}</Text></View><Text style={styles.chevron}>›</Text></View>
