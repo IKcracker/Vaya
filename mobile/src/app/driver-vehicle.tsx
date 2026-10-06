@@ -107,13 +107,6 @@ export default function DriverVehicleScreen() {
     };
   }, [session]);
 
-  function startAdd() {
-    setEditing(null);
-    setDraft(EMPTY);
-    setShowForm(true);
-    setError(null);
-  }
-
   function startEdit(vehicle: MobileDriverVehicle) {
     setEditing(vehicle);
     setDraft({
@@ -244,7 +237,7 @@ export default function DriverVehicleScreen() {
         </View>
 
         <Pressable
-          onPress={startAdd}
+          onPress={() => router.push('/add-vehicle')}
           style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
           <Text style={styles.addPlus}>＋</Text>
           <Text style={styles.addText}>Add vehicle</Text>

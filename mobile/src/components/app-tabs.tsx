@@ -16,18 +16,18 @@ export default function AppTabs() {
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="trips">
-        <NativeTabs.Trigger.Label>Trips</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>My Trips</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf={{ default: 'ticket', selected: 'ticket.fill' }}
           md={{ default: 'confirmation_number', selected: 'confirmation_number' }}
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Label>Driver</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="messages">
+        <NativeTabs.Trigger.Label>Messages</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf={{ default: 'steeringwheel', selected: 'steeringwheel' }}
-          md={{ default: 'route', selected: 'route' }}
+          sf={{ default: 'message', selected: 'message.fill' }}
+          md={{ default: 'chat_bubble_outline', selected: 'chat_bubble' }}
         />
       </NativeTabs.Trigger>
 
