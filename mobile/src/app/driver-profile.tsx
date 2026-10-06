@@ -94,6 +94,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   page: { paddingBottom: 40 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  title: { color: TEXT, fontSize: 18, fontWeight: '900', textAlign: 'center' },
   cover: { height: 150, backgroundColor: '#B8D3C7', position: 'relative', alignItems: 'center', justifyContent: 'flex-end' },
   back: { position: 'absolute', left: 16, top: 12, width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
   backText: { color: TEXT, fontSize: 28, lineHeight: 28, marginTop: -3 },
