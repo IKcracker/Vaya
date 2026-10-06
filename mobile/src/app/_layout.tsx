@@ -56,6 +56,7 @@ export default function RootLayout() {
           <Stack.Screen name="payment/[id]" />
           <Stack.Screen name="driver-application" />
           <Stack.Screen name="driver-profile" />
+          <Stack.Screen name="driver-rides" />
           <Stack.Screen name="driver-publish" />
           <Stack.Screen name="driver-trip/[id]" />
           <Stack.Screen name="driver-trip-edit/[id]" />
