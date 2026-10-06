@@ -17,9 +17,9 @@ import {
 } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const NAVY = '#0B1730';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const NAVY = '#063C35';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -165,6 +165,15 @@ export default function DriverScreen() {
 
   const tone = statusTone(driver.status);
   const approved = driver.status === 'Approved';
+  const activeTripCount = trips.filter(
+    (trip) => trip.status !== 'Completed' && trip.status !== 'Cancelled'
+  ).length;
+  const expectedRevenue = trips.reduce(
+    (sum, trip) => sum + trip.fareCents * trip.seatsBooked,
+    0
+  );
+  const approvedVehicles =
+    driver.vehicles?.filter((vehicle) => vehicle.status === 'Approved').length ?? 0;
 
   if (!approved) {
     return (
@@ -225,24 +234,50 @@ export default function DriverScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>DRIVER</Text>
-            <Text style={styles.title}>Your trips</Text>
-            <Text style={styles.muted}>Publish, manage and complete your journeys.</Text>
+        <View style={styles.driverHero}>
+          <View style={styles.driverHeroTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.driverHeroEyebrow}>DRIVER DASHBOARD</Text>
+              <Text style={styles.driverHeroTitle}>Good day, {driver.name.split(' ')[0]}</Text>
+              <Text style={styles.driverHeroMeta}>Approved to publish verified inter-city trips.</Text>
+            </View>
+            <View style={styles.heroStatus}>
+              <View style={styles.heroStatusDot} />
+              <Text style={styles.heroStatusText}>Online</Text>
+            </View>
           </View>
-          <View style={[styles.status, { backgroundColor: tone.bg }]}>
-            <View style={styles.dot} />
-            <Text style={[styles.statusText, { color: tone.text }]}>Approved</Text>
+
+          <View style={styles.heroStats}>
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>{activeTripCount}</Text>
+              <Text style={styles.heroStatLabel}>Active trips</Text>
+            </View>
+            <View style={styles.heroStatDivider} />
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>{approvedVehicles}</Text>
+              <Text style={styles.heroStatLabel}>Verified cars</Text>
+            </View>
+            <View style={styles.heroStatDivider} />
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>R{(expectedRevenue / 100).toFixed(0)}</Text>
+              <Text style={styles.heroStatLabel}>Expected</Text>
+            </View>
           </View>
         </View>
 
-        <Pressable
-          onPress={() => router.push('/driver-publish')}
-          style={({ pressed }) => [styles.publish, pressed && styles.publishPressed]}>
-          <Text style={styles.plus}>＋</Text>
-          <Text style={styles.publishText}>Publish a trip</Text>
-        </Pressable>
+        <View style={styles.quickActions}>
+          <Pressable
+            onPress={() => router.push('/driver-publish')}
+            style={({ pressed }) => [styles.quickPrimary, pressed && styles.publishPressed]}>
+            <Text style={styles.quickIcon}>＋</Text>
+            <Text style={styles.quickPrimaryText}>Publish trip</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/driver-vehicle')}
+            style={({ pressed }) => [styles.quickSecondary, pressed && styles.pressed]}>
+            <Text style={styles.quickSecondaryText}>My vehicles</Text>
+          </Pressable>
+        </View>
 
         <Text style={styles.sectionTitle}>Next departure</Text>
         {nextTrip ? (
@@ -379,11 +414,30 @@ const styles = StyleSheet.create({
   page: { padding: 18, paddingBottom: 120 },
   pressed: { opacity: 0.72 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  modeIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  modeIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   modeIconText: { color: BLUE, fontSize: 22, fontWeight: '900' },
   stateTitle: { color: TEXT, fontSize: 20, fontWeight: '900', marginTop: 15, textAlign: 'center' },
   stateText: { color: MUTED, fontSize: 11, lineHeight: 18, textAlign: 'center', marginTop: 6, maxWidth: 310 },
   errorTitle: { color: '#B42318', fontSize: 18, fontWeight: '900' },
+  driverHero: { backgroundColor: NAVY, borderRadius: 18, padding: 17, marginBottom: 12 },
+  driverHeroTop: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  driverHeroEyebrow: { color: '#8FE3C1', fontSize: 8, fontWeight: '900', letterSpacing: 1.1 },
+  driverHeroTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '900', marginTop: 5, letterSpacing: -0.4 },
+  driverHeroMeta: { color: '#B9D7CE', fontSize: 9, lineHeight: 14, marginTop: 4 },
+  heroStatus: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#0B5148', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 6 },
+  heroStatusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#34D399' },
+  heroStatusText: { color: '#D7F5E8', fontSize: 8, fontWeight: '900' },
+  heroStats: { flexDirection: 'row', alignItems: 'center', marginTop: 18, paddingTop: 15, borderTopWidth: 1, borderTopColor: '#24594F' },
+  heroStat: { flex: 1 },
+  heroStatValue: { color: '#FFFFFF', fontSize: 18, fontWeight: '900' },
+  heroStatLabel: { color: '#A9C9C0', fontSize: 8, marginTop: 3 },
+  heroStatDivider: { width: 1, height: 34, backgroundColor: '#24594F', marginHorizontal: 12 },
+  quickActions: { flexDirection: 'row', gap: 9, marginBottom: 22 },
+  quickPrimary: { flex: 1, height: 48, borderRadius: 12, backgroundColor: BLUE, flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
+  quickIcon: { color: '#FFFFFF', fontSize: 17, fontWeight: '700' },
+  quickPrimaryText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+  quickSecondary: { flex: 1, height: 48, borderRadius: 12, backgroundColor: SURFACE, borderWidth: 1, borderColor: '#DDE7E3', alignItems: 'center', justifyContent: 'center' },
+  quickSecondaryText: { color: '#087F5B', fontSize: 10, fontWeight: '900' },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 18 },
   eyebrow: { color: BLUE, fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
   title: { color: TEXT, fontSize: 26, fontWeight: '900', marginTop: 4, letterSpacing: -0.5 },
@@ -394,7 +448,7 @@ const styles = StyleSheet.create({
   onboardingCard: { marginTop: 24, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 18, paddingHorizontal: 15 },
   step: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 15 },
   stepBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
-  stepNumber: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  stepNumber: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   stepNumberText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   stepTitle: { color: TEXT, fontSize: 12, fontWeight: '900' },
   stepText: { color: MUTED, fontSize: 10, lineHeight: 15, marginTop: 3 },
@@ -424,7 +478,7 @@ const styles = StyleSheet.create({
   tripTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
   tripTime: { color: BLUE, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   tripRoute: { color: TEXT, fontSize: 18, fontWeight: '900', marginTop: 5 },
-  seatBadge: { backgroundColor: '#E7F3FF', paddingHorizontal: 9, paddingVertical: 7, borderRadius: 999 },
+  seatBadge: { backgroundColor: '#E9F9F3', paddingHorizontal: 9, paddingVertical: 7, borderRadius: 999 },
   seatText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   tripMetrics: { flexDirection: 'row', justifyContent: 'space-between' },
   metricLabel: { color: MUTED, fontSize: 9, fontWeight: '700' },

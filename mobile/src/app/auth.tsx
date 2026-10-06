@@ -13,9 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const NAVY = '#0B1730';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const NAVY = '#063C35';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -97,14 +97,12 @@ export default function PassengerAuthScreen() {
         </Pressable>
 
         <View style={styles.hero}>
-          <Text style={styles.brand}>
-            vaya<Text style={styles.dot}>.</Text>
-          </Text>
+          <Text style={styles.brand}>Vaya</Text>
           <Text style={styles.heroTitle}>
             {mode === 'sign-in' ? 'Welcome back' : 'Create your Vaya account'}
           </Text>
           <Text style={styles.heroText}>
-            Your bookings, trips and profile stay synced securely across the app.
+            Ride together with verified drivers, trusted vehicles and one secure Vaya account.
           </Text>
         </View>
 
@@ -265,7 +263,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   brand: { color: '#FFFFFF', fontSize: 24, fontWeight: '900', letterSpacing: -1.1 },
-  dot: { color: '#60A5FA' },
+  dot: { color: '#34D399' },
   heroTitle: {
     color: '#FFFFFF',
     fontSize: 25,
@@ -273,10 +271,10 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     marginTop: 28,
   },
-  heroText: { color: '#A9B6CA', fontSize: 11, lineHeight: 18, marginTop: 7 },
+  heroText: { color: '#B9D7CE', fontSize: 11, lineHeight: 18, marginTop: 7 },
   segment: {
     marginTop: 18,
-    backgroundColor: '#E9EDF3',
+    backgroundColor: '#E8EFEC',
     borderRadius: 12,
     padding: 4,
     flexDirection: 'row',
@@ -336,12 +334,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryDisabled: { backgroundColor: '#B7D5FA' },
+  primaryDisabled: { backgroundColor: '#B7D8CB' },
   primaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
   note: {
     marginTop: 16,
     borderRadius: 14,
-    backgroundColor: '#EEF5FF',
+    backgroundColor: '#E9F9F3',
     padding: 14,
   },
   noteTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },

@@ -15,8 +15,8 @@ import { fetchPassengerTrips, PassengerTrip } from '@/lib/auth';
 import { API_URL } from '@/lib/api';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#E7F3FF',
+    backgroundColor: '#E9F9F3',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   date: { color: BLUE, fontSize: 12, fontWeight: '800', marginTop: 5 },
   divider: { height: 1, backgroundColor: LINE, marginVertical: 15 },
   driverLine: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
-  driverAvatar: { width: 38, height: 38, borderRadius: 19, overflow: 'hidden', backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  driverAvatar: { width: 38, height: 38, borderRadius: 19, overflow: 'hidden', backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   driverAvatarImage: { width: '100%', height: '100%' },
   driverAvatarText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   driverLineLabel: { color: MUTED, fontSize: 8, fontWeight: '700' },
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   paymentValue: { color: TEXT, fontSize: 10, fontWeight: '900', marginTop: 3 },
   payBadge: {
     borderRadius: 9,
-    backgroundColor: '#E7F3FF',
+    backgroundColor: '#E9F9F3',
     paddingHorizontal: 9,
     paddingVertical: 7,
   },
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   smallButton: {
     marginTop: 13,
     alignSelf: 'flex-start',
-    backgroundColor: '#E7F3FF',
+    backgroundColor: '#E9F9F3',
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 9,
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   historyRow: { padding: 15, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  historyAvatar: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  historyAvatar: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   historyAvatarText: { color: BLUE, fontSize: 9, fontWeight: '900' },
   historyBorder: { borderBottomWidth: 1, borderBottomColor: LINE },
   historyRoute: { color: TEXT, fontSize: 13, fontWeight: '900' },

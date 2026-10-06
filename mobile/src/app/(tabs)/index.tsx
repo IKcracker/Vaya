@@ -14,9 +14,9 @@ import { ScreenReveal } from '@/components/screen-reveal';
 import { fetchPassengerTrips, PassengerTrip } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const NAVY = '#0B1730';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const NAVY = '#063C35';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -100,8 +100,8 @@ export default function HomeScreen() {
         <ScreenReveal>
           <View style={styles.header}>
             <View>
-              <Text style={styles.brand}>vaya<Text style={styles.brandDot}>.</Text></Text>
-              <Text style={styles.subtitle}>Shared trips across South Africa</Text>
+              <Text style={styles.brand}>Vaya</Text>
+              <Text style={styles.subtitle}>Ride together. Go further.</Text>
             </View>
             <Pressable
               onPress={() => router.push('/profile')}
@@ -119,10 +119,10 @@ export default function HomeScreen() {
 
         <ScreenReveal delay={70}>
           <View style={styles.heroCopy}>
-            <Text style={styles.eyebrow}>FIND YOUR WAY</Text>
-            <Text style={styles.heroTitle}>Where are you going next?</Text>
+            <Text style={styles.eyebrow}>SAFE · AFFORDABLE · VERIFIED</Text>
+            <Text style={styles.heroTitle}>Where would you like to go?</Text>
             <Text style={styles.heroBody}>
-              Find verified drivers already travelling between cities, towns and provinces.
+              Find trusted inter-city rides with verified drivers and vehicles across South Africa.
             </Text>
           </View>
         </ScreenReveal>
@@ -162,7 +162,7 @@ export default function HomeScreen() {
             <Pressable
               onPress={() => openSearch('Johannesburg', 'Durban')}
               style={({ pressed }) => [styles.primary, pressed && styles.primaryPressed]}>
-              <Text style={styles.primaryText}>Search available rides</Text>
+              <Text style={styles.primaryText}>Search rides</Text>
             </Pressable>
           </View>
         </ScreenReveal>
@@ -295,19 +295,19 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-  page: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 120 },
+  page: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 120 },
   pressed: { opacity: 0.72 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  brand: { color: TEXT, fontSize: 31, fontWeight: '900', letterSpacing: -1.6 },
+  brand: { color: TEXT, fontSize: 29, fontWeight: '900', letterSpacing: -1.2 },
   brandDot: { color: BLUE },
   subtitle: { color: MUTED, fontSize: 11, marginTop: 2 },
-  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E9F9F3', borderWidth: 1, borderColor: '#C7EEDF', alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: BLUE, fontWeight: '900', fontSize: 11 },
   heroCopy: { marginBottom: 16 },
   eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.15 },
-  heroTitle: { color: TEXT, fontSize: 29, fontWeight: '900', letterSpacing: -0.7, lineHeight: 34, marginTop: 5, maxWidth: 320 },
+  heroTitle: { color: TEXT, fontSize: 30, fontWeight: '900', letterSpacing: -0.8, lineHeight: 35, marginTop: 5, maxWidth: 320 },
   heroBody: { color: MUTED, fontSize: 11, lineHeight: 18, marginTop: 7, maxWidth: 330 },
-  searchCard: { backgroundColor: NAVY, borderRadius: 20, padding: 17, marginBottom: 27 },
+  searchCard: { backgroundColor: NAVY, borderRadius: 18, padding: 16, marginBottom: 27 },
   routeBlock: { flexDirection: 'row' },
   routeRail: { width: 25, alignItems: 'center', paddingTop: 21, paddingBottom: 21 },
   routeDotMuted: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#98A2B3' },
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   emptyTrip: { borderWidth: 1, borderColor: LINE, borderRadius: 16, backgroundColor: SURFACE, padding: 16, marginBottom: 25 },
   emptyTripTitle: { color: TEXT, fontSize: 13, fontWeight: '900' },
   emptyTripText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
-  emptyTripButton: { alignSelf: 'flex-start', marginTop: 12, borderRadius: 9, backgroundColor: '#E7F3FF', paddingHorizontal: 11, paddingVertical: 8 },
+  emptyTripButton: { alignSelf: 'flex-start', marginTop: 12, borderRadius: 9, backgroundColor: '#E9F9F3', paddingHorizontal: 11, paddingVertical: 8 },
   emptyTripButtonText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   routeList: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, overflow: 'hidden' },
   routeCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 14 },

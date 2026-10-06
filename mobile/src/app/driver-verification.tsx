@@ -25,8 +25,8 @@ import {
 } from '@/lib/driver-documents';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -351,12 +351,12 @@ const styles = StyleSheet.create({
   muted: { color: MUTED, fontSize: 11, lineHeight: 18, marginTop: 6, textAlign: 'center' },
   primary: { marginTop: 16, backgroundColor: BLUE, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 13 },
   primaryText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
-  summary: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#0B1730', borderRadius: 18, padding: 16, marginBottom: 16 },
+  summary: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#063C35', borderRadius: 18, padding: 16, marginBottom: 16 },
   summaryLabel: { color: '#A9B6CA', fontSize: 9, fontWeight: '800' },
   summaryValue: { color: '#FFFFFF', fontSize: 18, fontWeight: '900', marginTop: 3 },
   summaryMeta: { color: '#A9B6CA', fontSize: 10, marginTop: 4 },
-  summaryBadge: { backgroundColor: '#15284A', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999 },
-  summaryBadgeText: { color: '#D7E6FF', fontSize: 9, fontWeight: '900' },
+  summaryBadge: { backgroundColor: '#0B5148', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999 },
+  summaryBadgeText: { color: '#D7F5E8', fontSize: 9, fontWeight: '900' },
   error: { borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFF8F7', borderRadius: 12, padding: 12, marginBottom: 14 },
   errorText: { color: '#B42318', fontSize: 10, lineHeight: 16 },
   list: { gap: 12, marginTop: 12 },
@@ -373,11 +373,11 @@ const styles = StyleSheet.create({
   note: { marginTop: 10, backgroundColor: '#FFF7ED', borderRadius: 10, padding: 10 },
   noteTitle: { color: '#9A3412', fontSize: 8, fontWeight: '900' },
   noteText: { color: '#7C2D12', fontSize: 9, lineHeight: 14, marginTop: 3 },
-  uploadButton: { height: 40, marginTop: 10, borderWidth: 1, borderColor: '#B2CCFF', backgroundColor: '#F5F9FF', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  uploadButton: { height: 40, marginTop: 10, borderWidth: 1, borderColor: '#B7EAD6', backgroundColor: '#F5F9FF', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   uploadText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   approvedStrip: { marginTop: 10, backgroundColor: '#ECFDF3', borderRadius: 10, padding: 10 },
   approvedText: { color: '#027A48', fontSize: 9, fontWeight: '900' },
-  help: { marginTop: 16, backgroundColor: '#EEF5FF', borderRadius: 14, padding: 14 },
+  help: { marginTop: 16, backgroundColor: '#E9F9F3', borderRadius: 14, padding: 14 },
   helpTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
   helpText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
 });

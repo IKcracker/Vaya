@@ -15,9 +15,9 @@ import { fetchMobileDriver, MobileDriver } from '@/lib/auth';
 import { API_URL } from '@/lib/api';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const NAVY = '#0B1730';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const NAVY = '#063C35';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -316,9 +316,9 @@ const styles = StyleSheet.create({
   editButtonText: { color: BLUE, fontSize: 10, fontWeight: '900' },
   profileCard: { marginTop: 18, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 18, overflow: 'hidden' },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 16 },
-  avatar: { width: 58, height: 58, borderRadius: 29, overflow: 'hidden', backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 58, height: 58, borderRadius: 29, overflow: 'hidden', backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   avatarImage: { width: '100%', height: '100%' },
-  avatarLarge: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#E7F3FF', alignItems: 'center', justifyContent: 'center' },
+  avatarLarge: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: BLUE, fontSize: 17, fontWeight: '900' },
   name: { color: TEXT, fontSize: 20, fontWeight: '900', letterSpacing: -0.3 },
   contact: { color: MUTED, fontSize: 10, marginTop: 4 },
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   chevron: { color: '#98A2B3', fontSize: 22 },
   driverCard: { backgroundColor: NAVY, borderRadius: 18, padding: 15 },
   driverTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  driverIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#15284A', alignItems: 'center', justifyContent: 'center' },
+  driverIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#0B5148', alignItems: 'center', justifyContent: 'center' },
   driverIconText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900' },
   driverTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
   driverCopy: { color: '#A9B6CA', fontSize: 9, lineHeight: 15, marginTop: 4 },
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   driverStatusText: { fontSize: 8, fontWeight: '900' },
   driverActions: { marginTop: 14, flexDirection: 'row', gap: 8 },
   vehicleButton: { flex: 1, height: 42, borderRadius: 10, borderWidth: 1, borderColor: '#34517F', alignItems: 'center', justifyContent: 'center' },
-  vehicleButtonText: { color: '#D7E6FF', fontSize: 10, fontWeight: '900' },
+  vehicleButtonText: { color: '#D7F5E8', fontSize: 10, fontWeight: '900' },
   driverButton: { marginTop: 14, height: 42, borderRadius: 10, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
   driverButtonFlex: { flex: 1, marginTop: 0 },
   driverButtonText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },

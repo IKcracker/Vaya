@@ -18,8 +18,8 @@ import {
 } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   sectionTitle: { color: TEXT, fontSize: 16, fontWeight: '900', marginTop: 22, marginBottom: 9 },
   tripList: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, overflow: 'hidden' },
   tripRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, borderBottomWidth: 1, borderBottomColor: LINE },
-  tripRowSelected: { backgroundColor: '#EEF5FF' },
+  tripRowSelected: { backgroundColor: '#E9F9F3' },
   tripTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
   tripMeta: { color: MUTED, fontSize: 9, marginTop: 3 },
   tripCheck: { width: 18, color: BLUE, fontSize: 13, fontWeight: '900', textAlign: 'center' },

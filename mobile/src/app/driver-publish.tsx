@@ -21,9 +21,9 @@ import {
 } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const NAVY = '#0B1730';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const NAVY = '#063C35';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -733,9 +733,9 @@ const styles = StyleSheet.create({
   vehicleRadioActive: { borderColor: BLUE },
   vehicleRadioDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: BLUE },
   vehicleName: { color: TEXT, fontSize: 11, fontWeight: '900' },
-  vehicleNameActive: { color: '#175CD3' },
+  vehicleNameActive: { color: '#087F5B' },
   vehicleMeta: { color: MUTED, fontSize: 9, marginTop: 3 },
-  primaryVehicleBadge: { borderRadius: 999, backgroundColor: '#E7F3FF', paddingHorizontal: 7, paddingVertical: 5 },
+  primaryVehicleBadge: { borderRadius: 999, backgroundColor: '#E9F9F3', paddingHorizontal: 7, paddingVertical: 5 },
   primaryVehicleText: { color: BLUE, fontSize: 7, fontWeight: '900' },
   noVehicle: { borderRadius: 15, borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFF8F7', padding: 14, marginBottom: 4 },
   noVehicleTitle: { color: '#B42318', fontSize: 11, fontWeight: '900' },
@@ -886,7 +886,7 @@ const styles = StyleSheet.create({
   },
   quickFareActive: {
     borderColor: '#9DC5FA',
-    backgroundColor: '#E7F3FF',
+    backgroundColor: '#E9F9F3',
   },
   quickFareText: {
     color: MUTED,

@@ -13,9 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { API_URL, getTrip, PublicTrip } from '@/lib/api';
 
-const BLUE = '#1877F2';
-const NAVY = '#0B1730';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const NAVY = '#063C35';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: '#E7F3FF',
+    backgroundColor: '#E9F9F3',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   safety: {
     marginTop: 24,
     borderRadius: 15,
-    backgroundColor: '#EEF5FF',
+    backgroundColor: '#E9F9F3',
     padding: 14,
   },
   safetyTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },

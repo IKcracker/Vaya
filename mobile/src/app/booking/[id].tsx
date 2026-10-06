@@ -13,8 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { createAuthenticatedBooking } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: '#E7F3FF',
+    backgroundColor: '#E9F9F3',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   title: { color: TEXT, fontSize: 18, fontWeight: '900', marginTop: 3 },
   summaryCard: {
     marginTop: 22,
-    backgroundColor: '#0B1730',
+    backgroundColor: '#063C35',
     borderRadius: 16,
     padding: 15,
     flexDirection: 'row',
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#E7F3FF',
+    backgroundColor: '#E9F9F3',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   note: {
     marginTop: 16,
     borderRadius: 14,
-    backgroundColor: '#EEF5FF',
+    backgroundColor: '#E9F9F3',
     padding: 14,
   },
   noteTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },

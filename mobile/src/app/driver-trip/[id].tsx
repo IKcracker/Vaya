@@ -17,8 +17,8 @@ import {
 } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   backText: { color: TEXT, fontSize: 30, lineHeight: 30, marginTop: -3 },
   eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
   title: { color: TEXT, fontSize: 18, fontWeight: '900', marginTop: 3 },
-  hero: { marginTop: 22, backgroundColor: '#0B1730', borderRadius: 20, padding: 18 },
+  hero: { marginTop: 22, backgroundColor: '#063C35', borderRadius: 20, padding: 18 },
   statusBadge: { alignSelf: 'flex-start', backgroundColor: '#1C2D49', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 6 },
   statusText: { color: '#A9CFFF', fontSize: 9, fontWeight: '900' },
   route: { color: '#FFFFFF', fontSize: 24, fontWeight: '900', letterSpacing: -0.5, marginTop: 15 },
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#9DC5FA',
-    backgroundColor: '#EEF5FF',
+    backgroundColor: '#E9F9F3',
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   closedCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 15, padding: 15 },
   closedTitle: { color: TEXT, fontSize: 12, fontWeight: '900' },
   closedText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
-  note: { marginTop: 20, borderRadius: 14, backgroundColor: '#EEF5FF', padding: 14 },
+  note: { marginTop: 20, borderRadius: 14, backgroundColor: '#E9F9F3', padding: 14 },
   noteTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
   noteText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
   saving: { marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
