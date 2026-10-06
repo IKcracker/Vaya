@@ -23,9 +23,9 @@ import {
 } from '@/lib/auth';
 import { usePassengerAuth } from '@/providers/passenger-auth-provider';
 
-const BLUE = '#1877F2';
-const NAVY = '#0B1730';
-const BG = '#F5F7FA';
+const BLUE = '#10B981';
+const NAVY = '#063C35';
+const BG = '#F6F8F7';
 const SURFACE = '#FFFFFF';
 const TEXT = '#101828';
 const MUTED = '#667085';
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   summaryLabel: { color: '#8FA0B8', fontSize: 8, fontWeight: '900', letterSpacing: 0.6 },
   summaryValue: { color: '#FFFFFF', fontSize: 22, fontWeight: '900', marginTop: 4 },
   summaryText: { color: '#D7E1EE', fontSize: 9, lineHeight: 14, marginTop: 4 },
-  addButton: { marginTop: 14, height: 50, borderRadius: 13, borderWidth: 1, borderColor: '#B2CCFF', backgroundColor: '#F5F9FF', flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
+  addButton: { marginTop: 14, height: 50, borderRadius: 13, borderWidth: 1, borderColor: '#B7EAD6', backgroundColor: '#F5F9FF', flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
   addPlus: { color: BLUE, fontSize: 19, fontWeight: '700' },
   addText: { color: BLUE, fontSize: 11, fontWeight: '900' },
   formCard: { marginTop: 14, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, padding: 15, gap: 13 },
@@ -403,12 +403,12 @@ const styles = StyleSheet.create({
   list: { marginTop: 18, gap: 12 },
   vehicleCard: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 17, padding: 15 },
   vehicleTop: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  carIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#EEF5FF', alignItems: 'center', justifyContent: 'center' },
+  carIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#E9F9F3', alignItems: 'center', justifyContent: 'center' },
   carIconText: { color: BLUE, fontSize: 13 },
   vehicleNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   vehicleName: { color: TEXT, fontSize: 13, fontWeight: '900' },
   vehicleMeta: { color: MUTED, fontSize: 9, marginTop: 4 },
-  primaryBadge: { backgroundColor: '#E7F3FF', borderRadius: 999, paddingHorizontal: 7, paddingVertical: 4 },
+  primaryBadge: { backgroundColor: '#E9F9F3', borderRadius: 999, paddingHorizontal: 7, paddingVertical: 4 },
   primaryBadgeText: { color: BLUE, fontSize: 7, fontWeight: '900' },
   status: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5 },
   statusText: { fontSize: 8, fontWeight: '900' },
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   linkText: { color: BLUE, fontSize: 9, fontWeight: '800' },
   primaryHint: { color: '#027A48', fontSize: 8, fontWeight: '800' },
   removeText: { color: '#B42318', fontSize: 9, fontWeight: '800' },
-  info: { marginTop: 18, backgroundColor: '#EEF5FF', borderRadius: 14, padding: 14 },
+  info: { marginTop: 18, backgroundColor: '#E9F9F3', borderRadius: 14, padding: 14 },
   infoTitle: { color: TEXT, fontSize: 10, fontWeight: '900' },
   infoText: { color: MUTED, fontSize: 10, lineHeight: 16, marginTop: 4 },
 });
