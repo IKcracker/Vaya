@@ -611,6 +611,15 @@ export type PassengerTripExperience = {
   from: string;
   to: string;
   departureAt: string;
+  liveLocation: {
+    latitude: number;
+    longitude: number;
+    accuracyMeters: number | null;
+    heading: number | null;
+    speedMps: number | null;
+    recordedAt: string;
+    isFresh: boolean;
+  } | null;
   driver: {
     id: string;
     name: string;
@@ -857,6 +866,49 @@ export async function removeDriverVehicle(
 ) {
   return request<{ removed: true }>(
     `/api/mobile/driver/vehicles/${encodeURIComponent(vehicleId)}`,
+    { method: 'DELETE' },
+    session
+  );
+}
+
+
+export async function updateDriverLiveLocation(
+  session: string,
+  tripId: string,
+  input: {
+    latitude: number;
+    longitude: number;
+    accuracyMeters: number | null;
+    heading: number | null;
+    speedMps: number | null;
+    recordedAt: string;
+  }
+) {
+  return request<{
+    location: {
+      latitude: number;
+      longitude: number;
+      accuracyMeters: number | null;
+      heading: number | null;
+      speedMps: number | null;
+      recordedAt: string;
+    };
+  }>(
+    `/api/mobile/driver/trips/${encodeURIComponent(tripId)}/location`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+    session
+  );
+}
+
+export async function stopDriverLiveLocation(
+  session: string,
+  tripId: string
+) {
+  return request<{ stopped: true }>(
+    `/api/mobile/driver/trips/${encodeURIComponent(tripId)}/location`,
     { method: 'DELETE' },
     session
   );

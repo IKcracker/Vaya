@@ -31,11 +31,18 @@ export function RouteMap({
   from,
   to,
   height = 150,
+  liveLocation,
 }: {
   route: RoutePreview;
   from: string;
   to: string;
   height?: number;
+  liveLocation?: {
+    latitude: number;
+    longitude: number;
+    heading?: number | null;
+    isFresh?: boolean;
+  } | null;
 }) {
   const region = regionForRoute(route);
 
@@ -50,6 +57,16 @@ export function RouteMap({
         rotateEnabled={false}>
         <Marker coordinate={route.origin} title={from} description="Pickup" pinColor={GREEN} />
         <Marker coordinate={route.destination} title={to} description="Destination" />
+        {liveLocation ? (
+          <Marker
+            coordinate={{ latitude: liveLocation.latitude, longitude: liveLocation.longitude }}
+            title={liveLocation.isFresh === false ? "Driver location" : "Driver live location"}
+            description={liveLocation.isFresh === false ? "Last known position" : "Updating live"}>
+            <View style={[styles.driverMarker, liveLocation.isFresh === false && styles.driverMarkerStale]}>
+              <Text style={styles.driverMarkerText}>🚗</Text>
+            </View>
+          </Marker>
+        ) : null}
         <Polyline
           coordinates={route.path}
           strokeColor="#087F5B"
@@ -123,6 +140,23 @@ const styles = StyleSheet.create({
     color: MUTED,
     fontSize: 6.8,
     marginTop: 2,
+  },
+  driverMarker: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: GREEN,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  driverMarkerStale: {
+    borderColor: '#98A2B3',
+    opacity: 0.72,
+  },
+  driverMarkerText: {
+    fontSize: 16,
   },
   fallback: {
     borderRadius: 9,
