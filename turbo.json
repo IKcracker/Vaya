@@ -2,7 +2,30 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "dev": { "cache": false, "persistent": true },
-    "build": { "dependsOn": ["^build"], "outputs": [".next/**", "dist/**"] },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "dist/**"],
+      "env": [
+        "DATABASE_URL",
+        "DATABASE_URL_UNPOOLED",
+        "DIRECT_URL",
+        "POSTGRES_*",
+        "PG*",
+        "NEON_*",
+        "ADMIN_EMAILS",
+        "PAYSTACK_*",
+        "MOBILE_WEB_ORIGINS",
+        "NOMINATIM_BASE_URL",
+        "OSRM_BASE_URL",
+        "NEXT_PUBLIC_*",
+        "EXPO_PUBLIC_*",
+        "VITE_NEON_AUTH_URL",
+        "VERCEL_ENV",
+        "VERCEL_URL",
+        "VERCEL_PROJECT_PRODUCTION_URL"
+      ],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+    },
     "lint": { "dependsOn": ["^lint"] },
     "typecheck": { "dependsOn": ["^typecheck"] }
   }
