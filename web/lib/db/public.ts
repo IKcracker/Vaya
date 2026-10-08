@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, gte, ilike, lt, ne, or, sql } from "drizzle-orm";
 import { getDb } from "./index";
+import { withDbTransaction } from "./transaction";
 import {
   getDriverVerificationSummary,
   getVehicleVerificationSummary,
@@ -217,11 +218,10 @@ export async function createPublicBooking(input: {
     city: string;
   };
 }) {
-  const db = getDb();
   const seatsRequested = Math.max(1, Math.min(8, input.seats));
   const email = input.passenger.email.trim().toLowerCase();
 
-  return db.transaction(async (tx) => {
+  return withDbTransaction(async (tx) => {
     let [passenger] = await tx
       .select(passengerAccountSelection)
       .from(passengers)
@@ -753,9 +753,7 @@ export async function getMobilePayment(reference: string) {
 }
 
 export async function settleMobilePayment(reference: string) {
-  const db = getDb();
-
-  return db.transaction(async (tx) => {
+  return withDbTransaction(async (tx) => {
     const [payment] = await tx
       .update(payments)
       .set({ status: "Settled" })
@@ -971,7 +969,7 @@ export async function createMobileDriverApplication(input: {
       .slice(0, 4)
       .toUpperCase() || "VD";
 
-  const result = await db.transaction(async (tx) => {
+  const result = await withDbTransaction(async (tx) => {
     const [driver] = await tx
       .insert(drivers)
       .values({
@@ -1196,7 +1194,7 @@ export async function setPrimaryMobileDriverVehicle(email: string, vehicleId: st
     .limit(1);
   if (!vehicle) throw new Error("VEHICLE_NOT_FOUND");
 
-  await db.transaction(async (tx) => {
+  await withDbTransaction(async (tx) => {
     await tx.update(driverVehicles).set({ isPrimary: false }).where(eq(driverVehicles.driverId, driver.id));
     await tx.update(driverVehicles).set({ isPrimary: true, updatedAt: new Date() }).where(eq(driverVehicles.id, vehicleId));
     await tx.update(drivers).set({
@@ -1242,7 +1240,7 @@ export async function removeMobileDriverVehicle(email: string, vehicleId: string
     .limit(1);
   if (activeTrips.length) throw new Error("VEHICLE_HAS_ACTIVE_TRIPS");
 
-  await db.transaction(async (tx) => {
+  await withDbTransaction(async (tx) => {
     await tx.delete(driverVehicles).where(eq(driverVehicles.id, vehicleId));
     if (vehicle.isPrimary) {
       const [next] = await tx

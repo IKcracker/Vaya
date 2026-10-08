@@ -23,7 +23,8 @@ export default function SearchScreen(){
   const today=new Date();
   const tomorrow=new Date(today); tomorrow.setDate(today.getDate()+1);
   const nextFriday=new Date(today); const daysUntilFriday=(5-today.getDay()+7)%7||7; nextFriday.setDate(today.getDate()+daysUntilFriday);
-  return [{label:'Any date',value:''},{label:dateLabel(tomorrow),value:isoDate(tomorrow)},{label:dateLabel(nextFriday),value:isoDate(nextFriday)}];
+  const dates=isoDate(tomorrow)===isoDate(nextFriday)?[tomorrow]:[tomorrow,nextFriday];
+  return [{label:'Any date',value:''},...dates.map(day=>({label:dateLabel(day),value:isoDate(day)}))];
  },[]);
 
  const canSearch=from.trim().length>1&&to.trim().length>1&&from.trim().toLowerCase()!==to.trim().toLowerCase();
@@ -45,7 +46,7 @@ export default function SearchScreen(){
   {passenger?.city&&from.trim().toLowerCase()!==passenger.city.trim().toLowerCase()?<Pressable onPress={()=>setFrom(passenger.city)} style={styles.homeCity}><Text style={styles.homeCityText}>Use home city · {passenger.city}</Text></Pressable>:null}
 
   <Text style={styles.section}>Travel date</Text>
-  <View style={styles.chips}>{dateOptions.map(option=><Pressable key={option.label} onPress={()=>setDate(option.value)} style={[styles.chip,date===option.value&&styles.chipActive]}><Text style={[styles.chipText,date===option.value&&styles.chipTextActive]}>{option.label}</Text></Pressable>)}</View>
+  <View style={styles.chips}>{dateOptions.map(option=><Pressable key={option.value} onPress={()=>setDate(option.value)} style={[styles.chip,date===option.value&&styles.chipActive]}><Text style={[styles.chipText,date===option.value&&styles.chipTextActive]}>{option.label}</Text></Pressable>)}</View>
 
   <View style={styles.passengerRow}><View><Text style={styles.section}>Passengers</Text><Text style={styles.hint}>Choose how many seats you need.</Text></View><View style={styles.stepper}><Pressable disabled={passengers<=1} onPress={()=>setPassengers(v=>Math.max(1,v-1))} style={[styles.stepButton,passengers<=1&&styles.stepDisabled]}><Text style={styles.stepText}>−</Text></Pressable><Text style={styles.count}>{passengers}</Text><Pressable disabled={passengers>=8} onPress={()=>setPassengers(v=>Math.min(8,v+1))} style={[styles.stepButton,passengers>=8&&styles.stepDisabled]}><Text style={styles.stepText}>＋</Text></Pressable></View></View>
 

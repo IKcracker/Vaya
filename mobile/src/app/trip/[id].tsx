@@ -15,7 +15,21 @@ function initials(name:string){return name.split(/\s+/).filter(Boolean).map(p=>p
 export default function TripDetailScreen(){
  const router=useRouter(); const params=useLocalSearchParams<{id?:string;passengers?:string}>(); const id=typeof params.id==='string'?params.id:''; const passengers=Math.max(1,Number(typeof params.passengers==='string'?params.passengers:'1')||1);
  const [trip,setTrip]=useState<PublicTrip|null>(null); const [route,setRoute]=useState<RoutePreview|null>(null); const [routeMessage,setRouteMessage]=useState<string|null>(null); const [loading,setLoading]=useState(Boolean(id)); const [error,setError]=useState<string|null>(id?null:'Trip reference is missing.');
- useEffect(()=>{if(!id)return;let active=true;getTrip(id).then(async r=>{if(!active)return;setTrip(r.trip);const routeResponse=await getRoutePreview(r.trip.from,r.trip.to).catch(()=>({route:null,error:'Map route unavailable'}));if(active){setRoute(routeResponse.route);setRouteMessage(routeResponse.error??null)}}).catch((reason:unknown)=>{if(active)setError(reason instanceof Error?reason.message:'Unable to load this trip')}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[id]);
+ useEffect(()=>{
+  if(!id)return;
+  let active=true;
+  getTrip(id).then(r=>{
+   if(!active)return;
+   setTrip(r.trip);
+   void getRoutePreview(r.trip.from,r.trip.to).then(response=>{
+    if(active){setRoute(response.route);setRouteMessage(response.error??null)}
+   }).catch((reason:unknown)=>{
+    if(active)setRouteMessage(reason instanceof Error?reason.message:'Map route unavailable');
+   });
+  }).catch((reason:unknown)=>{if(active)setError(reason instanceof Error?reason.message:'Unable to load this trip')})
+   .finally(()=>{if(active)setLoading(false)});
+  return()=>{active=false};
+ },[id]);
  const total=useMemo(()=>trip?`R${((trip.fareCents*passengers)/100).toFixed(trip.fareCents%100===0?0:2)}`:'R0',[passengers,trip]);
 
  return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>

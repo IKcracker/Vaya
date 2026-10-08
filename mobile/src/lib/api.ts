@@ -150,7 +150,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const payload = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(payload?.error ?? `Request failed (${response.status})`);
+      throw new Error(payload?.error ?? (response.status === 404
+        ? 'This server is missing a required Vaya API. Deploy the latest backend or check EXPO_PUBLIC_API_URL in mobile/.env.'
+        : `Request failed (${response.status})`));
+    }
+
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('The server returned an invalid response. Please try again.');
     }
 
     return payload as T;

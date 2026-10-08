@@ -37,20 +37,25 @@ export default function SearchResultsScreen(){
  useEffect(()=>{
   let active=true;
 
-  Promise.all([
-   searchTrips({from,to,date,passengers}),
-   getRoutePreview(from,to).catch(()=>({route:null,error:'Map route unavailable'})),
-  ])
-   .then(([tripResponse,routeResponse])=>{
+  searchTrips({from,to,date,passengers})
+   .then((tripResponse)=>{
     if(!active)return;
     setTrips(tripResponse.trips);
-    setRoute(routeResponse.route);
-    setRouteMessage(routeResponse.error??null);
    })
    .catch((reason:unknown)=>{
     if(active)setError(reason instanceof Error?reason.message:'Unable to search rides');
    })
    .finally(()=>{if(active)setLoading(false)});
+
+  getRoutePreview(from,to)
+   .then((response)=>{
+    if(!active)return;
+    setRoute(response.route);
+    setRouteMessage(response.error??null);
+   })
+   .catch((reason:unknown)=>{
+    if(active)setRouteMessage(reason instanceof Error?reason.message:'Map route unavailable');
+   });
 
   return()=>{active=false};
  },[date,from,passengers,to]);
