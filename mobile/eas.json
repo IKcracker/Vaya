@@ -9,10 +9,18 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://vaya-wego.vercel.app"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://vaya-wego.vercel.app"
+      }
     }
   },
   "submit": {

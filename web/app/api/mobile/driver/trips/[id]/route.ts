@@ -1,4 +1,5 @@
 import { isDatabaseConfigured } from "@/lib/db";
+import { getDriverTripPassengers } from "@/lib/db/mobile-bookings";
 import {
   updateMobileDriverTripDetails,
   updateMobileDriverTripStatus,
@@ -18,6 +19,28 @@ const allowedStatuses = new Set([
   "Completed",
   "Cancelled",
 ]);
+
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await getPassengerSession(getMobileSessionCookie(request));
+  if (auth.status === "unconfigured") {
+    return Response.json({ error: "Passenger authentication is not configured" }, { status: 503 });
+  }
+  if (auth.status !== "authenticated" || !auth.user.email) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!isDatabaseConfigured()) {
+    return Response.json({ error: "Database is not configured" }, { status: 503 });
+  }
+  try {
+    const { id } = await params;
+    const bookings = await getDriverTripPassengers(auth.user.email, id);
+    if (!bookings) return Response.json({ error: "Trip not found" }, { status: 404 });
+    return Response.json({ bookings }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("Driver passenger list failed", error);
+    return Response.json({ error: "Unable to load passengers" }, { status: 500 });
+  }
+}
 
 export async function PATCH(
   request: Request,

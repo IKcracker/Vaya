@@ -63,7 +63,7 @@ export function AnimatedIcon() {
 const styles = StyleSheet.create({
   splashOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#052D2B',
+    backgroundColor: '#0D2148',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 92,
     borderRadius: 38,
-    backgroundColor: '#10B981',
+    backgroundColor: '#1765F3',
     transform: [{ rotate: '18deg' }],
     overflow: 'hidden',
   },
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 52,
     borderRadius: 28,
-    backgroundColor: '#D7F65B',
+    backgroundColor: '#8CB8FF',
   },
   logoCutout: {
     position: 'absolute',
@@ -93,9 +93,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#063C35',
+    backgroundColor: '#102C60',
   },
   brand: { color: '#FFFFFF', fontSize: 44, fontWeight: '900', letterSpacing: -1.7, marginTop: 20 },
-  tagline: { color: '#D0E9E1', fontSize: 12, fontWeight: '700', marginTop: 6 },
+  tagline: { color: '#ABC5EE', fontSize: 12, fontWeight: '700', marginTop: 6 },
   iconContainer: { width: 96, height: 110, alignItems: 'center', justifyContent: 'center' },
 });

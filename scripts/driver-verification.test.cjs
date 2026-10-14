@@ -83,12 +83,12 @@ test('approval requires every required document; optional insurance does not blo
   let rows = [];
   const date = new Date('2026-10-05T12:00:00Z');
   const documents = load('web/lib/db/driver-documents.ts', {
-    'server-only': {}, 'drizzle-orm': { eq: () => true }, '@/lib/driver-verification': definitions,
+    'server-only': {}, 'drizzle-orm': { eq: () => true, and:()=>true, isNull:()=>true }, '@/lib/driver-verification': definitions,
     './index': { getDb: () => ({ select: () => ({ from: () => ({ where: async () => rows }) }) }) },
     './schema': { driverDocuments: {}, drivers: {}, activityLogs: {} },
   });
   assert.equal((await documents.getDriverVerificationSummary('driver-1')).readyToApprove, false);
-  rows = definitions.REQUIRED_DRIVER_DOCUMENTS.map((definition, index) => ({ ...definition, id: String(index), status: 'Approved', uploadedAt: date, updatedAt: date }));
+  rows = definitions.PERSONAL_DRIVER_DOCUMENTS.map((definition, index) => ({ ...definition, id: String(index), status: 'Approved', uploadedAt: date, updatedAt: date }));
   assert.equal((await documents.getDriverVerificationSummary('driver-1')).readyToApprove, true);
   rows[0].status = 'Review';
   assert.equal((await documents.getDriverVerificationSummary('driver-1')).readyToApprove, false);

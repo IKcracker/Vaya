@@ -1,5 +1,6 @@
 import { isDatabaseConfigured } from "@/lib/db";
 import { getPassengerBookingForPayment } from "@/lib/db/public";
+import { cancelUnpaidBooking } from "@/lib/db/mobile-bookings";
 import {
   getMobileSessionCookie,
   getPassengerSession,
@@ -40,4 +41,37 @@ export async function GET(
     { booking },
     { headers: { "Cache-Control": "no-store" } }
   );
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await getPassengerSession(getMobileSessionCookie(request));
+  if (auth.status === "unconfigured") {
+    return Response.json({ error: "Passenger authentication is not configured" }, { status: 503 });
+  }
+  if (auth.status !== "authenticated" || !auth.user.email) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!isDatabaseConfigured()) {
+    return Response.json({ error: "Database is not configured" }, { status: 503 });
+  }
+  const { id } = await params;
+  try {
+    const booking = await cancelUnpaidBooking(auth.user.email, id);
+    return Response.json({ booking }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    if (error instanceof Error && error.message === "BOOKING_NOT_FOUND") {
+      return Response.json({ error: "Booking not found" }, { status: 404 });
+    }
+    if (error instanceof Error && error.message === "BOOKING_CHECKOUT_STARTED") {
+      return Response.json({ error: "Checkout has already started. Check your payment status or contact support to cancel." }, { status: 409 });
+    }
+    if (error instanceof Error && error.message === "BOOKING_CANNOT_CANCEL") {
+      return Response.json({ error: "This reservation cannot be released. Contact support for help with your booking." }, { status: 409 });
+    }
+    console.error("Passenger booking cancellation failed", error);
+    return Response.json({ error: "Unable to release reservation" }, { status: 500 });
+  }
 }

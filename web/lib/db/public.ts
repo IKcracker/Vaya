@@ -212,6 +212,7 @@ export async function getPublicTrip(publicId: string) {
 export async function createPublicBooking(input: {
   tripId: string;
   seats: number;
+  expectedFareCents?: number;
   passenger: {
     name: string;
     email: string;
@@ -222,6 +223,11 @@ export async function createPublicBooking(input: {
   const email = input.passenger.email.trim().toLowerCase();
 
   return withDbTransaction(async (tx) => {
+    const [owner] = await tx.select({ email: drivers.email }).from(trips)
+      .innerJoin(drivers, eq(trips.driverId, drivers.id))
+      .where(eq(trips.publicId, input.tripId)).limit(1);
+    if (owner?.email?.trim().toLowerCase() === email) throw new Error("OWN_TRIP_BOOKING");
+
     let [passenger] = await tx
       .select(passengerAccountSelection)
       .from(passengers)
@@ -251,7 +257,10 @@ export async function createPublicBooking(input: {
       .where(
         and(
           eq(trips.publicId, input.tripId),
+          sql`not exists (select 1 from drivers d where d.id = ${trips.driverId} and lower(trim(d.email)) = ${email})`,
           or(...PUBLIC_TRIP_STATUSES.map((status) => eq(trips.status, status))),
+          gte(trips.departureAt, new Date()),
+          ...(input.expectedFareCents === undefined ? [] : [eq(trips.fareCents, input.expectedFareCents)]),
           sql`${trips.seatCapacity} - ${trips.seatsBooked} >= ${seatsRequested}`
         )
       )
@@ -639,10 +648,12 @@ export async function getPassengerBookingForPayment(
       bookingStatus: bookings.status,
       paymentStatus: bookings.paymentStatus,
       amountCents: bookings.amountCents,
+      seats: bookings.seats,
       passengerId: passengers.id,
       passengerName: passengers.name,
       passengerEmail: passengers.email,
       tripId: trips.publicId,
+      tripStatus: trips.status,
       fromCity: trips.fromCity,
       toCity: trips.toCity,
       departureAt: trips.departureAt,
@@ -672,6 +683,7 @@ export async function getPassengerBookingForPayment(
     status: row.bookingStatus,
     paymentStatus: row.paymentStatus,
     amountCents: row.amountCents,
+    seats: row.seats,
     amount: money(row.amountCents),
     passenger: {
       id: row.passengerId,
@@ -682,6 +694,7 @@ export async function getPassengerBookingForPayment(
       id: row.tripId,
       route: `${row.fromCity} → ${row.toCity}`,
       departureAt: row.departureAt.toISOString(),
+      status: row.tripStatus,
     },
     payments: paymentRows.map((payment) => ({
       reference: payment.publicId,
@@ -699,31 +712,37 @@ export async function createPendingMobilePayment(input: {
   reference: string;
   amountCents: number;
 }) {
-  const db = getDb();
+  return withDbTransaction(async (db) => {
+    const [booking] = await db.select().from(bookings)
+      .where(eq(bookings.id, input.bookingDatabaseId)).for("update");
+    if (!booking || booking.status !== "Awaiting payment" || booking.paymentStatus !== "Pending") {
+      throw new Error("BOOKING_CLOSED");
+    }
 
-  const [payment] = await db
-    .insert(payments)
-    .values({
-      publicId: input.reference,
-      bookingId: input.bookingDatabaseId,
-      amountCents: input.amountCents,
-      method: "Paystack",
-      status: "Pending",
-    })
-    .returning();
+    const [payment] = await db
+      .insert(payments)
+      .values({
+        publicId: input.reference,
+        bookingId: input.bookingDatabaseId,
+        amountCents: input.amountCents,
+        method: "Paystack",
+        status: "Pending",
+      })
+      .returning();
 
-  await db.insert(activityLogs).values({
-    eventType: "payment_initialized",
-    title: "Payment initialized",
-    detail: `${payment.publicId} · ${money(payment.amountCents)}`,
-    metadata: {
-      paymentId: payment.id,
-      payment: payment.publicId,
-      bookingId: input.bookingDatabaseId,
-    },
+    await db.insert(activityLogs).values({
+      eventType: "payment_initialized",
+      title: "Payment initialized",
+      detail: `${payment.publicId} · ${money(payment.amountCents)}`,
+      metadata: {
+        paymentId: payment.id,
+        payment: payment.publicId,
+        bookingId: input.bookingDatabaseId,
+      },
+    });
+
+    return payment;
   });
-
-  return payment;
 }
 
 export async function getMobilePayment(reference: string) {
@@ -757,7 +776,7 @@ export async function settleMobilePayment(reference: string) {
     const [payment] = await tx
       .update(payments)
       .set({ status: "Settled" })
-      .where(eq(payments.publicId, reference))
+      .where(and(eq(payments.publicId, reference), ne(payments.status, "Settled")))
       .returning();
 
     if (!payment) return null;
@@ -766,7 +785,7 @@ export async function settleMobilePayment(reference: string) {
       .update(bookings)
       .set({
         paymentStatus: "Paid",
-        status: "Confirmed",
+        status: sql`case when ${bookings.status} in ('Cancelled', 'Completed') then ${bookings.status} else 'Confirmed' end`,
         updatedAt: new Date(),
       })
       .where(eq(bookings.id, payment.bookingId))
@@ -1551,56 +1570,66 @@ export async function updateMobileDriverTripStatus(
   if (!driver) throw new Error("DRIVER_NOT_FOUND");
   if (driver.status !== "Approved" || !(await getDriverVerificationSummary(driver.id)).readyToApprove) throw new Error("DRIVER_NOT_APPROVED");
 
-  const [trip] = await db
-    .update(trips)
-    .set({
-      status,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(trips.publicId, publicId),
-        eq(trips.driverId, driver.id)
-      )
-    )
-    .returning();
-
-  if (!trip) throw new Error("TRIP_NOT_FOUND");
-
-  if (status === "Cancelled") {
-    await db
-      .update(bookings)
-      .set({ status: "Cancelled", updatedAt: new Date() })
-      .where(eq(bookings.tripId, trip.id));
-  } else if (status === "Completed") {
-    await db
-      .update(bookings)
-      .set({ status: "Completed", updatedAt: new Date() })
+  return withDbTransaction(async (tx) => {
+    const [existing] = await tx.select().from(trips)
+      .where(and(eq(trips.publicId, publicId), eq(trips.driverId, driver.id)))
+      .for("update");
+    if (!existing) throw new Error("TRIP_NOT_FOUND");
+    if (["Completed", "Cancelled"].includes(existing.status)) throw new Error("TRIP_CLOSED");
+    if (existing.status === "Boarding" && ["Scheduled", "On schedule"].includes(status)) {
+      throw new Error("TRIP_LOCKED");
+    }
+    const [trip] = await tx
+      .update(trips)
+      .set({
+        status,
+        updatedAt: new Date(),
+      })
       .where(
         and(
-          eq(bookings.tripId, trip.id),
-          ne(bookings.status, "Cancelled")
+          eq(trips.publicId, publicId),
+          eq(trips.driverId, driver.id)
         )
-      );
-  }
+      )
+      .returning();
 
-  await db.insert(activityLogs).values({
-    eventType: "driver_trip_status",
-    title: `Trip ${status.toLowerCase()}`,
-    detail: `${trip.publicId} · ${trip.fromCity} → ${trip.toCity}`,
-    metadata: {
-      driverId: driver.id,
-      tripId: trip.id,
-      publicId: trip.publicId,
-      status,
-      source: "mobile",
-    },
+    if (!trip) throw new Error("TRIP_NOT_FOUND");
+
+    if (status === "Cancelled") {
+      await tx
+        .update(bookings)
+        .set({ status: "Cancelled", updatedAt: new Date() })
+        .where(eq(bookings.tripId, trip.id));
+    } else if (status === "Completed") {
+      await tx
+        .update(bookings)
+        .set({ status: "Completed", updatedAt: new Date() })
+        .where(
+          and(
+            eq(bookings.tripId, trip.id),
+            ne(bookings.status, "Cancelled")
+          )
+        );
+    }
+
+    await tx.insert(activityLogs).values({
+      eventType: "driver_trip_status",
+      title: `Trip ${status.toLowerCase()}`,
+      detail: `${trip.publicId} · ${trip.fromCity} → ${trip.toCity}`,
+      metadata: {
+        driverId: driver.id,
+        tripId: trip.id,
+        publicId: trip.publicId,
+        status,
+        source: "mobile",
+      },
+    });
+
+    return {
+      id: trip.publicId,
+      status: trip.status,
+    };
   });
-
-  return {
-    id: trip.publicId,
-    status: trip.status,
-  };
 }
 
 
@@ -1665,10 +1694,14 @@ export async function updateMobileDriverTripDetails(
     .where(
       and(
         eq(trips.publicId, publicId),
-        eq(trips.driverId, driver.id)
+        eq(trips.driverId, driver.id),
+        or(eq(trips.status, "Scheduled"), eq(trips.status, "On schedule"), eq(trips.status, "Full")),
+        sql`${trips.seatsBooked} <= ${input.seats}`
       )
     )
     .returning();
+
+  if (!trip) throw new Error("TRIP_LOCKED");
 
   await db.insert(activityLogs).values({
     eventType: "driver_trip_updated",
@@ -2146,6 +2179,7 @@ export async function getPassengerTripExperienceByEmail(
       driverId: trips.driverId,
       driverName: trips.driverName,
       driverEmail: drivers.email,
+      driverPhone: drivers.phone,
       driverStatus: drivers.status,
       driverProfileImageUpdatedAt: sql<Date | null>`(
         select p.profile_image_updated_at
@@ -2194,8 +2228,9 @@ export async function getPassengerTripExperienceByEmail(
     existingReview && typeof existingReview.metadata.rating === "number"
       ? existingReview.metadata.rating
       : null;
+  const privacy = row.driverEmail ? await getMobilePrivacyPreferencesByEmail(row.driverEmail) : DEFAULT_PRIVACY_PREFERENCES;
   const liveLocation =
-    row.tripStatus === "On schedule" || row.tripStatus === "Boarding"
+    privacy.locationSharing && (row.tripStatus === "On schedule" || row.tripStatus === "Boarding")
       ? await getTripLiveLocation(row.tripId)
       : null;
 
@@ -2217,9 +2252,10 @@ export async function getPassengerTripExperienceByEmail(
       id: row.driverId ?? "",
       name: row.driverName,
       email: row.driverEmail ?? "",
+      phone: privacy.sharePhone && row.bookingStatus === "Confirmed" ? row.driverPhone ?? "" : "",
       verified: row.driverStatus === "Approved",
       profileImageUrl:
-        row.driverId && row.driverProfileImageUpdatedAt
+        privacy.profileVisible && row.driverId && row.driverProfileImageUpdatedAt
           ? `/api/public/drivers/${row.driverId}/profile-image?version=${new Date(row.driverProfileImageUpdatedAt).getTime()}`
           : "",
     },

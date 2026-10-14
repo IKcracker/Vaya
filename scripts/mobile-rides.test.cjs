@@ -33,6 +33,13 @@ test('HTML success responses are rejected before rendering rides', async () => {
   await assert.rejects(api.searchTrips({ from: 'Johannesburg', to: 'Durban', passengers: 1 }), /invalid response/);
 });
 
+test('browser network failures produce the same actionable connection error as native failures', async () => {
+  const api = load('mobile/src/lib/api.ts', {
+    'expo-constants': {}, 'expo-device': { isDevice: false }, 'react-native': { Platform: { OS: 'web' } },
+  }, { fetch: async () => { throw Error('Failed to fetch'); } });
+  await assert.rejects(api.searchTrips({ from: 'Johannesburg', to: 'Durban', passengers: 1 }), /Check your internet connection/);
+});
+
 const { Pool } = require('@neondatabase/serverless');
 const { sql } = require('drizzle-orm');
 const neonDrizzle = require('drizzle-orm/neon-serverless');

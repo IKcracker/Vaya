@@ -34,7 +34,7 @@ npm run dev:mobile
 npm run dev:web
 ```
 
-`npm run mobile` is an alias for `npm run dev:mobile`. Run installs from the repository root and use the root `package-lock.json` for both workspaces.
+`npm start`, `npm run mobile`, and `npm run dev:mobile` launch Expo in the `mobile/` workspace. `npm run dev` starts both apps. Run installs from the repository root and use the root `package-lock.json` for both workspaces. To clear Metro's cache on Windows, run `npm.cmd start -- --clear`. When invoking Expo directly from the repository root, use `npx.cmd expo start mobile --clear` so it loads the mobile app's configuration and Router entry.
 
 The root development dependency on `expo-router` lets Expo's hoisted route-generation tooling resolve the router when generating mobile route types. Keep its version aligned with `mobile/package.json` when upgrading the Expo SDK.
 

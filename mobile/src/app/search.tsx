@@ -1,6 +1,11 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { SymbolView } from "expo-symbols";
+import { useRef, useState, type ComponentProps } from "react";
 import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,656 +14,724 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import { Design } from "@/constants/design";
 import { usePassengerAuth } from "@/providers/passenger-auth-provider";
 
-const GREEN = "#087F5B";
-const GREEN_SOFT = "#EFF6F0";
-const TEXT = "#172A24";
-const BODY = "#45584A";
-const MUTED = "#7A8580";
-const PLACEHOLDER = "#98A29D";
-const LINE = "#DFE6E1";
-const SOFT = "#F7F9F7";
-const WHITE = "#FFFFFF";
-
-function isoDate(date: Date) {
-  return date.toISOString().slice(0, 10);
+const C = Design.color;
+function isoDate(value: Date) {
+  return [
+    value.getFullYear(),
+    String(value.getMonth() + 1).padStart(2, "0"),
+    String(value.getDate()).padStart(2, "0"),
+  ].join("-");
 }
-
-function dateLabel(date: Date) {
+function label(value: string) {
+  if (!value) return "Any date";
   return new Intl.DateTimeFormat("en-ZA", {
     weekday: "short",
-    day: "2-digit",
+    day: "numeric",
     month: "short",
-  }).format(date);
+  }).format(new Date(value + "T12:00:00"));
+}
+type IconNames = Exclude<
+  NonNullable<ComponentProps<typeof SymbolView>["name"]>,
+  string
+>;
+function Icon({
+  ios,
+  android,
+  color = C.text,
+}: {
+  ios: IconNames["ios"];
+  android: IconNames["android"];
+  color?: string;
+}) {
+  return (
+    <SymbolView
+      name={{ ios, android, web: android }}
+      tintColor={color}
+      size={22}
+    />
+  );
 }
 
 export default function SearchScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ from?: string; to?: string }>();
+  const params = useLocalSearchParams<{
+    from?: string;
+    to?: string;
+    date?: string;
+    passengers?: string;
+  }>();
   const { passenger } = usePassengerAuth();
-
+  const destination = useRef<TextInput>(null);
   const [from, setFrom] = useState(
-    typeof params.from === "string" ? params.from : passenger?.city ?? "",
+    typeof params.from === "string" ? params.from : (passenger?.city ?? ""),
   );
-  const [to, setTo] = useState(
-    typeof params.to === "string" ? params.to : "",
+  const [to, setTo] = useState(typeof params.to === "string" ? params.to : "");
+  const [date, setDate] = useState(
+    typeof params.date === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(params.date) &&
+      params.date >= isoDate(new Date())
+      ? params.date
+      : "",
   );
-  const [date, setDate] = useState("");
-  const [passengers, setPassengers] = useState(1);
-
-  const dateOptions = useMemo(() => {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-
-    const weekend = new Date(today);
-    const daysUntilSaturday = (6 - today.getDay() + 7) % 7 || 7;
-    weekend.setDate(today.getDate() + daysUntilSaturday);
-
-    return [
-      { label: "Any date", value: "", eyebrow: "FLEXIBLE" },
-      {
-        label: dateLabel(tomorrow),
-        value: isoDate(tomorrow),
-        eyebrow: "TOMORROW",
-      },
-      {
-        label: dateLabel(weekend),
-        value: isoDate(weekend),
-        eyebrow: "WEEKEND",
-      },
-    ];
-  }, []);
-
-  const canSearch =
+  const [seats, setSeats] = useState(
+    Math.max(1, Math.min(8, Math.floor(Number(params.passengers)) || 1)),
+  );
+  const [focused, setFocused] = useState<"from" | "to" | null>(null);
+  const [calendar, setCalendar] = useState(false);
+  const today = new Date();
+  const todayISO = isoDate(today);
+  const tomorrow = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() + 1,
+  );
+  const [month, setMonth] = useState(
+    new Date(today.getFullYear(), today.getMonth(), 1),
+  );
+  const sameCity =
     from.trim().length > 1 &&
     to.trim().length > 1 &&
-    from.trim().toLowerCase() !== to.trim().toLowerCase();
-
-  function swapRoute() {
-    setFrom(to);
-    setTo(from);
-  }
+    from.trim().toLowerCase() === to.trim().toLowerCase();
+  const canSearch = from.trim().length > 1 && to.trim().length > 1 && !sameCity;
+  const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const offset = (month.getDay() + 6) % 7;
+  const previousDisabled =
+    month.getFullYear() === today.getFullYear() &&
+    month.getMonth() === today.getMonth();
 
   function submit() {
     if (!canSearch) return;
-
+    Keyboard.dismiss();
     router.push({
       pathname: "/search-results",
       params: {
         from: from.trim(),
         to: to.trim(),
         date,
-        passengers: String(passengers),
+        passengers: String(seats),
       },
     });
+  }
+  function openCalendar() {
+    Keyboard.dismiss();
+    const selected = date ? new Date(date + "T12:00:00") : today;
+    setMonth(new Date(selected.getFullYear(), selected.getMonth(), 1));
+    setCalendar(true);
   }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView
-        contentContainerStyle={styles.page}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <View style={styles.header}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.backButton,
-              pressed && styles.pressed,
-            ]}>
-            <Text style={styles.backText}>‹</Text>
+            style={styles.iconButton}
+            onPress={() =>
+              router.canGoBack() ? router.back() : router.replace("/")
+            }
+          >
+            <Icon ios="arrow.left" android="arrow_back" />
           </Pressable>
-
           <Text style={styles.headerTitle}>Find a ride</Text>
-          <View style={styles.headerSpacer} />
+          <View style={styles.iconButton} />
         </View>
-
-        <View style={styles.intro}>
-          <Text style={styles.heading}>Where are you heading?</Text>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.eyebrow}>YOUR NEXT JOURNEY</Text>
+          <Text style={styles.heading}>Where to?</Text>
           <Text style={styles.description}>
-            Choose your route, travel date and number of seats.
+            Find a seat. Share the journey.
           </Text>
-        </View>
 
-        <View style={styles.routeCard}>
-          <View style={styles.routeFields}>
-            <View style={styles.fieldRail}>
-              <View style={styles.originDot} />
-              <View style={styles.fieldConnector} />
-              <View style={styles.destinationDot} />
+          <View style={styles.routeCard}>
+            <View style={styles.rail}>
+              <View style={styles.origin} />
+              <View style={styles.connector} />
+              <View style={styles.destination} />
             </View>
-
-            <View style={styles.fieldContent}>
-              <View style={styles.field}>
-                <View style={styles.fieldHeader}>
-                  <Text style={styles.fieldLabel}>Leaving from</Text>
-                  {passenger?.city &&
-                  from.trim().toLowerCase() !==
-                    passenger.city.trim().toLowerCase() ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => setFrom(passenger.city)}>
-                      <Text style={styles.homeCity}>Use {passenger.city}</Text>
-                    </Pressable>
-                  ) : null}
-                </View>
-
+            <View style={styles.flex}>
+              <View
+                style={[styles.field, focused === "from" && styles.focused]}
+              >
+                <Text style={styles.fieldLabel}>From</Text>
                 <TextInput
+                  accessibilityLabel="Departure city or town"
                   value={from}
                   onChangeText={setFrom}
-                  placeholder="City or town"
-                  placeholderTextColor={PLACEHOLDER}
+                  placeholder="Departure city"
+                  placeholderTextColor="#7786A0"
                   autoCapitalize="words"
+                  autoCorrect={false}
                   returnKeyType="next"
+                  onSubmitEditing={() => destination.current?.focus()}
+                  onFocus={() => setFocused("from")}
+                  onBlur={() => setFocused(null)}
                   style={styles.input}
                 />
               </View>
-
-              <View style={styles.fieldDivider} />
-
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Going to</Text>
+              <View style={styles.divider} />
+              <View style={[styles.field, focused === "to" && styles.focused]}>
+                <Text style={styles.fieldLabel}>To</Text>
                 <TextInput
+                  ref={destination}
+                  accessibilityLabel="Destination city or town"
                   value={to}
                   onChangeText={setTo}
-                  placeholder="Enter destination"
-                  placeholderTextColor={PLACEHOLDER}
+                  placeholder="Destination city"
+                  placeholderTextColor="#7786A0"
                   autoCapitalize="words"
-                  returnKeyType="done"
+                  autoCorrect={false}
+                  returnKeyType="search"
                   onSubmitEditing={submit}
+                  onFocus={() => setFocused("to")}
+                  onBlur={() => setFocused(null)}
                   style={styles.input}
                 />
               </View>
             </View>
-
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Swap departure and destination"
-              onPress={swapRoute}
-              style={({ pressed }) => [
-                styles.swapButton,
-                pressed && styles.pressed,
-              ]}>
-              <Text style={styles.swapText}>⇅</Text>
+              style={styles.swap}
+              onPress={() => {
+                setFrom(to);
+                setTo(from);
+              }}
+            >
+              <Icon
+                ios="arrow.up.arrow.down"
+                android="swap_vert"
+                color={C.primary}
+              />
             </Pressable>
           </View>
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionTitle}>When are you travelling?</Text>
-            <Text style={styles.sectionDescription}>
-              Pick a quick date or stay flexible.
+          {passenger?.city &&
+          from.trim().toLowerCase() !== passenger.city.trim().toLowerCase() ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={"Use " + passenger.city + " as departure"}
+              style={styles.homeCity}
+              onPress={() => setFrom(passenger.city)}
+            >
+              <Icon ios="house" android="home" color={C.primary} />
+              <Text style={styles.link}>Use {passenger.city}</Text>
+            </Pressable>
+          ) : null}
+          {sameCity ? (
+            <Text accessibilityLiveRegion="polite" style={styles.error}>
+              Choose a destination different from your departure.
             </Text>
-          </View>
-        </View>
+          ) : null}
 
-        <View style={styles.dateGrid}>
-          {dateOptions.map((option) => {
-            const active = date === option.value;
-
-            return (
+          <Text style={styles.sectionTitle}>Travel date</Text>
+          <View style={styles.chips}>
+            {[
+              { title: "Any date", value: "" },
+              { title: "Today", value: todayISO },
+              { title: "Tomorrow", value: isoDate(tomorrow) },
+            ].map((option) => (
               <Pressable
-                key={option.value || "any"}
+                key={option.title}
                 accessibilityRole="button"
-                accessibilityState={{ selected: active }}
+                accessibilityState={{ selected: date === option.value }}
+                style={[
+                  styles.chip,
+                  date === option.value && styles.chipActive,
+                ]}
                 onPress={() => setDate(option.value)}
-                style={({ pressed }) => [
-                  styles.dateCard,
-                  active && styles.dateCardActive,
-                  pressed && styles.pressed,
-                ]}>
+              >
                 <Text
                   style={[
-                    styles.dateEyebrow,
-                    active && styles.dateEyebrowActive,
-                  ]}>
-                  {option.eyebrow}
-                </Text>
-                <Text
-                  style={[
-                    styles.dateLabel,
-                    active && styles.dateLabelActive,
-                  ]}>
-                  {option.label}
+                    styles.chipText,
+                    date === option.value && styles.chipTextActive,
+                  ]}
+                >
+                  {option.title}
                 </Text>
               </Pressable>
-            );
-          })}
-        </View>
+            ))}
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={"Choose travel date, " + label(date)}
+            style={styles.dateRow}
+            onPress={openCalendar}
+          >
+            <View style={styles.smallIcon}>
+              <Icon ios="calendar" android="calendar_month" />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.rowTitle}>
+                {date ? label(date) : "Choose a date"}
+              </Text>
+              <Text style={styles.rowNote}>
+                {date
+                  ? "Tap to change your travel date"
+                  : "Or keep your plans flexible"}
+              </Text>
+            </View>
+            <Icon ios="chevron.right" android="chevron_right" color={C.muted} />
+          </Pressable>
 
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionTitle}>Passengers</Text>
-            <Text style={styles.sectionDescription}>
-              How many seats do you need?
+          <View style={styles.seatRow}>
+            <View style={styles.smallIcon}>
+              <Icon ios="person.2" android="group" />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.rowTitle}>Seats</Text>
+              <Text style={styles.rowNote}>
+                For you and your travel companions
+              </Text>
+            </View>
+          </View>
+          <View style={styles.seatPicker}>
+            <Text style={styles.seatValue}>
+              {seats}
+              <Text style={styles.seatUnit}>
+                {" "}
+                {seats === 1 ? "seat" : "seats"}
+              </Text>
             </Text>
+            <View style={styles.stepper}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Remove seat"
+                accessibilityState={{ disabled: seats === 1 }}
+                disabled={seats === 1}
+                style={[styles.step, seats === 1 && styles.disabled]}
+                onPress={() => setSeats((value) => Math.max(1, value - 1))}
+              >
+                <Icon ios="minus" android="remove" />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add seat"
+                accessibilityState={{ disabled: seats === 8 }}
+                disabled={seats === 8}
+                style={[styles.step, seats === 8 && styles.disabled]}
+                onPress={() => setSeats((value) => Math.min(8, value + 1))}
+              >
+                <Icon ios="plus" android="add" />
+              </Pressable>
+            </View>
           </View>
+        </ScrollView>
+        <View style={styles.footer}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canSearch }}
+            disabled={!canSearch}
+            onPress={submit}
+            style={({ pressed }) => [
+              styles.search,
+              !canSearch && styles.searchDisabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Icon ios="magnifyingglass" android="search" color="#FFFFFF" />
+            <Text style={styles.searchText}>Find rides</Text>
+          </Pressable>
         </View>
+      </KeyboardAvoidingView>
 
-        <View style={styles.passengerCard}>
-          <View style={styles.passengerIcon}>
-            <Text style={styles.passengerIconText}>●</Text>
-          </View>
-
-          <View style={styles.passengerCopy}>
-            <Text style={styles.passengerTitle}>
-              {passengers} passenger{passengers === 1 ? "" : "s"}
-            </Text>
-            <Text style={styles.passengerNote}>Maximum 8 seats per search</Text>
-          </View>
-
-          <View style={styles.stepper}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Remove passenger"
-              disabled={passengers <= 1}
-              onPress={() => setPassengers((value) => Math.max(1, value - 1))}
-              style={[
-                styles.stepButton,
-                passengers <= 1 && styles.stepButtonDisabled,
-              ]}>
-              <Text style={styles.stepText}>−</Text>
-            </Pressable>
-
-            <Text style={styles.passengerCount}>{passengers}</Text>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Add passenger"
-              disabled={passengers >= 8}
-              onPress={() => setPassengers((value) => Math.min(8, value + 1))}
-              style={[
-                styles.stepButton,
-                passengers >= 8 && styles.stepButtonDisabled,
-              ]}>
-              <Text style={styles.stepText}>+</Text>
-            </Pressable>
-          </View>
+      <Modal
+        visible={calendar}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCalendar(false)}
+      >
+        <View style={styles.overlay}>
+          <Pressable
+            style={styles.backdrop}
+            accessibilityRole="button"
+            accessibilityLabel="Close calendar"
+            onPress={() => setCalendar(false)}
+          />
+          <SafeAreaView style={styles.calendarSafe} edges={["bottom"]}>
+            <ScrollView
+              contentContainerStyle={styles.calendar}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.calendarHeading}>
+                <Text style={styles.sectionTitle}>Choose your travel date</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close calendar"
+                  style={styles.iconButton}
+                  onPress={() => setCalendar(false)}
+                >
+                  <Icon ios="xmark" android="close" />
+                </Pressable>
+              </View>
+              <View style={styles.monthRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous month"
+                  accessibilityState={{ disabled: previousDisabled }}
+                  disabled={previousDisabled}
+                  style={[
+                    styles.iconButton,
+                    previousDisabled && styles.disabled,
+                  ]}
+                  onPress={() =>
+                    setMonth(
+                      (value) =>
+                        new Date(value.getFullYear(), value.getMonth() - 1, 1),
+                    )
+                  }
+                >
+                  <Icon ios="chevron.left" android="chevron_left" />
+                </Pressable>
+                <Text style={styles.rowTitle}>
+                  {new Intl.DateTimeFormat("en-ZA", {
+                    month: "long",
+                    year: "numeric",
+                  }).format(month)}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Next month"
+                  style={styles.iconButton}
+                  onPress={() =>
+                    setMonth(
+                      (value) =>
+                        new Date(value.getFullYear(), value.getMonth() + 1, 1),
+                    )
+                  }
+                >
+                  <Icon ios="chevron.right" android="chevron_right" />
+                </Pressable>
+              </View>
+              <View style={styles.days}>
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+                  (day) => (
+                    <View key={day} style={styles.dayCell}>
+                      <Text style={styles.weekday}>{day}</Text>
+                    </View>
+                  ),
+                )}
+                {Array.from({ length: offset }, (_, index) => (
+                  <View key={"blank-" + index} style={styles.dayCell} />
+                ))}
+                {Array.from({ length: days }, (_, index) => {
+                  const value = isoDate(
+                    new Date(month.getFullYear(), month.getMonth(), index + 1),
+                  );
+                  const disabled = value < todayISO;
+                  const selected = date === value;
+                  return (
+                    <View key={value} style={styles.dayCell}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={label(value)}
+                        accessibilityState={{ disabled, selected }}
+                        disabled={disabled}
+                        style={[
+                          styles.day,
+                          selected && styles.daySelected,
+                          disabled && styles.disabled,
+                        ]}
+                        onPress={() => {
+                          setDate(value);
+                          setCalendar(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.dayText,
+                            selected && styles.dayTextSelected,
+                          ]}
+                        >
+                          {index + 1}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                style={styles.flexible}
+                onPress={() => {
+                  setDate("");
+                  setCalendar(false);
+                }}
+              >
+                <Text style={styles.link}>
+                  I&apos;m flexible · search any date
+                </Text>
+              </Pressable>
+            </ScrollView>
+          </SafeAreaView>
         </View>
-
-        {from.trim().length > 1 &&
-        to.trim().length > 1 &&
-        from.trim().toLowerCase() === to.trim().toLowerCase() ? (
-          <View style={styles.validationCard}>
-            <Text style={styles.validationText}>
-              Departure and destination need to be different.
-            </Text>
-          </View>
-        ) : null}
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !canSearch }}
-          disabled={!canSearch}
-          onPress={submit}
-          style={({ pressed }) => [
-            styles.searchButton,
-            !canSearch && styles.searchButtonDisabled,
-            pressed && canSearch && styles.searchButtonPressed,
-          ]}>
-          <Text style={styles.searchButtonText}>Search available rides</Text>
-          <Text style={styles.searchButtonArrow}>→</Text>
-        </Pressable>
-
-        <View style={styles.infoRow}>
-          <View style={styles.infoDot} />
-          <Text style={styles.infoText}>
-            Results come directly from rides published by Vaya drivers.
-          </Text>
-        </View>
-      </ScrollView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: WHITE,
+  safe: { flex: 1, backgroundColor: C.background },
+  flex: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 6,
   },
-  page: {
+  headerTitle: { color: C.text, fontSize: 16, fontWeight: "600" },
+  iconButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  content: {
     width: "100%",
     maxWidth: 600,
     alignSelf: "center",
-    paddingHorizontal: 24,
-    paddingTop: 10,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 22,
+    paddingBottom: 28
   },
-  pressed: {
-    opacity: 0.65,
-  },
-
-  header: {
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E4EAE6",
-    backgroundColor: "#FAFBFA",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backText: {
-    color: TEXT,
-    fontSize: 28,
-    lineHeight: 30,
-    marginTop: -3,
-  },
-  headerTitle: {
-    color: TEXT,
-    fontSize: 16,
+  eyebrow: {
+    color: C.primary,
+    fontSize: 11,
     fontWeight: "700",
-  },
-  headerSpacer: {
-    width: 40,
-  },
-
-  intro: {
-    marginTop: 28,
-    marginBottom: 22,
+    letterSpacing: 1.8,
   },
   heading: {
-    color: TEXT,
-    fontSize: 28,
-    lineHeight: 35,
-    fontWeight: "700",
-    letterSpacing: -0.9,
+    color: Design.color.navy,
+    fontSize: 38,
+    lineHeight: 48,
+    fontWeight: "800",
+    letterSpacing: -1.5,
+    marginTop: 8
   },
   description: {
-    color: MUTED,
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 8,
+    color: C.muted,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 6,
+    marginBottom: 28,
   },
-
   routeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: C.surface,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 16,
-    backgroundColor: WHITE,
-    padding: 16,
-    shadowColor: "#10281C",
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    borderColor: "#E3EAF5",
+    paddingLeft: 18,
+    paddingRight: 12,
+    boxShadow: Design.shadow.card
   },
-  routeFields: {
-    flexDirection: "row",
-    alignItems: "center",
+  rail: { width: 12, height: 94, alignItems: "center", marginRight: 12 },
+  origin: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 3,
+    borderColor: C.primary,
+    backgroundColor: "white",
   },
-  fieldRail: {
-    width: 14,
-    alignSelf: "stretch",
-    paddingTop: 29,
-    paddingBottom: 29,
-    alignItems: "center",
-  },
-  originDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: GREEN,
-    backgroundColor: WHITE,
-  },
-  fieldConnector: {
-    flex: 1,
+  connector: {
     width: 1,
-    backgroundColor: "#D7E0DA",
-    marginVertical: 4,
-  },
-  destinationDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 2,
-    backgroundColor: GREEN,
-  },
-  fieldContent: {
     flex: 1,
-    marginLeft: 12,
+    backgroundColor: "#D5E3FA",
+    marginVertical: 6
   },
-  field: {
-    minHeight: 74,
-    justifyContent: "center",
+  destination: {
+    width: 12,
+    height: 12,
+    borderRadius: 3,
+    backgroundColor: C.text,
   },
-  fieldHeader: {
-    flexDirection: "row",
+  field: { paddingHorizontal: 8, paddingVertical: 14, borderRadius: 10 },
+  focused: {
+    backgroundColor: "#EAF2FF"
+  },
+  fieldLabel: { color: C.muted, fontSize: 12, marginBottom: 3 },
+  input: {
+    color: C.text,
+    fontSize: 18,
+    fontWeight: "600",
+    minHeight: 36,
+    padding: 0,
+  },
+  divider: { height: 1, backgroundColor: C.border, marginHorizontal: 8 },
+  swap: {
+    width: 44,
+    height: 44,
+    marginLeft: 4,
+    borderRadius: 22,
+    backgroundColor: "white",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  fieldLabel: {
-    color: MUTED,
-    fontSize: 11,
-    marginBottom: 4,
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: C.border,
   },
   homeCity: {
-    color: GREEN,
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  input: {
-    minHeight: 34,
-    color: BODY,
-    fontSize: 16,
-    fontWeight: "500",
-    paddingHorizontal: 0,
-    paddingVertical: 4,
-  },
-  fieldDivider: {
-    height: 1,
-    backgroundColor: "#EDF0ED",
-  },
-  swapButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#D8E6DE",
-    backgroundColor: GREEN_SOFT,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 10,
-  },
-  swapText: {
-    color: GREEN,
-    fontSize: 17,
-    fontWeight: "700",
-  },
-
-  sectionHeader: {
-    marginTop: 30,
-    marginBottom: 13,
-  },
-  sectionTitle: {
-    color: TEXT,
-    fontSize: 18,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-  },
-  sectionDescription: {
-    color: MUTED,
-    fontSize: 11,
-    lineHeight: 17,
-    marginTop: 5,
-  },
-
-  dateGrid: {
     flexDirection: "row",
     gap: 8,
-  },
-  dateCard: {
-    flex: 1,
-    minHeight: 72,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: LINE,
-    backgroundColor: WHITE,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    justifyContent: "center",
-  },
-  dateCardActive: {
-    borderColor: "#B7D9C8",
-    backgroundColor: GREEN_SOFT,
-  },
-  dateEyebrow: {
-    color: "#8A958E",
-    fontSize: 8,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-  },
-  dateEyebrowActive: {
-    color: GREEN,
-  },
-  dateLabel: {
-    color: BODY,
-    fontSize: 11,
-    lineHeight: 16,
-    fontWeight: "600",
-    marginTop: 5,
-  },
-  dateLabelActive: {
-    color: TEXT,
-  },
-
-  passengerCard: {
-    minHeight: 82,
-    borderRadius: 12,
-    backgroundColor: SOFT,
-    padding: 12,
-    flexDirection: "row",
     alignItems: "center",
-  },
-  passengerIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#EAF2ED",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  passengerIconText: {
-    color: GREEN,
-    fontSize: 17,
-    lineHeight: 17,
-  },
-  passengerCopy: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  passengerTitle: {
-    color: BODY,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  passengerNote: {
-    color: MUTED,
-    fontSize: 10,
+    minHeight: 44,
     marginTop: 4,
   },
-  stepper: {
-    height: 38,
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: LINE,
-    backgroundColor: WHITE,
-    overflow: "hidden",
+  link: { color: C.primary, fontSize: 14, fontWeight: "600" },
+  error: { color: "#B42318", fontSize: 13, lineHeight: 20, marginTop: 12 },
+  sectionTitle: {
+    color: C.text,
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 26,
+    marginBottom: 14,
   },
-  stepButton: {
-    width: 38,
-    height: 38,
+  chips: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  chip: {
+    minHeight: 44,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: C.border,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FFFFFF"
   },
-  stepButtonDisabled: {
-    opacity: 0.3,
+  chipActive: {
+    backgroundColor: Design.color.primary,
+    borderColor: Design.color.primary
   },
-  stepText: {
-    color: TEXT,
-    fontSize: 19,
-    lineHeight: 21,
+  chipText: { color: C.muted, fontSize: 14, fontWeight: "600" },
+  chipTextActive: { color: "white" },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: C.border,
+    marginTop: 14
   },
-  passengerCount: {
-    width: 30,
-    textAlign: "center",
-    color: TEXT,
-    fontSize: 13,
-    fontWeight: "700",
+  smallIcon: { width: 28, alignItems: "center" },
+  rowTitle: { color: C.text, fontSize: 16, fontWeight: "600" },
+  rowNote: { color: C.muted, fontSize: 12, lineHeight: 18, marginTop: 4 },
+  seatRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingTop: 22,
   },
-
-  validationCard: {
+  seatPicker: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 16,
-    borderRadius: 10,
-    backgroundColor: "#FFF6F5",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingLeft: 40,
   },
-  validationText: {
-    color: "#B42318",
-    fontSize: 11,
-    lineHeight: 17,
+  seatValue: { color: C.text, fontSize: 28, fontWeight: "700" },
+  seatUnit: { color: C.muted, fontSize: 14, fontWeight: "400" },
+  stepper: { flexDirection: "row", gap: 10 },
+  step: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    alignItems: "center",
+    justifyContent: "center"
   },
-
-  searchButton: {
-    minHeight: 54,
-    marginTop: 28,
-    borderRadius: 10,
-    backgroundColor: GREEN,
-    paddingHorizontal: 18,
+  disabled: { opacity: 0.3 },
+  footer: {
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#E2E9F4",
+    backgroundColor: "#FFFFFF"
+  },
+  search: {
+    minHeight: 56,
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: C.primary,
+    borderRadius: 16,
+    padding: 14,
+  },
+  searchDisabled: { backgroundColor: "#A3B9DE" },
+  searchText: { color: "white", fontSize: 16, fontWeight: "700" },
+  pressed: { opacity: 0.75 },
+  overlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "#11234066",
+  },
+  backdrop: { position: "absolute", top: 0, bottom: 0, left: 0, right: 0 },
+  calendarSafe: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    maxHeight: "90%",
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
+  },
+  calendar: { paddingHorizontal: 20, paddingBottom: 12 },
+  calendarHeading: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  monthRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 8,
   },
-  searchButtonPressed: {
-    backgroundColor: "#066A4C",
-  },
-  searchButtonDisabled: {
-    backgroundColor: "#B8C9C0",
-  },
-  searchButtonText: {
-    color: WHITE,
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  searchButtonArrow: {
-    color: WHITE,
-    fontSize: 21,
-  },
-
-  infoRow: {
-    marginTop: 14,
-    flexDirection: "row",
-    alignItems: "flex-start",
+  days: { flexDirection: "row", flexWrap: "wrap" },
+  dayCell: {
+    width: "14.285714%",
+    minHeight: 46,
+    alignItems: "center",
     justifyContent: "center",
-    gap: 7,
   },
-  infoDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: "#8BAA99",
-    marginTop: 5,
+  weekday: { color: C.muted, fontSize: 12, fontWeight: "600" },
+  day: {
+    width: "100%",
+    minHeight: 46,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  infoText: {
-    color: MUTED,
-    fontSize: 10,
-    lineHeight: 16,
-    textAlign: "center",
-  },
+  daySelected: { backgroundColor: C.primary },
+  dayText: { color: C.text, fontSize: 15, fontWeight: "500" },
+  dayTextSelected: { color: "white" },
+  flexible: {
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+  }
 });

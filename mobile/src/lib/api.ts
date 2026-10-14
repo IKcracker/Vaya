@@ -120,12 +120,12 @@ export function normalizeConnectionError(error: unknown) {
   if (
     error instanceof Error &&
     (error.name === 'AbortError' ||
-      /could not connect|network request failed|fetch failed|network error/i.test(
+      /could not connect|network request failed|fetch failed|failed to fetch|network error/i.test(
         error.message
       ))
   ) {
     return new Error(
-      'Vaya can’t reach the server. Make sure the backend is running and your phone is on the same Wi-Fi/network as your computer, then try again.'
+      'Vaya can’t connect right now. Check your internet connection and try again.'
     );
   }
 

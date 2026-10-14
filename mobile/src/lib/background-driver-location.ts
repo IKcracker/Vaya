@@ -162,8 +162,7 @@ export async function startBackgroundDriverTracking(
 }
 
 export async function stopBackgroundDriverTracking() {
-  if (Platform.OS !== 'web') {
-    await stopBackgroundTaskOnly();
-  }
+  if (Platform.OS === 'web') return;
+  await stopBackgroundTaskOnly();
   await clearBackgroundTrackingState();
 }
