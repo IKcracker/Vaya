@@ -6,6 +6,12 @@ import { readSession, writeSession } from './session-storage';
 
 const SESSION_KEY = 'vaya.passenger.session';
 let storageOperation: Promise<void> = Promise.resolve();
+const expiryListeners = new Set<(token: string) => void>();
+export function subscribeToSessionExpiry(listener: (token: string) => void) {
+  expiryListeners.add(listener);
+  return () => { expiryListeners.delete(listener); };
+}
+
 
 export type AuthUser = {
   id?: string;
@@ -153,6 +159,9 @@ async function request<T>(
     const payload = await response.json().catch(() => null);
 
     if (!response.ok) {
+      if (response.status === 401 && session) {
+        for (const listener of expiryListeners) listener(session);
+      }
       const error = new Error(
         payload?.error ?? (response.status === 404
           ? 'This server does not provide the mobile API. Check EXPO_PUBLIC_API_URL and deploy the latest backend.'
@@ -397,7 +406,7 @@ export async function fetchDriverEarnings(session: string) {
 
 export async function createAuthenticatedBooking(
   session: string,
-  input: { tripId: string; seats: number }
+  input: { tripId: string; seats: number; expectedFareCents?: number }
 ) {
   return request<{
     booking: {
@@ -446,11 +455,13 @@ export type PassengerBookingDetail = {
   paymentStatus: string;
   amountCents: number;
   amount: string;
+  seats: number;
   passenger: PassengerAccount;
   trip: {
     id: string;
     route: string;
     departureAt: string;
+    status: string;
   };
   payments: {
     reference: string;
@@ -470,6 +481,28 @@ export async function fetchPassengerBooking(
     `/api/mobile/bookings/${encodeURIComponent(bookingId)}`,
     undefined,
     session
+  );
+}
+
+export async function cancelPassengerBooking(session: string, bookingId: string) {
+  return request<{ booking: { id: string; status: string } }>(
+    `/api/mobile/bookings/${encodeURIComponent(bookingId)}`,
+    { method: 'DELETE' }, session
+  );
+}
+
+export type DriverTripPassenger = {
+  id: string;
+  name: string;
+  email: string;
+  seats: number;
+  status: string;
+  paymentStatus: string;
+};
+
+export async function fetchDriverTripPassengers(session: string, tripId: string) {
+  return request<{ bookings: DriverTripPassenger[] }>(
+    `/api/mobile/driver/trips/${encodeURIComponent(tripId)}`, undefined, session
   );
 }
 
@@ -624,6 +657,7 @@ export type PassengerTripExperience = {
     id: string;
     name: string;
     email: string;
+    phone?: string;
     verified: boolean;
     profileImageUrl: string;
   };
@@ -954,3 +988,5 @@ export async function updateDriverTripDetails(
     session
   );
 }
+
+export async function requestPasswordReset(email:string){return request<{message:string}>('/api/mobile/auth/forgot-password',{method:'POST',body:JSON.stringify({email:email.trim().toLowerCase()})});}

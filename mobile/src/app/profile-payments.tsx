@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { RetryButton } from "@/components/retry-button";
+import { Design } from "@/constants/design";
+import { useState, useCallback } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
   ActivityIndicator,
   Pressable,
@@ -7,63 +9,82 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { fetchPassengerPayments, PassengerPayment } from '@/lib/auth';
-import { usePassengerAuth } from '@/providers/passenger-auth-provider';
+import { fetchPassengerPayments, PassengerPayment } from "@/lib/auth";
+import { usePassengerAuth } from "@/providers/passenger-auth-provider";
 
-const BLUE = '#10B981';
-const BG = '#F6F8F7';
-const SURFACE = '#FFFFFF';
-const TEXT = '#101828';
-const MUTED = '#667085';
-const LINE = '#E4E7EC';
+const BLUE = Design.color.primary;
+const BG = Design.color.background;
+const SURFACE = "#FFFFFF";
+const TEXT = Design.color.text;
+const MUTED = Design.color.muted;
+const LINE = Design.color.border;
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-ZA', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Intl.DateTimeFormat("en-ZA", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
     hour12: false,
   }).format(new Date(value));
 }
 
 export default function ProfilePaymentsScreen() {
+  const [retryVersion, setRetryVersion] = useState(0);
   const router = useRouter();
   const { session } = usePassengerAuth();
   const [payments, setPayments] = useState<PassengerPayment[]>([]);
   const [loading, setLoading] = useState(Boolean(session));
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!session) return;
+  useFocusEffect(
+    useCallback(
+      () => {
+        if (!session) return;
 
-    let active = true;
+        setLoading(true);
+        setError(null);
+        let active = true;
 
-    fetchPassengerPayments(session)
-      .then((response) => {
-        if (active) setPayments(response.payments);
-      })
-      .catch((reason: unknown) => {
-        if (active) setError(reason instanceof Error ? reason.message : 'Unable to load payments');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+        fetchPassengerPayments(session)
+          .then((response) => {
+            if (active) setPayments(response.payments);
+          })
+          .catch((reason: unknown) => {
+            if (active)
+              setError(
+                reason instanceof Error
+                  ? reason.message
+                  : "Unable to load payments",
+              );
+          })
+          .finally(() => {
+            if (active) setLoading(false);
+          });
 
-    return () => {
-      active = false;
-    };
-  }, [session]);
+        return () => {
+          active = false;
+        };
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- Retry and refresh counters intentionally reload this request.
+      [session, retryVersion],
+    ),
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.page}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.back}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => router.back()}
+            style={styles.back}
+          >
             <Text style={styles.backText}>‹</Text>
           </Pressable>
           <View>
@@ -84,23 +105,28 @@ export default function ProfilePaymentsScreen() {
         ) : error ? (
           <View style={styles.errorCard}>
             <Text style={styles.errorTitle}>Couldn’t load payments</Text>
-            <Text style={styles.errorText}>{error}</Text>
+            <>
+              <Text style={styles.errorText}>{error}</Text>
+              <RetryButton onPress={() => setRetryVersion((v) => v + 1)} />
+            </>
           </View>
         ) : payments.length ? (
           <View style={styles.list}>
             {payments.map((payment, index) => (
               <Pressable
+                accessibilityRole="button"
                 key={payment.reference}
                 onPress={() =>
                   router.push({
-                    pathname: '/payment/[id]',
+                    pathname: "/payment/[id]",
                     params: { id: payment.bookingId },
                   })
                 }
                 style={[
                   styles.row,
                   index < payments.length - 1 && styles.border,
-                ]}>
+                ]}
+              >
                 <View style={{ flex: 1 }}>
                   <Text style={styles.route}>{payment.route}</Text>
                   <Text style={styles.meta}>
@@ -110,10 +136,14 @@ export default function ProfilePaymentsScreen() {
                 </View>
                 <View style={styles.right}>
                   <Text style={styles.amount}>{payment.amount}</Text>
-                  <Text style={[
-                    styles.status,
-                    payment.status === 'Settled' ? styles.settled : styles.pending,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.status,
+                      payment.status === "Settled"
+                        ? styles.settled
+                        : styles.pending,
+                    ]}
+                  >
                     {payment.status}
                   </Text>
                 </View>
@@ -123,7 +153,9 @@ export default function ProfilePaymentsScreen() {
         ) : (
           <View style={styles.stateCard}>
             <Text style={styles.stateTitle}>No payment history yet</Text>
-            <Text style={styles.stateText}>Payments will appear here after you start a booking checkout.</Text>
+            <Text style={styles.stateText}>
+              Payments will appear here after you start a booking checkout.
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -133,28 +165,139 @@ export default function ProfilePaymentsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-  page: { padding: 18, paddingBottom: 40 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  back: { width: 40, height: 40, borderRadius: 12, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, alignItems: 'center', justifyContent: 'center' },
-  backText: { color: TEXT, fontSize: 30, lineHeight: 30, marginTop: -3 },
-  eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
-  title: { color: TEXT, fontSize: 22, fontWeight: '900', marginTop: 3 },
-  subtitle: { color: MUTED, fontSize: 11, lineHeight: 18, marginTop: 18, marginBottom: 16 },
-  stateCard: { minHeight: 170, borderWidth: 1, borderColor: LINE, borderRadius: 16, backgroundColor: SURFACE, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  stateTitle: { color: TEXT, fontSize: 13, fontWeight: '900', marginTop: 10 },
-  stateText: { color: MUTED, fontSize: 10, lineHeight: 16, textAlign: 'center', marginTop: 4 },
-  errorCard: { borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFF8F7', borderRadius: 14, padding: 14 },
-  errorTitle: { color: '#B42318', fontSize: 12, fontWeight: '900' },
-  errorText: { color: '#B42318', fontSize: 10, lineHeight: 16, marginTop: 4 },
-  list: { borderWidth: 1, borderColor: LINE, borderRadius: 16, backgroundColor: SURFACE, overflow: 'hidden' },
-  row: { flexDirection: 'row', gap: 12, padding: 15 },
+  page: {
+    padding: 24,
+    paddingBottom: 40,
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
+    paddingHorizontal: 24,
+    paddingTop: 12,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 20,
+    minHeight: 48,
+  },
+  back: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: LINE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backText: {
+    color: TEXT,
+    fontSize: 30,
+    lineHeight: 44,
+    marginTop: -3,
+    flexShrink: 1,
+  },
+  eyebrow: {
+    color: BLUE,
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 1.1,
+    flexShrink: 1,
+  },
+  title: {
+    color: TEXT,
+    fontSize: 26,
+    fontWeight: "600",
+    marginTop: 3,
+    flexShrink: 1,
+  },
+  subtitle: {
+    color: MUTED,
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 18,
+    marginBottom: 16,
+    flexShrink: 1,
+  },
+  stateCard: {
+    minHeight: 170,
+    borderWidth: 1,
+    borderColor: LINE,
+    borderRadius: Design.radius.card,
+    backgroundColor: SURFACE,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  stateTitle: {
+    color: TEXT,
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 10,
+    flexShrink: 1,
+  },
+  stateText: {
+    color: MUTED,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+    marginTop: 4,
+    flexShrink: 1,
+  },
+  errorCard: {
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    backgroundColor: "#FFF8F7",
+    borderRadius: Design.radius.card,
+    padding: 16,
+  },
+  errorTitle: {
+    color: "#B42318",
+    fontSize: 18,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  errorText: {
+    color: "#B42318",
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 4,
+    flexShrink: 1,
+  },
+  list: {
+    borderWidth: 1,
+    borderColor: LINE,
+    borderRadius: Design.radius.card,
+    backgroundColor: SURFACE,
+    overflow: "hidden",
+  },
+  row: {
+    flexDirection: "row",
+    gap: 12,
+    padding: 15,
+    minHeight: 64,
+    paddingVertical: 10,
+  },
   border: { borderBottomWidth: 1, borderBottomColor: LINE },
-  route: { color: TEXT, fontSize: 12, fontWeight: '900' },
-  meta: { color: MUTED, fontSize: 9, lineHeight: 14, marginTop: 4 },
-  method: { color: BLUE, fontSize: 9, fontWeight: '800', marginTop: 5 },
-  right: { alignItems: 'flex-end' },
-  amount: { color: TEXT, fontSize: 12, fontWeight: '900' },
-  status: { marginTop: 6, fontSize: 9, fontWeight: '900' },
-  settled: { color: '#027A48' },
-  pending: { color: '#B54708' },
+  route: { color: TEXT, fontSize: 15, fontWeight: "600", flexShrink: 1 },
+  meta: {
+    color: MUTED,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+    flexShrink: 1,
+  },
+  method: {
+    color: BLUE,
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 5,
+    flexShrink: 1,
+  },
+  right: { alignItems: "flex-end" },
+  amount: { color: TEXT, fontSize: 24, fontWeight: "600", flexShrink: 1 },
+  status: { marginTop: 6, fontSize: 12, fontWeight: "600", flexShrink: 1 },
+  settled: { color: "#027A48" },
+  pending: { color: "#B54708" },
 });

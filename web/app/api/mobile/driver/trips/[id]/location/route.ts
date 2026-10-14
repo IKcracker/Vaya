@@ -1,5 +1,6 @@
 import { isDatabaseConfigured } from "@/lib/db";
 import {
+  getMobilePrivacyPreferencesByEmail,
   stopMobileDriverLiveLocationByEmail,
   updateMobileDriverLiveLocationByEmail,
 } from "@/lib/db/public";
@@ -18,13 +19,15 @@ async function authenticatedEmail(request: Request) {
     return {
       response: Response.json(
         { error: "Passenger authentication is not configured" },
-        { status: 503 }
+        { status: 503 },
       ),
     };
   }
 
   if (auth.status !== "authenticated" || !auth.user.email) {
-    return { response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    return {
+      response: Response.json({ error: "Unauthorized" }, { status: 401 }),
+    };
   }
 
   return { email: auth.user.email };
@@ -32,10 +35,13 @@ async function authenticatedEmail(request: Request) {
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   if (!isDatabaseConfigured()) {
-    return Response.json({ error: "Database is not configured" }, { status: 503 });
+    return Response.json(
+      { error: "Database is not configured" },
+      { status: 503 },
+    );
   }
 
   const auth = await authenticatedEmail(request);
@@ -43,16 +49,16 @@ export async function POST(
 
   const { id } = await params;
   const body = await request.json().catch(() => null);
-  const latitude = Number(body?.latitude);
-  const longitude = Number(body?.longitude);
+  const latitude = typeof body?.latitude === "number" ? body.latitude : NaN;
+  const longitude = typeof body?.longitude === "number" ? body.longitude : NaN;
   const accuracyMeters =
     body?.accuracyMeters == null ? null : Number(body.accuracyMeters);
-  const heading =
-    body?.heading == null ? null : Number(body.heading);
-  const speedMps =
-    body?.speedMps == null ? null : Number(body.speedMps);
+  const heading = body?.heading == null ? null : Number(body.heading);
+  const speedMps = body?.speedMps == null ? null : Number(body.speedMps);
   const recordedAt =
-    typeof body?.recordedAt === "string" ? new Date(body.recordedAt) : new Date();
+    typeof body?.recordedAt === "string"
+      ? new Date(body.recordedAt)
+      : new Date();
 
   if (
     !Number.isFinite(latitude) ||
@@ -61,58 +67,92 @@ export async function POST(
     !Number.isFinite(longitude) ||
     longitude < -180 ||
     longitude > 180 ||
-    (accuracyMeters != null && (!Number.isFinite(accuracyMeters) || accuracyMeters < 0)) ||
-    (heading != null && (!Number.isFinite(heading) || heading < 0 || heading > 360)) ||
-    (speedMps != null && (!Number.isFinite(speedMps) || speedMps < 0 || speedMps > 100)) ||
+    (accuracyMeters != null &&
+      (!Number.isFinite(accuracyMeters) || accuracyMeters < 0)) ||
+    (heading != null &&
+      (!Number.isFinite(heading) || heading < 0 || heading > 360)) ||
+    (speedMps != null &&
+      (!Number.isFinite(speedMps) || speedMps < 0 || speedMps > 100)) ||
     Number.isNaN(recordedAt.getTime())
   ) {
     return Response.json({ error: "Invalid location update" }, { status: 400 });
   }
 
   const now = Date.now();
-  if (recordedAt.getTime() < now - 10 * 60 * 1000 || recordedAt.getTime() > now + 2 * 60 * 1000) {
-    return Response.json({ error: "Location timestamp is outside the allowed window" }, { status: 400 });
+  if (
+    recordedAt.getTime() < now - 10 * 60 * 1000 ||
+    recordedAt.getTime() > now + 2 * 60 * 1000
+  ) {
+    return Response.json(
+      { error: "Location timestamp is outside the allowed window" },
+      { status: 400 },
+    );
   }
 
   try {
-    const location = await updateMobileDriverLiveLocationByEmail(auth.email, id, {
-      latitude,
-      longitude,
-      accuracyMeters,
-      heading,
-      speedMps,
-      recordedAt,
-    });
+    const preferences = await getMobilePrivacyPreferencesByEmail(auth.email);
+    if (!preferences.locationSharing)
+      return Response.json(
+        {
+          error:
+            "Enable location sharing in Privacy & Security before starting live tracking.",
+        },
+        { status: 409 },
+      );
+    const location = await updateMobileDriverLiveLocationByEmail(
+      auth.email,
+      id,
+      {
+        latitude,
+        longitude,
+        accuracyMeters,
+        heading,
+        speedMps,
+        recordedAt,
+      },
+    );
 
     return Response.json(
       { location },
-      { headers: { "Cache-Control": "no-store" } }
+      { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
     if (error instanceof Error && error.message === "DRIVER_NOT_FOUND") {
-      return Response.json({ error: "Driver profile not found" }, { status: 404 });
+      return Response.json(
+        { error: "Driver profile not found" },
+        { status: 404 },
+      );
     }
     if (error instanceof Error && error.message === "TRIP_NOT_FOUND") {
       return Response.json({ error: "Trip not found" }, { status: 404 });
     }
     if (error instanceof Error && error.message === "TRIP_NOT_ACTIVE") {
       return Response.json(
-        { error: "Set the trip to On schedule or Boarding before sharing live location" },
-        { status: 409 }
+        {
+          error:
+            "Set the trip to On schedule or Boarding before sharing live location",
+        },
+        { status: 409 },
       );
     }
 
     console.error("Driver live location update failed", error);
-    return Response.json({ error: "Unable to update live location" }, { status: 500 });
+    return Response.json(
+      { error: "Unable to update live location" },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   if (!isDatabaseConfigured()) {
-    return Response.json({ error: "Database is not configured" }, { status: 503 });
+    return Response.json(
+      { error: "Database is not configured" },
+      { status: 503 },
+    );
   }
 
   const auth = await authenticatedEmail(request);
@@ -125,13 +165,19 @@ export async function DELETE(
     return Response.json({ stopped: true });
   } catch (error) {
     if (error instanceof Error && error.message === "DRIVER_NOT_FOUND") {
-      return Response.json({ error: "Driver profile not found" }, { status: 404 });
+      return Response.json(
+        { error: "Driver profile not found" },
+        { status: 404 },
+      );
     }
     if (error instanceof Error && error.message === "TRIP_NOT_FOUND") {
       return Response.json({ error: "Trip not found" }, { status: 404 });
     }
 
     console.error("Driver live location stop failed", error);
-    return Response.json({ error: "Unable to stop live location" }, { status: 500 });
+    return Response.json(
+      { error: "Unable to stop live location" },
+      { status: 500 },
+    );
   }
 }

@@ -1,6 +1,8 @@
-import DateTimePicker from '@expo/ui/community/datetime-picker';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { RetryButton } from "@/components/retry-button";
+import { Design } from "@/constants/design";
+import { DateTimePicker } from "@expo/ui/community/datetime-picker";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -11,111 +13,122 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   fetchMobileDriver,
   MobileDriverTrip,
   updateDriverTripDetails,
-} from '@/lib/auth';
-import { usePassengerAuth } from '@/providers/passenger-auth-provider';
+} from "@/lib/auth";
+import { usePassengerAuth } from "@/providers/passenger-auth-provider";
 
-const BLUE = '#10B981';
-const NAVY = '#063C35';
-const BG = '#F6F8F7';
-const SURFACE = '#FFFFFF';
-const TEXT = '#101828';
-const MUTED = '#667085';
-const LINE = '#E4E7EC';
+const BLUE = Design.color.primary;
+const NAVY = "#102C60";
+const BG = Design.color.background;
+const SURFACE = "#FFFFFF";
+const TEXT = Design.color.text;
+const MUTED = Design.color.muted;
+const LINE = Design.color.border;
 
-type PickerMode = 'date' | 'time' | null;
+type PickerMode = "date" | "time" | null;
 
 function formatDate(value: Date) {
-  return new Intl.DateTimeFormat('en-ZA', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
+  return new Intl.DateTimeFormat("en-ZA", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
   }).format(value);
 }
 
 function formatTime(value: Date) {
-  return new Intl.DateTimeFormat('en-ZA', {
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Intl.DateTimeFormat("en-ZA", {
+    hour: "2-digit",
+    minute: "2-digit",
     hour12: false,
   }).format(value);
 }
 
 export default function EditDriverTripScreen() {
+  const [retryVersion, setRetryVersion] = useState(0);
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
-  const id = typeof params.id === 'string' ? params.id : '';
+  const id = typeof params.id === "string" ? params.id : "";
   const { loading: authLoading, session } = usePassengerAuth();
 
   const [trip, setTrip] = useState<MobileDriverTrip | null>(null);
   const [loading, setLoading] = useState(Boolean(session && id));
   const [saving, setSaving] = useState(false);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [departureAt, setDepartureAt] = useState(new Date());
   const [draftDeparture, setDraftDeparture] = useState(new Date());
   const [pickerMode, setPickerMode] = useState<PickerMode>(null);
   const [seats, setSeats] = useState(1);
-  const [fare, setFare] = useState('');
+  const [fare, setFare] = useState("");
   const [now] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(
-    id ? null : 'Trip reference is missing.'
+    id ? null : "Trip reference is missing.",
   );
 
-  useEffect(() => {
-    if (!session || !id) return;
+  useFocusEffect(
+    useCallback(
+      () => {
+        if (!session || !id) return;
 
-    let active = true;
+        setLoading(true);
+        setError(null);
+        let active = true;
 
-    fetchMobileDriver(session)
-      .then((response) => {
-        if (!active) return;
+        fetchMobileDriver(session)
+          .then((response) => {
+            if (!active) return;
 
-        const found = response.trips.find((item) => item.id === id) ?? null;
+            const found = response.trips.find((item) => item.id === id) ?? null;
 
-        if (!found) {
-          setError('This trip was not found in your driver account.');
-          return;
-        }
+            if (!found) {
+              setError("This trip was not found in your driver account.");
+              return;
+            }
 
-        const departure = new Date(found.departureAt);
+            const departure = new Date(found.departureAt);
 
-        setTrip(found);
-        setFrom(found.from);
-        setTo(found.to);
-        setDepartureAt(departure);
-        setDraftDeparture(departure);
-        setSeats(found.seatCapacity);
-        setFare(String(found.fareCents / 100));
-      })
-      .catch((reason: unknown) => {
-        if (active) {
-          setError(
-            reason instanceof Error ? reason.message : 'Unable to load trip'
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+            setTrip(found);
+            setFrom(found.from);
+            setTo(found.to);
+            setDepartureAt(departure);
+            setDraftDeparture(departure);
+            setSeats(found.seatCapacity);
+            setFare(String(found.fareCents / 100));
+          })
+          .catch((reason: unknown) => {
+            if (active) {
+              setError(
+                reason instanceof Error
+                  ? reason.message
+                  : "Unable to load trip",
+              );
+            }
+          })
+          .finally(() => {
+            if (active) setLoading(false);
+          });
 
-    return () => {
-      active = false;
-    };
-  }, [id, session]);
+        return () => {
+          active = false;
+        };
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- Retry and refresh counters intentionally reload this request.
+      [id, session, retryVersion],
+    ),
+  );
 
   const fareAmount = Number(fare);
   const editable =
     trip !== null &&
-    trip.status !== 'Boarding' &&
-    trip.status !== 'Completed' &&
-    trip.status !== 'Cancelled';
+    trip.status !== "Boarding" &&
+    trip.status !== "Completed" &&
+    trip.status !== "Cancelled";
 
   const valid =
     editable &&
@@ -140,19 +153,14 @@ export default function EditDriverTripScreen() {
     next.setFullYear(
       selectedDate.getFullYear(),
       selectedDate.getMonth(),
-      selectedDate.getDate()
+      selectedDate.getDate(),
     );
     setDraftDeparture(next);
   }
 
   function updateDraftTime(selectedTime: Date) {
     const next = new Date(draftDeparture);
-    next.setHours(
-      selectedTime.getHours(),
-      selectedTime.getMinutes(),
-      0,
-      0
-    );
+    next.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
     setDraftDeparture(next);
   }
 
@@ -163,6 +171,7 @@ export default function EditDriverTripScreen() {
 
   async function save() {
     if (!session || !trip || !valid || saving) return;
+    if (departureAt.getTime() <= Date.now()) { setError("Choose a future departure time."); return; }
 
     setSaving(true);
     setError(null);
@@ -177,15 +186,15 @@ export default function EditDriverTripScreen() {
       });
 
       router.replace({
-        pathname: '/driver-trip/[id]',
+        pathname: "/driver-trip/[id]",
         params: {
           id: trip.id,
-          refresh: 'updated',
+          refresh: "updated",
         },
       });
     } catch (reason) {
       setError(
-        reason instanceof Error ? reason.message : 'Unable to update trip'
+        reason instanceof Error ? reason.message : "Unable to update trip",
       );
     } finally {
       setSaving(false);
@@ -218,13 +227,15 @@ export default function EditDriverTripScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
           <Text style={styles.errorTitle}>Trip unavailable</Text>
-          <Text style={styles.stateText}>{error || 'Trip not found.'}</Text>
+          <Text style={styles.stateText}>{error || "Trip not found."}</Text>
           <Pressable
-            onPress={() => router.replace('/explore')}
+            accessibilityRole="button"
+            onPress={() => router.replace("/explore")}
             style={({ pressed }) => [
               styles.secondaryButton,
               pressed && styles.pressed,
-            ]}>
+            ]}
+          >
             <Text style={styles.secondaryButtonText}>Back to Driver</Text>
           </Pressable>
         </View>
@@ -245,11 +256,13 @@ export default function EditDriverTripScreen() {
             route, departure, fare or capacity changed.
           </Text>
           <Pressable
+            accessibilityRole="button"
             onPress={() => router.back()}
             style={({ pressed }) => [
               styles.secondaryButton,
               pressed && styles.pressed,
-            ]}>
+            ]}
+          >
             <Text style={styles.secondaryButtonText}>Back to trip</Text>
           </Pressable>
         </View>
@@ -262,18 +275,24 @@ export default function EditDriverTripScreen() {
       <ScrollView
         contentContainerStyle={styles.page}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
             onPress={() => router.back()}
-            style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.back, pressed && styles.pressed]}
+          >
             <Text style={styles.backText}>‹</Text>
           </Pressable>
 
           <View style={{ flex: 1 }}>
             <Text style={styles.eyebrow}>EDIT DRIVER TRIP</Text>
             <Text style={styles.title}>{trip.id}</Text>
-            <Text style={styles.subtitle}>Update the trip before boarding begins.</Text>
+            <Text style={styles.subtitle}>
+              Update the trip before boarding begins.
+            </Text>
           </View>
         </View>
 
@@ -312,11 +331,13 @@ export default function EditDriverTripScreen() {
         <Text style={styles.sectionLabel}>WHEN</Text>
         <View style={styles.scheduleRow}>
           <Pressable
-            onPress={() => openPicker('date')}
+            accessibilityRole="button"
+            onPress={() => openPicker("date")}
             style={({ pressed }) => [
               styles.scheduleCard,
               pressed && styles.schedulePressed,
-            ]}>
+            ]}
+          >
             <Text style={styles.scheduleIcon}>◷</Text>
             <View>
               <Text style={styles.cardLabel}>Date</Text>
@@ -325,11 +346,13 @@ export default function EditDriverTripScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => openPicker('time')}
+            accessibilityRole="button"
+            onPress={() => openPicker("time")}
             style={({ pressed }) => [
               styles.scheduleCard,
               pressed && styles.schedulePressed,
-            ]}>
+            ]}
+          >
             <Text style={styles.scheduleIcon}>◴</Text>
             <View>
               <Text style={styles.cardLabel}>Time</Text>
@@ -344,36 +367,41 @@ export default function EditDriverTripScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.cardLabel}>Seat capacity</Text>
               <Text style={styles.cardHint}>
-                {trip.seatsBooked} seat{trip.seatsBooked === 1 ? '' : 's'} already booked
+                {trip.seatsBooked} seat{trip.seatsBooked === 1 ? "" : "s"}{" "}
+                already booked
               </Text>
             </View>
 
             <View style={styles.stepper}>
               <Pressable
+                accessibilityRole="button"
                 disabled={seats <= Math.max(1, trip.seatsBooked)}
                 onPress={() =>
                   setSeats((value) =>
-                    Math.max(Math.max(1, trip.seatsBooked), value - 1)
+                    Math.max(Math.max(1, trip.seatsBooked), value - 1),
                   )
                 }
                 style={({ pressed }) => [
                   styles.stepButton,
                   seats <= Math.max(1, trip.seatsBooked) && styles.stepDisabled,
                   pressed && styles.pressed,
-                ]}>
+                ]}
+              >
                 <Text style={styles.stepText}>−</Text>
               </Pressable>
 
               <Text style={styles.stepValue}>{seats}</Text>
 
               <Pressable
+                accessibilityRole="button"
                 disabled={seats >= 8}
                 onPress={() => setSeats((value) => Math.min(8, value + 1))}
                 style={({ pressed }) => [
                   styles.stepButton,
                   seats >= 8 && styles.stepDisabled,
                   pressed && styles.pressed,
-                ]}>
+                ]}
+              >
                 <Text style={styles.stepText}>+</Text>
               </Pressable>
             </View>
@@ -392,7 +420,7 @@ export default function EditDriverTripScreen() {
               <TextInput
                 value={fare}
                 onChangeText={(value) =>
-                  setFare(value.replace(/[^0-9.]/g, '').slice(0, 7))
+                  setFare(value.replace(/[^0-9.]/g, "").slice(0, 7))
                 }
                 keyboardType="decimal-pad"
                 style={styles.moneyInput}
@@ -416,12 +444,13 @@ export default function EditDriverTripScreen() {
               {from.trim()} → {to.trim()}
             </Text>
             <Text style={styles.summaryMeta}>
-              {formatDate(departureAt)} · {formatTime(departureAt)} · {seats} seats
+              {formatDate(departureAt)} · {formatTime(departureAt)} · {seats}{" "}
+              seats
             </Text>
           </View>
           <View style={styles.summaryFare}>
             <Text style={styles.summaryFareValue}>
-              {fareAmount > 0 ? `R${fareAmount}` : 'R—'}
+              {fareAmount > 0 ? `R${fareAmount}` : "R—"}
             </Text>
             <Text style={styles.summaryFareLabel}>per seat</Text>
           </View>
@@ -437,18 +466,23 @@ export default function EditDriverTripScreen() {
 
         {error ? (
           <View style={styles.error}>
-            <Text style={styles.errorText}>{error}</Text>
+            <>
+              <Text style={styles.errorText}>{error}</Text>
+              <RetryButton onPress={() => setRetryVersion((v) => v + 1)} />
+            </>
           </View>
         ) : null}
 
         <Pressable
+          accessibilityRole="button"
           disabled={!valid || saving}
           onPress={() => void save()}
           style={({ pressed }) => [
             styles.saveButton,
             (!valid || saving) && styles.saveButtonDisabled,
             pressed && valid && !saving && styles.savePressed,
-          ]}>
+          ]}
+        >
           {saving ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
@@ -457,14 +491,16 @@ export default function EditDriverTripScreen() {
         </Pressable>
       </ScrollView>
 
-      {Platform.OS === 'ios' && pickerMode ? (
+      {Platform.OS === "ios" && pickerMode ? (
         <Modal
           transparent
           animationType="slide"
           presentationStyle="overFullScreen"
-          onRequestClose={() => setPickerMode(null)}>
+          onRequestClose={() => setPickerMode(null)}
+        >
           <View style={styles.modalBackdrop}>
             <Pressable
+              accessibilityRole="button"
               style={StyleSheet.absoluteFill}
               onPress={() => setPickerMode(null)}
             />
@@ -475,21 +511,25 @@ export default function EditDriverTripScreen() {
               <View style={styles.sheetHeader}>
                 <View>
                   <Text style={styles.sheetEyebrow}>
-                    {pickerMode === 'date' ? 'DEPARTURE DATE' : 'DEPARTURE TIME'}
+                    {pickerMode === "date"
+                      ? "DEPARTURE DATE"
+                      : "DEPARTURE TIME"}
                   </Text>
                   <Text style={styles.sheetTitle}>
-                    {pickerMode === 'date'
+                    {pickerMode === "date"
                       ? formatDate(draftDeparture)
                       : formatTime(draftDeparture)}
                   </Text>
                 </View>
 
                 <Pressable
+                  accessibilityRole="button"
                   onPress={confirmIosPicker}
                   style={({ pressed }) => [
                     styles.doneButton,
                     pressed && styles.pressed,
-                  ]}>
+                  ]}
+                >
                   <Text style={styles.doneButtonText}>Done</Text>
                 </Pressable>
               </View>
@@ -498,16 +538,16 @@ export default function EditDriverTripScreen() {
                 <DateTimePicker
                   value={draftDeparture}
                   onValueChange={(_, selectedValue) => {
-                    if (pickerMode === 'date') {
+                    if (pickerMode === "date") {
                       updateDraftDate(selectedValue);
                     } else {
                       updateDraftTime(selectedValue);
                     }
                   }}
                   mode={pickerMode}
-                  display={pickerMode === 'date' ? 'inline' : 'spinner'}
+                  display={pickerMode === "date" ? "inline" : "spinner"}
                   minimumDate={
-                    pickerMode === 'date' ? new Date(now) : undefined
+                    pickerMode === "date" ? new Date(now) : undefined
                   }
                   is24Hour
                   accentColor={BLUE}
@@ -522,24 +562,24 @@ export default function EditDriverTripScreen() {
         </Modal>
       ) : null}
 
-      {Platform.OS === 'android' && pickerMode ? (
+      {Platform.OS === "android" && pickerMode ? (
         <DateTimePicker
           value={departureAt}
           onValueChange={(_, selectedValue) => {
             const next = new Date(departureAt);
 
-            if (pickerMode === 'date') {
+            if (pickerMode === "date") {
               next.setFullYear(
                 selectedValue.getFullYear(),
                 selectedValue.getMonth(),
-                selectedValue.getDate()
+                selectedValue.getDate(),
               );
             } else {
               next.setHours(
                 selectedValue.getHours(),
                 selectedValue.getMinutes(),
                 0,
-                0
+                0,
               );
             }
 
@@ -549,7 +589,7 @@ export default function EditDriverTripScreen() {
           onDismiss={() => setPickerMode(null)}
           mode={pickerMode}
           presentation="dialog"
-          minimumDate={pickerMode === 'date' ? new Date(now) : undefined}
+          minimumDate={pickerMode === "date" ? new Date(now) : undefined}
           is24Hour
           accentColor={BLUE}
         />
@@ -560,64 +600,113 @@ export default function EditDriverTripScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-  page: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 36 },
+  page: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 36,
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
+  },
   pressed: { opacity: 0.72 },
   center: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 28,
   },
-  stateTitle: { color: TEXT, fontSize: 18, fontWeight: '900', marginTop: 12 },
+  stateTitle: {
+    color: TEXT,
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 12,
+    flexShrink: 1,
+  },
   stateText: {
     color: MUTED,
-    fontSize: 11,
-    lineHeight: 18,
-    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
     marginTop: 6,
     maxWidth: 320,
+    flexShrink: 1,
   },
-  errorTitle: { color: '#B42318', fontSize: 18, fontWeight: '900' },
+  errorTitle: {
+    color: "#B42318",
+    fontSize: 18,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
   lockIcon: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#FFF1F0',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#FFF1F0",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  lockIconText: { color: '#B42318', fontSize: 20, fontWeight: '900' },
+  lockIconText: {
+    color: "#B42318",
+    fontSize: 20,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginBottom: 20,
+    minHeight: 48,
   },
   back: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: LINE,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  backText: { color: TEXT, fontSize: 30, lineHeight: 30, marginTop: -3 },
-  eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
-  title: { color: TEXT, fontSize: 21, fontWeight: '900', marginTop: 2 },
-  subtitle: { color: MUTED, fontSize: 10, marginTop: 3 },
+  backText: {
+    color: TEXT,
+    fontSize: 30,
+    lineHeight: 44,
+    marginTop: -3,
+    flexShrink: 1,
+  },
+  eyebrow: {
+    color: BLUE,
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 1.1,
+    flexShrink: 1,
+  },
+  title: {
+    color: TEXT,
+    fontSize: 26,
+    fontWeight: "600",
+    marginTop: 2,
+    flexShrink: 1,
+  },
+  subtitle: {
+    color: MUTED,
+    fontSize: 14,
+    marginTop: 3,
+    flexShrink: 1,
+    lineHeight: 21,
+  },
   routeCard: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: LINE,
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: Design.radius.card,
+    padding: 16,
   },
   routeRail: {
     width: 24,
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 19,
     paddingBottom: 19,
   },
@@ -625,12 +714,12 @@ const styles = StyleSheet.create({
     width: 9,
     height: 9,
     borderRadius: 5,
-    backgroundColor: '#98A2B3',
+    backgroundColor: "#98A2B3",
   },
   routeLine: {
     width: 1,
     flex: 1,
-    backgroundColor: '#D9DEE7',
+    backgroundColor: "#D9DEE7",
     marginVertical: 4,
   },
   destinationDot: {
@@ -642,190 +731,237 @@ const styles = StyleSheet.create({
   routeFields: { flex: 1 },
   routeInputBlock: {
     minHeight: 58,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingLeft: 8,
   },
   routeDivider: { height: 1, backgroundColor: LINE },
-  label: { color: MUTED, fontSize: 8, fontWeight: '800' },
+  label: { color: MUTED, fontSize: 12, fontWeight: "600", flexShrink: 1 },
   routeInput: {
-    height: 30,
+    minHeight: 52,
     color: TEXT,
-    fontSize: 14,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: "600",
     paddingVertical: 0,
     paddingHorizontal: 0,
     marginTop: 2,
+    flexShrink: 1,
   },
   sectionLabel: {
     color: MUTED,
-    fontSize: 9,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: "600",
     letterSpacing: 1,
     marginTop: 22,
     marginBottom: 8,
+    flexShrink: 1,
   },
-  scheduleRow: { flexDirection: 'row', gap: 10 },
+  scheduleRow: { flexDirection: "row", gap: 10 },
   scheduleCard: {
     flex: 1,
     minHeight: 70,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: LINE,
-    borderRadius: 15,
+    borderRadius: Design.radius.card,
     paddingHorizontal: 13,
+    paddingVertical: 10,
   },
   schedulePressed: {
-    borderColor: '#9DC5FA',
-    backgroundColor: '#F8FBFF',
+    borderColor: "#9DC5FA",
+    backgroundColor: "#F8FBFF",
   },
-  scheduleIcon: { color: BLUE, fontSize: 17, fontWeight: '900' },
-  cardLabel: { color: MUTED, fontSize: 8, fontWeight: '800' },
-  cardValue: { color: TEXT, fontSize: 12, fontWeight: '900', marginTop: 4 },
-  cardHint: { color: MUTED, fontSize: 9, marginTop: 3 },
+  scheduleIcon: { color: BLUE, fontSize: 17, fontWeight: "600", flexShrink: 1 },
+  cardLabel: { color: MUTED, fontSize: 12, fontWeight: "600", flexShrink: 1 },
+  cardValue: {
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 4,
+    flexShrink: 1,
+  },
+  cardHint: { color: MUTED, fontSize: 14, marginTop: 3, flexShrink: 1 },
   commercialCard: {
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: LINE,
-    borderRadius: 17,
+    borderRadius: Design.radius.card,
     paddingHorizontal: 15,
   },
   commercialTop: {
     minHeight: 68,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   cardDivider: { height: 1, backgroundColor: LINE },
   fareRow: {
     minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: LINE,
     borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#F9FAFB',
+    overflow: "hidden",
+    backgroundColor: "#F9FAFB",
+    height: 44,
   },
   stepButton: {
-    width: 38,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   stepDisabled: { opacity: 0.3 },
-  stepText: { color: TEXT, fontSize: 19, fontWeight: '800' },
+  stepText: { color: TEXT, fontSize: 19, fontWeight: "600", flexShrink: 1 },
   stepValue: {
     minWidth: 34,
-    textAlign: 'center',
+    textAlign: "center",
     color: TEXT,
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   moneyField: {
     minWidth: 98,
     height: 42,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: LINE,
     borderRadius: 11,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     paddingHorizontal: 10,
   },
-  currency: { color: TEXT, fontSize: 12, fontWeight: '900' },
+  currency: { color: TEXT, fontSize: 14, fontWeight: "600", flexShrink: 1 },
   moneyInput: {
     width: 62,
-    height: 40,
+    height: 52,
     color: TEXT,
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: "600",
     paddingHorizontal: 6,
+    flexShrink: 1,
   },
   notice: {
     marginTop: 16,
-    backgroundColor: '#E9F9F3',
-    borderRadius: 14,
-    padding: 13,
+    backgroundColor: Design.color.primarySoft,
+    borderRadius: Design.radius.card,
+    padding: 16,
   },
-  noticeTitle: { color: TEXT, fontSize: 10, fontWeight: '900' },
-  noticeText: { color: MUTED, fontSize: 9, lineHeight: 15, marginTop: 4 },
+  noticeTitle: { color: TEXT, fontSize: 18, fontWeight: "600", flexShrink: 1 },
+  noticeText: {
+    color: MUTED,
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 4,
+    flexShrink: 1,
+  },
   summaryCard: {
     marginTop: 16,
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     backgroundColor: NAVY,
-    borderRadius: 17,
-    padding: 15,
+    borderRadius: Design.radius.card,
+    padding: 16,
   },
   summaryLabel: {
-    color: '#72AFFF',
-    fontSize: 8,
-    fontWeight: '900',
+    color: "#72AFFF",
+    fontSize: 12,
+    fontWeight: "600",
     letterSpacing: 0.9,
+    flexShrink: 1,
   },
   summaryRoute: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '900',
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
     marginTop: 5,
+    flexShrink: 1,
   },
-  summaryMeta: { color: '#A9B6CA', fontSize: 9, marginTop: 5 },
-  summaryFare: { alignItems: 'flex-end' },
-  summaryFareValue: { color: '#FFFFFF', fontSize: 18, fontWeight: '900' },
-  summaryFareLabel: { color: '#8FA0B8', fontSize: 8, marginTop: 2 },
+  summaryMeta: { color: "#A9B6CA", fontSize: 12, marginTop: 5, flexShrink: 1 },
+  summaryFare: { alignItems: "flex-end" },
+  summaryFareValue: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  summaryFareLabel: {
+    color: "#8FA0B8",
+    fontSize: 12,
+    marginTop: 2,
+    flexShrink: 1,
+  },
   warning: {
     marginTop: 12,
-    backgroundColor: '#FFFAEB',
+    backgroundColor: "#FFFAEB",
     borderWidth: 1,
-    borderColor: '#FEDF89',
+    borderColor: "#FEDF89",
     borderRadius: 12,
     padding: 11,
   },
-  warningText: { color: '#B54708', fontSize: 10, fontWeight: '800' },
+  warningText: {
+    color: "#B54708",
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
   error: {
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FFF8F7',
-    borderRadius: 12,
-    padding: 11,
+    borderColor: "#FECACA",
+    backgroundColor: "#FFF8F7",
+    borderRadius: Design.radius.card,
+    padding: 16,
   },
-  errorText: { color: '#B42318', fontSize: 10, lineHeight: 16 },
+  errorText: { color: "#B42318", fontSize: 14, lineHeight: 21, flexShrink: 1 },
   saveButton: {
     marginTop: 18,
-    height: 52,
+    minHeight: 52,
     borderRadius: 13,
     backgroundColor: BLUE,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
   },
-  saveButtonDisabled: { backgroundColor: '#B7D5FA' },
+  saveButtonDisabled: { backgroundColor: "#B7D5FA" },
   savePressed: { opacity: 0.86, transform: [{ scale: 0.995 }] },
-  saveButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  saveButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
   secondaryButton: {
     marginTop: 18,
     minWidth: 180,
-    height: 46,
+    minHeight: 52,
     borderRadius: 11,
     borderWidth: 1,
     borderColor: LINE,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: SURFACE,
+    paddingVertical: 10,
   },
-  secondaryButtonText: { color: BLUE, fontSize: 11, fontWeight: '900' },
+  secondaryButtonText: {
+    color: BLUE,
+    fontSize: 15,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
   modalBackdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(8, 15, 30, 0.38)',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(8, 15, 30, 0.38)",
   },
   sheet: {
     backgroundColor: SURFACE,
@@ -839,38 +975,51 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#D0D5DD',
-    alignSelf: 'center',
+    backgroundColor: "#D0D5DD",
+    alignSelf: "center",
     marginBottom: 14,
   },
   sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 12,
   },
   sheetEyebrow: {
     color: BLUE,
-    fontSize: 8,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: "600",
     letterSpacing: 1,
+    flexShrink: 1,
   },
-  sheetTitle: { color: TEXT, fontSize: 20, fontWeight: '900', marginTop: 3 },
+  sheetTitle: {
+    color: TEXT,
+    fontSize: 20,
+    fontWeight: "600",
+    marginTop: 3,
+    flexShrink: 1,
+  },
   doneButton: {
     minWidth: 68,
-    height: 38,
+    minHeight: 52,
     borderRadius: 10,
     backgroundColor: BLUE,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
   },
-  doneButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
+  doneButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
   nativePickerWrap: {
     marginTop: 14,
     minHeight: 250,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
-  nativePicker: { width: '100%', minHeight: 240 },
+  nativePicker: { width: "100%", minHeight: 240 },
 });

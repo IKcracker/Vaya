@@ -88,13 +88,12 @@ export async function POST(request: Request) {
     .slice(0, 18)
     .toUpperCase()}`;
 
-  await createPendingMobilePayment({
-    bookingDatabaseId: booking.databaseId,
-    reference,
-    amountCents: booking.amountCents,
-  });
-
   try {
+    await createPendingMobilePayment({
+      bookingDatabaseId: booking.databaseId,
+      reference,
+      amountCents: booking.amountCents,
+    });
     const paystack = await initializePaystackTransaction({
       email: booking.passenger.email,
       amountCents: booking.amountCents,
@@ -115,6 +114,9 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "BOOKING_CLOSED") {
+      return Response.json({ error: "This booking is already paid or closed. Refresh your trips." }, { status: 409 });
+    }
     await failMobilePayment(reference);
     console.error("Paystack initialization failed", error);
 

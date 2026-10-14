@@ -1,46 +1,177 @@
-import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from "expo-router";
+import { completeOnboarding } from "@/lib/onboarding-storage";
+import { useState } from "react";
+import { SymbolView } from "expo-symbols";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Design } from "@/constants/design";
+import { BrandMark } from "@/components/brand-mark";
+import { JourneyHero } from "@/components/journey-hero";
+import { AppIcon } from "@/components/app-icon";
 
-const GREEN='#16B364'; const BG='#FFFFFF'; const TEXT='#101828'; const MUTED='#667085';
+const benefits = [
+  {
+    title: "Find your next ride",
+    copy: "Search routes, compare fares and choose a trip that works for you.",
+    ios: "magnifyingglass",
+    material: "search",
+  },
+  {
+    title: "Keep every trip together",
+    copy: "Manage your bookings, payments and conversations in one place.",
+    ios: "ticket",
+    material: "confirmation_number",
+  },
+  {
+    title: "Make room for someone",
+    copy: "Apply to drive and offer seats on journeys you already make.",
+    ios: "car",
+    material: "directions_car",
+  },
+] as const;
 
-export default function OnboardingScreen(){
- const router=useRouter();
- async function continueToAuth(){await SecureStore.setItemAsync('vaya.onboarding.completed','1');router.replace('/auth');}
- return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
-  <View style={styles.visual}>
-   <View style={styles.sky}/>
-   <View style={styles.mountainBack}/>
-   <View style={styles.mountainFront}/>
-   <View style={styles.road}/>
-   <View style={styles.car}>
-    <View style={styles.carTop}/>
-    <View style={styles.windshield}/>
-    <View style={styles.carBody}/>
-    <View style={[styles.wheel,{left:18}]}/><View style={[styles.wheel,{right:18}]}/>
-   </View>
-   <View style={styles.people}>
-    {[0,1,2].map((item)=><View key={item} style={[styles.person,{left:54+item*48}]}><View style={styles.head}/><View style={styles.body}/></View>)}
-   </View>
-  </View>
-
-  <View style={styles.copyWrap}>
-   <Text style={styles.title}>A safer, smarter{"\n"}way to travel</Text>
-   <Text style={styles.copy}>Share rides, save money and meet great people along the way.</Text>
-   <View style={styles.dots}><View style={[styles.dot,styles.activeDot]}/><View style={styles.dot}/><View style={styles.dot}/><View style={styles.dot}/></View>
-  </View>
-
-  <Pressable onPress={()=>void continueToAuth()} style={styles.primary}><Text style={styles.primaryText}>Next</Text></Pressable>
- </ScrollView></SafeAreaView>
+export default function OnboardingScreen() {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function finishOnboarding(destination: "/auth" | "/") {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await completeOnboarding();
+      router.replace(destination);
+    } catch {
+      setError("Unable to save your preferences. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView
+        contentContainerStyle={styles.page}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.top}><BrandMark /><Text style={styles.topLabel}>GO TOGETHER</Text></View>
+        <JourneyHero title={"Good company.\nGreat journeys."} subtitle="Discover a better way to travel across South Africa." eyebrow="WELCOME TO VAYA" />
+        <View style={styles.intro}>
+          <Text style={styles.title}>More than a seat.</Text>
+          <Text style={styles.copy}>A simpler way to get there, together.</Text>
+        </View>
+        <View style={styles.benefits}>
+          {benefits.map((item) => (
+            <View key={item.title} style={styles.benefit}>
+              <View style={styles.icon}>
+                <SymbolView
+                  name={{
+                    ios: item.ios,
+                    android: item.material,
+                    web: item.material,
+                  }}
+                  tintColor={Design.color.primary}
+                  size={22}
+                />
+              </View>
+              <View style={styles.benefitCopy}>
+                <Text style={styles.benefitTitle}>{item.title}</Text>
+                <Text style={styles.benefitText}>{item.copy}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+        {error ? <Text style={styles.copy}>{error}</Text> : null}
+        <Pressable
+          disabled={busy}
+          accessibilityRole="button"
+          onPress={() => void finishOnboarding("/auth")}
+          style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
+        >
+          <Text style={styles.primaryText}>
+            {busy ? "Getting ready…" : "Let’s go"}
+          </Text>
+          <AppIcon name="arrow" color="#FFFFFF" size={21} />
+        </Pressable>
+        <Pressable accessibilityRole="button" disabled={busy} onPress={() => void finishOnboarding("/")} style={styles.browse}>
+          <Text style={styles.browseText}>Browse rides first</Text>
+        </Pressable>
+        <Text style={styles.footer}>Your next journey, with Vaya.</Text>
+      </ScrollView>
+    </SafeAreaView>
+  );
 }
 
-const styles=StyleSheet.create({
- safe:{flex:1,backgroundColor:BG},page:{flexGrow:1,paddingHorizontal:14,paddingTop:16,paddingBottom:20},
- visual:{height:320,borderRadius:18,overflow:'hidden',position:'relative',backgroundColor:'#EAF2F8'},sky:{position:'absolute',top:0,right:0,bottom:0,left:0,backgroundColor:'#EEF6FB'},
- mountainBack:{position:'absolute',left:-30,right:90,bottom:128,height:105,borderRadius:70,backgroundColor:'#D7E1F3',transform:[{rotate:'-8deg'}]},mountainFront:{position:'absolute',left:120,right:-60,bottom:120,height:120,borderRadius:70,backgroundColor:'#C9D8EB',transform:[{rotate:'9deg'}]},road:{position:'absolute',left:0,right:0,bottom:0,height:120,backgroundColor:'#8EAA99'},
- car:{position:'absolute',left:42,right:42,bottom:32,height:100},carTop:{position:'absolute',left:36,right:36,top:0,height:42,borderTopLeftRadius:24,borderTopRightRadius:24,backgroundColor:'#0F4039'},windshield:{position:'absolute',left:48,right:48,top:10,height:25,borderTopLeftRadius:15,borderTopRightRadius:15,backgroundColor:'#CDE7F1'},carBody:{position:'absolute',left:0,right:0,bottom:12,height:62,borderRadius:18,backgroundColor:GREEN},wheel:{position:'absolute',bottom:0,width:24,height:24,borderRadius:12,backgroundColor:'#1F2937',borderWidth:4,borderColor:'#0F172A'},
- people:{position:'absolute',left:0,right:0,bottom:95,height:72},person:{position:'absolute',bottom:0,width:34,alignItems:'center'},head:{width:20,height:20,borderRadius:10,backgroundColor:'#C98C62'},body:{width:30,height:40,borderTopLeftRadius:14,borderTopRightRadius:14,backgroundColor:'#FFFFFF'},
- copyWrap:{alignItems:'center',paddingHorizontal:18,marginTop:22},title:{color:TEXT,fontSize:21,lineHeight:27,fontWeight:'900',textAlign:'center',letterSpacing:-.4},copy:{color:MUTED,fontSize:9.5,lineHeight:15,textAlign:'center',marginTop:9,maxWidth:260},dots:{flexDirection:'row',gap:5,marginTop:16},dot:{width:5,height:5,borderRadius:3,backgroundColor:'#D0D5DD'},activeDot:{width:14,backgroundColor:GREEN},
- primary:{marginTop:'auto',height:44,borderRadius:8,backgroundColor:GREEN,alignItems:'center',justifyContent:'center'},primaryText:{color:'#FFFFFF',fontSize:10,fontWeight:'900'}
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: Design.color.background },
+  page: { ...Design.page, flexGrow: 1, paddingTop: 20, paddingBottom: 24 },
+  top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 22 },
+  topLabel: { fontSize: 9, fontWeight: "800", letterSpacing: 1.2, color: Design.color.muted },
+  brand: {
+    fontSize: 30,
+    fontWeight: "700",
+    letterSpacing: -1,
+    color: Design.color.text,
+  },
+  intro: { marginTop: 26, marginBottom: 18 },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 1.4,
+    color: Design.color.primary,
+    marginBottom: 14,
+  },
+  title: {
+    fontSize: 25,
+    lineHeight: 32,
+    fontWeight: "800",
+    letterSpacing: -0.7,
+    color: Design.color.text,
+  },
+  copy: {
+    fontSize: 13,
+    lineHeight: 21,
+    color: Design.color.muted,
+    marginTop: 7,
+  },
+  benefits: { gap: 20, marginBottom: 24, padding: 20, borderRadius: 24, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: Design.color.border, boxShadow: Design.shadow.card },
+  benefit: { flexDirection: "row", gap: 13, alignItems: "flex-start" },
+  icon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Design.color.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  benefitCopy: { flex: 1 },
+  benefitTitle: { fontSize: 14, fontWeight: "700", color: Design.color.text },
+  benefitText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Design.color.muted,
+    marginTop: 5,
+  },
+  primary: {
+    minHeight: 56,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 17,
+    backgroundColor: Design.color.primary,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: "auto",
+    boxShadow: Design.shadow.button,
+  },
+  primaryText: { fontSize: 15, fontWeight: "600", color: "#FFFFFF" },
+  arrow: { fontSize: 22, color: "#FFFFFF" },
+  browse: { minHeight: 44, alignItems: "center", justifyContent: "center", marginTop: 6 },
+  browseText: { fontSize: 13, color: Design.color.primary, fontWeight: "600" },
+  pressed: { opacity: 0.7 },
+  footer: {
+    textAlign: "center",
+    fontSize: 12,
+    color: Design.color.muted,
+    marginTop: 16,
+  },
 });

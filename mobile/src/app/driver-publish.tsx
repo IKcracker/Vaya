@@ -1,6 +1,8 @@
-import DateTimePicker from '@expo/ui/community/datetime-picker';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { RetryButton } from "@/components/retry-button";
+import { Design } from "@/constants/design";
+import { DateTimePicker } from "@expo/ui/community/datetime-picker";
+import { useRouter, useFocusEffect } from "expo-router";
+import { useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -11,25 +13,26 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   fetchMobileDriver,
   MobileDriverVehicle,
   publishDriverTrip,
-} from '@/lib/auth';
-import { usePassengerAuth } from '@/providers/passenger-auth-provider';
+} from "@/lib/auth";
+import { usePassengerAuth } from "@/providers/passenger-auth-provider";
+import { useTravelMode } from "@/providers/travel-mode-provider";
 
-const BLUE = '#10B981';
-const NAVY = '#063C35';
-const BG = '#F6F8F7';
-const SURFACE = '#FFFFFF';
-const TEXT = '#101828';
-const MUTED = '#667085';
-const LINE = '#E4E7EC';
+const BLUE = Design.color.primary;
+const NAVY = "#102C60";
+const BG = Design.color.background;
+const SURFACE = "#FFFFFF";
+const TEXT = Design.color.text;
+const MUTED = Design.color.muted;
+const LINE = Design.color.border;
 
-type PickerMode = 'date' | 'time' | null;
+type PickerMode = "date" | "time" | null;
 
 function initialDeparture() {
   const value = new Date();
@@ -39,63 +42,84 @@ function initialDeparture() {
 }
 
 function formatDate(value: Date) {
-  return new Intl.DateTimeFormat('en-ZA', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
+  return new Intl.DateTimeFormat("en-ZA", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   }).format(value);
 }
 
 function formatDateLong(value: Date) {
-  return new Intl.DateTimeFormat('en-ZA', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
+  return new Intl.DateTimeFormat("en-ZA", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
   }).format(value);
 }
 
 function formatTime(value: Date) {
-  return new Intl.DateTimeFormat('en-ZA', {
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Intl.DateTimeFormat("en-ZA", {
+    hour: "2-digit",
+    minute: "2-digit",
     hour12: false,
   }).format(value);
 }
 
 export default function PublishDriverTripScreen() {
+  const [retryVersion, setRetryVersion] = useState(0);
   const router = useRouter();
   const { loading, session } = usePassengerAuth();
+  const { setMode } = useTravelMode();
+  const [driverApproved, setDriverApproved] = useState(false);
+  const [vehiclesLoading, setVehiclesLoading] = useState(Boolean(session));
 
   const [vehicles, setVehicles] = useState<MobileDriverVehicle[]>([]);
-  const [vehicleId, setVehicleId] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [vehicleId, setVehicleId] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [departureAt, setDepartureAt] = useState(initialDeparture);
   const [draftDeparture, setDraftDeparture] = useState(departureAt);
   const [pickerMode, setPickerMode] = useState<PickerMode>(null);
   const [seats, setSeats] = useState(3);
-  const [fare, setFare] = useState('');
-  const [now] = useState(() => Date.now());
+  const [fare, setFare] = useState("");
+  const [now, setNow] = useState(() => Date.now());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!session) return;
-
-    fetchMobileDriver(session)
-      .then((response) => {
-        const approved = (response.driver?.vehicles ?? []).filter(
-          (vehicle) => vehicle.status === 'Approved'
-        );
-        setVehicles(approved);
-        const preferred =
-          approved.find((vehicle) => vehicle.isPrimary) ?? approved[0];
-        if (preferred) setVehicleId(preferred.id);
-      })
-      .catch((reason: unknown) => {
-        setError(reason instanceof Error ? reason.message : 'Unable to load your vehicles');
-      });
-  }, [session]);
+  useFocusEffect(
+    useCallback(
+      () => {
+        if (!session) return;
+        let active = true;
+        setVehiclesLoading(true);
+        setError(null);
+        setNow(Date.now());
+        fetchMobileDriver(session)
+          .then((response) => {
+            if (!active) return;
+            setDriverApproved(response.driver?.status === "Approved" && response.driver.verification?.readyToApprove === true);
+            const approved = (response.driver?.vehicles ?? []).filter(
+              (vehicle) => vehicle.status === "Approved" && vehicle.verification?.readyToApprove === true,
+            );
+            setVehicles(approved);
+            const preferred =
+              approved.find((vehicle) => vehicle.isPrimary) ?? approved[0];
+            setVehicleId((current) => approved.some((vehicle) => vehicle.id === current) ? current : preferred?.id ?? "");
+          })
+          .catch((reason: unknown) => {
+            if (!active) return;
+            setError(
+              reason instanceof Error
+                ? reason.message
+                : "Unable to load your vehicles",
+            );
+          }).finally(() => { if (active) setVehiclesLoading(false); });
+        return () => { active = false; };
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- Retry and refresh counters intentionally reload this request.
+      [session, retryVersion],
+    ),
+  );
 
   const fareAmount = Number(fare);
   const routeReady =
@@ -104,13 +128,14 @@ export default function PublishDriverTripScreen() {
     from.trim().toLowerCase() !== to.trim().toLowerCase();
 
   const valid =
+    driverApproved && !vehiclesLoading &&
     Boolean(vehicleId) &&
     routeReady &&
     departureAt.getTime() > now &&
     seats >= 1 &&
     seats <= 8 &&
     Number.isFinite(fareAmount) &&
-    fareAmount > 0 &&
+    Math.round(fareAmount * 100) >= 1 &&
     fareAmount <= 10000;
 
   function openPicker(mode: Exclude<PickerMode, null>) {
@@ -123,19 +148,14 @@ export default function PublishDriverTripScreen() {
     next.setFullYear(
       selectedDate.getFullYear(),
       selectedDate.getMonth(),
-      selectedDate.getDate()
+      selectedDate.getDate(),
     );
     setDraftDeparture(next);
   }
 
   function updateDraftTime(selectedTime: Date) {
     const next = new Date(draftDeparture);
-    next.setHours(
-      selectedTime.getHours(),
-      selectedTime.getMinutes(),
-      0,
-      0
-    );
+    next.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
     setDraftDeparture(next);
   }
 
@@ -146,12 +166,13 @@ export default function PublishDriverTripScreen() {
 
   async function submit() {
     if (!session || !valid || submitting) return;
+    if (departureAt.getTime() <= Date.now()) { setError("Choose a future departure time."); return; }
 
     setSubmitting(true);
     setError(null);
 
     try {
-      await publishDriverTrip(session, {
+      const response = await publishDriverTrip(session, {
         vehicleId,
         from: from.trim(),
         to: to.trim(),
@@ -160,20 +181,18 @@ export default function PublishDriverTripScreen() {
         fare: fareAmount,
       });
 
-      router.replace({
-        pathname: '/explore',
-        params: { refresh: 'published' },
-      });
+      setMode("driver");
+      router.replace({ pathname: "/driver-trip/[id]", params: { id: response.trip.id } });
     } catch (reason) {
       setError(
-        reason instanceof Error ? reason.message : 'Unable to publish trip'
+        reason instanceof Error ? reason.message : "Unable to publish trip",
       );
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (loading) {
+  if (loading || vehiclesLoading) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
@@ -189,16 +208,15 @@ export default function PublishDriverTripScreen() {
         <View style={styles.center}>
           <Text style={styles.stateTitle}>Sign in to publish trips</Text>
           <Pressable
+            accessibilityRole="button"
             onPress={() =>
               router.replace({
-                pathname: '/auth',
-                params: { next: '/driver-publish' },
+                pathname: "/auth",
+                params: { next: "/driver-publish" },
               })
             }
-            style={({ pressed }) => [
-              styles.primary,
-              pressed && styles.pressed,
-            ]}>
+            style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
+          >
             <Text style={styles.primaryText}>Sign in</Text>
           </Pressable>
         </View>
@@ -206,19 +224,29 @@ export default function PublishDriverTripScreen() {
     );
   }
 
+  if (!driverApproved) return <SafeAreaView style={styles.safe}><View style={styles.center}>
+    <Text style={styles.stateTitle}>Driver verification required</Text>
+    <Text style={styles.noVehicleText}>{error ?? "Your driver profile and documents must be approved before you can publish a ride."}</Text>
+    <Pressable accessibilityRole="button" onPress={() => router.replace("/driver-verification")} style={styles.primary}>
+      <Text style={styles.primaryText}>View verification</Text>
+    </Pressable>
+    <RetryButton onPress={() => setRetryVersion((value) => value + 1)} />
+  </View></SafeAreaView>;
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
         contentContainerStyle={styles.page}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
             onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.back,
-              pressed && styles.pressed,
-            ]}>
+            style={({ pressed }) => [styles.back, pressed && styles.pressed]}
+          >
             <Text style={styles.backText}>‹</Text>
           </Pressable>
 
@@ -242,6 +270,7 @@ export default function PublishDriverTripScreen() {
             <View style={styles.routeInputBlock}>
               <Text style={styles.label}>Leaving from</Text>
               <TextInput
+                accessibilityLabel="Johannesburg"
                 value={from}
                 onChangeText={setFrom}
                 autoCapitalize="words"
@@ -257,6 +286,7 @@ export default function PublishDriverTripScreen() {
             <View style={styles.routeInputBlock}>
               <Text style={styles.label}>Going to</Text>
               <TextInput
+                accessibilityLabel="Durban"
                 value={to}
                 onChangeText={setTo}
                 autoCapitalize="words"
@@ -276,18 +306,30 @@ export default function PublishDriverTripScreen() {
               const active = vehicle.id === vehicleId;
               return (
                 <Pressable
+                  accessibilityRole="button"
                   key={vehicle.id}
                   onPress={() => setVehicleId(vehicle.id)}
                   style={({ pressed }) => [
                     styles.vehicleOption,
                     active && styles.vehicleOptionActive,
                     pressed && styles.pressed,
-                  ]}>
-                  <View style={[styles.vehicleRadio, active && styles.vehicleRadioActive]}>
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.vehicleRadio,
+                      active && styles.vehicleRadioActive,
+                    ]}
+                  >
                     {active ? <View style={styles.vehicleRadioDot} /> : null}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.vehicleName, active && styles.vehicleNameActive]}>
+                    <Text
+                      style={[
+                        styles.vehicleName,
+                        active && styles.vehicleNameActive,
+                      ]}
+                    >
                       {vehicle.make} {vehicle.model}
                     </Text>
                     <Text style={styles.vehicleMeta}>
@@ -305,11 +347,18 @@ export default function PublishDriverTripScreen() {
           </View>
         ) : (
           <View style={styles.noVehicle}>
-            <Text style={styles.noVehicleTitle}>No approved vehicle available</Text>
-            <Text style={styles.noVehicleText}>
-              Every vehicle needs its own registration and roadworthy approval before it can be used for a trip.
+            <Text style={styles.noVehicleTitle}>
+              No approved vehicle available
             </Text>
-            <Pressable onPress={() => router.push('/driver-vehicle')} style={styles.manageVehicleButton}>
+            <Text style={styles.noVehicleText}>
+              Every vehicle needs its own registration and roadworthy approval
+              before it can be used for a trip.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push("/driver-vehicle")}
+              style={styles.manageVehicleButton}
+            >
               <Text style={styles.manageVehicleText}>Manage vehicles</Text>
             </Pressable>
           </View>
@@ -318,11 +367,13 @@ export default function PublishDriverTripScreen() {
         <Text style={styles.sectionLabel}>WHEN</Text>
         <View style={styles.scheduleRow}>
           <Pressable
-            onPress={() => openPicker('date')}
+            accessibilityRole="button"
+            onPress={() => openPicker("date")}
             style={({ pressed }) => [
               styles.scheduleCard,
               pressed && styles.schedulePressed,
-            ]}>
+            ]}
+          >
             <Text style={styles.scheduleIcon}>◷</Text>
             <View>
               <Text style={styles.cardLabel}>Date</Text>
@@ -333,17 +384,17 @@ export default function PublishDriverTripScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => openPicker('time')}
+            accessibilityRole="button"
+            onPress={() => openPicker("time")}
             style={({ pressed }) => [
               styles.scheduleCard,
               pressed && styles.schedulePressed,
-            ]}>
+            ]}
+          >
             <Text style={styles.scheduleIcon}>◴</Text>
             <View>
               <Text style={styles.cardLabel}>Time</Text>
-              <Text style={styles.cardValue}>
-                {formatTime(departureAt)}
-              </Text>
+              <Text style={styles.cardValue}>{formatTime(departureAt)}</Text>
             </View>
           </Pressable>
         </View>
@@ -358,30 +409,30 @@ export default function PublishDriverTripScreen() {
 
             <View style={styles.stepper}>
               <Pressable
+                accessibilityRole="button"
                 disabled={seats <= 1}
-                onPress={() =>
-                  setSeats((value) => Math.max(1, value - 1))
-                }
+                onPress={() => setSeats((value) => Math.max(1, value - 1))}
                 style={({ pressed }) => [
                   styles.stepButton,
                   seats <= 1 && styles.stepDisabled,
                   pressed && styles.pressed,
-                ]}>
+                ]}
+              >
                 <Text style={styles.stepText}>−</Text>
               </Pressable>
 
               <Text style={styles.stepValue}>{seats}</Text>
 
               <Pressable
+                accessibilityRole="button"
                 disabled={seats >= 8}
-                onPress={() =>
-                  setSeats((value) => Math.min(8, value + 1))
-                }
+                onPress={() => setSeats((value) => Math.min(8, value + 1))}
                 style={({ pressed }) => [
                   styles.stepButton,
                   seats >= 8 && styles.stepDisabled,
                   pressed && styles.pressed,
-                ]}>
+                ]}
+              >
                 <Text style={styles.stepText}>+</Text>
               </Pressable>
             </View>
@@ -398,11 +449,10 @@ export default function PublishDriverTripScreen() {
             <View style={styles.moneyField}>
               <Text style={styles.currency}>R</Text>
               <TextInput
+                accessibilityLabel="280"
                 value={fare}
                 onChangeText={(value) =>
-                  setFare(
-                    value.replace(/[^0-9.]/g, '').slice(0, 7)
-                  )
+                  setFare(value.replace(/[^0-9.]/g, "").slice(0, 7))
                 }
                 keyboardType="decimal-pad"
                 style={styles.moneyInput}
@@ -416,18 +466,21 @@ export default function PublishDriverTripScreen() {
         <View style={styles.quickFares}>
           {[180, 220, 280, 320].map((amount) => (
             <Pressable
+              accessibilityRole="button"
               key={amount}
               onPress={() => setFare(String(amount))}
               style={({ pressed }) => [
                 styles.quickFare,
                 fare === String(amount) && styles.quickFareActive,
                 pressed && styles.pressed,
-              ]}>
+              ]}
+            >
               <Text
                 style={[
                   styles.quickFareText,
                   fare === String(amount) && styles.quickFareTextActive,
-                ]}>
+                ]}
+              >
                 R{amount}
               </Text>
             </Pressable>
@@ -439,9 +492,7 @@ export default function PublishDriverTripScreen() {
           <View style={styles.summaryTop}>
             <View style={{ flex: 1 }}>
               <Text style={styles.summaryRoute}>
-                {routeReady
-                  ? `${from.trim()} → ${to.trim()}`
-                  : 'Your route'}
+                {routeReady ? `${from.trim()} → ${to.trim()}` : "Your route"}
               </Text>
               <Text style={styles.summarySchedule}>
                 {formatDate(departureAt)} · {formatTime(departureAt)}
@@ -450,7 +501,7 @@ export default function PublishDriverTripScreen() {
 
             <View style={styles.fareBadge}>
               <Text style={styles.fareBadgeValue}>
-                {fareAmount > 0 ? `R${fareAmount}` : 'R—'}
+                {fareAmount > 0 ? `R${fareAmount}` : "R—"}
               </Text>
               <Text style={styles.fareBadgeLabel}>per seat</Text>
             </View>
@@ -458,7 +509,7 @@ export default function PublishDriverTripScreen() {
 
           <View style={styles.summaryBottom}>
             <Text style={styles.summaryMeta}>
-              {seats} seat{seats === 1 ? '' : 's'} available
+              {seats} seat{seats === 1 ? "" : "s"} available
             </Text>
             <Text style={styles.summaryMeta}>Scheduled</Text>
           </View>
@@ -474,18 +525,23 @@ export default function PublishDriverTripScreen() {
 
         {error ? (
           <View style={styles.error}>
-            <Text style={styles.errorText}>{error}</Text>
+            <>
+              <Text style={styles.errorText}>{error}</Text>
+              <RetryButton onPress={() => setRetryVersion((v) => v + 1)} />
+            </>
           </View>
         ) : null}
 
         <Pressable
+          accessibilityRole="button"
           disabled={!valid || submitting}
           onPress={() => void submit()}
           style={({ pressed }) => [
             styles.publishButton,
             (!valid || submitting) && styles.publishButtonDisabled,
             pressed && valid && !submitting && styles.publishPressed,
-          ]}>
+          ]}
+        >
           {submitting ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
@@ -501,14 +557,16 @@ export default function PublishDriverTripScreen() {
         </Text>
       </ScrollView>
 
-      {Platform.OS === 'ios' && pickerMode ? (
+      {Platform.OS === "ios" && pickerMode ? (
         <Modal
           transparent
           animationType="slide"
           presentationStyle="overFullScreen"
-          onRequestClose={() => setPickerMode(null)}>
+          onRequestClose={() => setPickerMode(null)}
+        >
           <View style={styles.modalBackdrop}>
             <Pressable
+              accessibilityRole="button"
               style={StyleSheet.absoluteFill}
               onPress={() => setPickerMode(null)}
             />
@@ -519,21 +577,25 @@ export default function PublishDriverTripScreen() {
               <View style={styles.sheetHeader}>
                 <View>
                   <Text style={styles.sheetEyebrow}>
-                    {pickerMode === 'date' ? 'DEPARTURE DATE' : 'DEPARTURE TIME'}
+                    {pickerMode === "date"
+                      ? "DEPARTURE DATE"
+                      : "DEPARTURE TIME"}
                   </Text>
                   <Text style={styles.sheetTitle}>
-                    {pickerMode === 'date'
+                    {pickerMode === "date"
                       ? formatDate(draftDeparture)
                       : formatTime(draftDeparture)}
                   </Text>
                 </View>
 
                 <Pressable
+                  accessibilityRole="button"
                   onPress={confirmIosPicker}
                   style={({ pressed }) => [
                     styles.doneButton,
                     pressed && styles.pressed,
-                  ]}>
+                  ]}
+                >
                   <Text style={styles.doneButtonText}>Done</Text>
                 </Pressable>
               </View>
@@ -542,16 +604,16 @@ export default function PublishDriverTripScreen() {
                 <DateTimePicker
                   value={draftDeparture}
                   onValueChange={(_, selectedValue) => {
-                    if (pickerMode === 'date') {
+                    if (pickerMode === "date") {
                       updateDraftDate(selectedValue);
                     } else {
                       updateDraftTime(selectedValue);
                     }
                   }}
                   mode={pickerMode}
-                  display={pickerMode === 'date' ? 'inline' : 'spinner'}
+                  display={pickerMode === "date" ? "inline" : "spinner"}
                   minimumDate={
-                    pickerMode === 'date' ? new Date(now) : undefined
+                    pickerMode === "date" ? new Date(now) : undefined
                   }
                   is24Hour
                   accentColor={BLUE}
@@ -566,16 +628,16 @@ export default function PublishDriverTripScreen() {
         </Modal>
       ) : null}
 
-      {Platform.OS === 'android' && pickerMode ? (
+      {Platform.OS === "android" && pickerMode ? (
         <DateTimePicker
           value={departureAt}
           onValueChange={(_, selectedValue) => {
-            if (pickerMode === 'date') {
+            if (pickerMode === "date") {
               const next = new Date(departureAt);
               next.setFullYear(
                 selectedValue.getFullYear(),
                 selectedValue.getMonth(),
-                selectedValue.getDate()
+                selectedValue.getDate(),
               );
               setDepartureAt(next);
             } else {
@@ -584,7 +646,7 @@ export default function PublishDriverTripScreen() {
                 selectedValue.getHours(),
                 selectedValue.getMinutes(),
                 0,
-                0
+                0,
               );
               setDepartureAt(next);
             }
@@ -593,9 +655,7 @@ export default function PublishDriverTripScreen() {
           onDismiss={() => setPickerMode(null)}
           mode={pickerMode}
           presentation="dialog"
-          minimumDate={
-            pickerMode === 'date' ? new Date(now) : undefined
-          }
+          minimumDate={pickerMode === "date" ? new Date(now) : undefined}
           is24Hour
           accentColor={BLUE}
         />
@@ -610,75 +670,85 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   page: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
+    paddingHorizontal: 24,
+    paddingTop: 12,
     paddingBottom: 36,
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
   },
   pressed: {
     opacity: 0.72,
   },
   center: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 28,
   },
   stateTitle: {
     color: TEXT,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: "600",
+    flexShrink: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginBottom: 20,
+    minHeight: 48,
   },
   back: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: LINE,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   backText: {
     color: TEXT,
     fontSize: 30,
-    lineHeight: 30,
+    lineHeight: 44,
     marginTop: -3,
+    flexShrink: 1,
   },
   eyebrow: {
     color: BLUE,
-    fontSize: 9,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: "600",
     letterSpacing: 1.15,
+    flexShrink: 1,
   },
   title: {
     color: TEXT,
-    fontSize: 23,
-    fontWeight: '900',
+    fontSize: 26,
+    fontWeight: "600",
     letterSpacing: -0.5,
     marginTop: 2,
+    flexShrink: 1,
   },
   subtitle: {
     color: MUTED,
-    fontSize: 10,
+    fontSize: 14,
     marginTop: 3,
+    flexShrink: 1,
+    lineHeight: 21,
   },
   routeCard: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: LINE,
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: Design.radius.card,
+    padding: 16,
   },
   routeRail: {
     width: 24,
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 19,
     paddingBottom: 19,
   },
@@ -686,12 +756,12 @@ const styles = StyleSheet.create({
     width: 9,
     height: 9,
     borderRadius: 5,
-    backgroundColor: '#98A2B3',
+    backgroundColor: "#98A2B3",
   },
   routeLine: {
     width: 1,
     flex: 1,
-    backgroundColor: '#D9DEE7',
+    backgroundColor: "#D9DEE7",
     marginVertical: 4,
   },
   destinationDot: {
@@ -705,7 +775,7 @@ const styles = StyleSheet.create({
   },
   routeInputBlock: {
     minHeight: 58,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingLeft: 8,
   },
   routeDivider: {
@@ -714,95 +784,168 @@ const styles = StyleSheet.create({
   },
   label: {
     color: MUTED,
-    fontSize: 8,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   routeInput: {
-    height: 30,
+    minHeight: 52,
     color: TEXT,
-    fontSize: 14,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: "600",
     paddingVertical: 0,
     paddingHorizontal: 0,
     marginTop: 2,
+    flexShrink: 1,
   },
   vehicleList: { gap: 8, marginBottom: 4 },
-  vehicleOption: { minHeight: 62, borderRadius: 14, borderWidth: 1, borderColor: LINE, backgroundColor: SURFACE, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  vehicleOptionActive: { borderColor: '#84ADFF', backgroundColor: '#F5F9FF' },
-  vehicleRadio: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: '#98A2B3', alignItems: 'center', justifyContent: 'center' },
+  vehicleOption: {
+    minHeight: 62,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: LINE,
+    backgroundColor: SURFACE,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+  },
+  vehicleOptionActive: { borderColor: "#84ADFF", backgroundColor: "#F5F9FF" },
+  vehicleRadio: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: "#98A2B3",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   vehicleRadioActive: { borderColor: BLUE },
-  vehicleRadioDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: BLUE },
-  vehicleName: { color: TEXT, fontSize: 11, fontWeight: '900' },
-  vehicleNameActive: { color: '#087F5B' },
-  vehicleMeta: { color: MUTED, fontSize: 9, marginTop: 3 },
-  primaryVehicleBadge: { borderRadius: 999, backgroundColor: '#E9F9F3', paddingHorizontal: 7, paddingVertical: 5 },
-  primaryVehicleText: { color: BLUE, fontSize: 7, fontWeight: '900' },
-  noVehicle: { borderRadius: 15, borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFF8F7', padding: 14, marginBottom: 4 },
-  noVehicleTitle: { color: '#B42318', fontSize: 11, fontWeight: '900' },
-  noVehicleText: { color: '#B42318', fontSize: 9, lineHeight: 15, marginTop: 4 },
-  manageVehicleButton: { marginTop: 10, alignSelf: 'flex-start', borderRadius: 9, backgroundColor: '#B42318', paddingHorizontal: 11, paddingVertical: 8 },
-  manageVehicleText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+  vehicleRadioDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: BLUE,
+  },
+  vehicleName: { color: TEXT, fontSize: 15, fontWeight: "600", flexShrink: 1 },
+  vehicleNameActive: { color: "#1765F3" },
+  vehicleMeta: { color: MUTED, fontSize: 12, marginTop: 3, flexShrink: 1 },
+  primaryVehicleBadge: {
+    borderRadius: 999,
+    backgroundColor: Design.color.primarySoft,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+  },
+  primaryVehicleText: {
+    color: BLUE,
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  noVehicle: {
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    backgroundColor: "#FFF8F7",
+    padding: 14,
+    marginBottom: 4,
+  },
+  noVehicleTitle: {
+    color: "#B42318",
+    fontSize: 18,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  noVehicleText: {
+    color: "#B42318",
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 4,
+    flexShrink: 1,
+  },
+  manageVehicleButton: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    borderRadius: 9,
+    backgroundColor: "#B42318",
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    minHeight: 44,
+  },
+  manageVehicleText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
   sectionLabel: {
     color: MUTED,
-    fontSize: 9,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: "600",
     letterSpacing: 1,
     marginTop: 22,
     marginBottom: 8,
+    flexShrink: 1,
   },
   scheduleRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
   },
   scheduleCard: {
     flex: 1,
     minHeight: 70,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: LINE,
-    borderRadius: 15,
+    borderRadius: Design.radius.card,
     paddingHorizontal: 13,
+    paddingVertical: 10,
   },
   schedulePressed: {
-    borderColor: '#9DC5FA',
-    backgroundColor: '#F8FBFF',
+    borderColor: "#9DC5FA",
+    backgroundColor: "#F8FBFF",
   },
   scheduleIcon: {
     color: BLUE,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: "600",
+    flexShrink: 1,
   },
   cardLabel: {
     color: MUTED,
-    fontSize: 8,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   cardValue: {
     color: TEXT,
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: 14,
+    fontWeight: "600",
     marginTop: 4,
+    flexShrink: 1,
   },
   cardHint: {
     color: MUTED,
-    fontSize: 9,
+    fontSize: 14,
     marginTop: 3,
+    flexShrink: 1,
   },
   commercialCard: {
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: LINE,
-    borderRadius: 17,
+    borderRadius: Design.radius.card,
     paddingHorizontal: 15,
   },
   commercialTop: {
     minHeight: 68,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 12,
   },
   cardDivider: {
@@ -811,24 +954,25 @@ const styles = StyleSheet.create({
   },
   fareRow: {
     minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: LINE,
     borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#F9FAFB',
+    overflow: "hidden",
+    backgroundColor: "#F9FAFB",
+    height: 44,
   },
   stepButton: {
-    width: 38,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   stepDisabled: {
     opacity: 0.3,
@@ -836,191 +980,210 @@ const styles = StyleSheet.create({
   stepText: {
     color: TEXT,
     fontSize: 19,
-    fontWeight: '800',
+    fontWeight: "600",
+    flexShrink: 1,
   },
   stepValue: {
     minWidth: 34,
-    textAlign: 'center',
+    textAlign: "center",
     color: TEXT,
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   moneyField: {
     minWidth: 98,
     height: 42,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: LINE,
     borderRadius: 11,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     paddingHorizontal: 10,
   },
   currency: {
     color: TEXT,
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   moneyInput: {
     width: 62,
-    height: 40,
+    height: 52,
     color: TEXT,
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: "600",
     paddingHorizontal: 6,
+    flexShrink: 1,
   },
   quickFares: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 7,
     marginTop: 8,
   },
   quickFare: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 35,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 52,
     borderWidth: 1,
     borderColor: LINE,
     borderRadius: 10,
     backgroundColor: SURFACE,
+    paddingVertical: 10,
   },
   quickFareActive: {
-    borderColor: '#9DC5FA',
-    backgroundColor: '#E9F9F3',
+    borderColor: "#9DC5FA",
+    backgroundColor: Design.color.primarySoft,
   },
   quickFareText: {
     color: MUTED,
-    fontSize: 9,
-    fontWeight: '900',
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   quickFareTextActive: {
     color: BLUE,
   },
   summaryCard: {
     backgroundColor: NAVY,
-    borderRadius: 18,
-    padding: 15,
+    borderRadius: Design.radius.card,
+    padding: 16,
   },
   summaryTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 12,
   },
   summaryRoute: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '900',
-    lineHeight: 20,
+    fontWeight: "600",
+    lineHeight: 22,
+    flexShrink: 1,
   },
   summarySchedule: {
-    color: '#A9B6CA',
-    fontSize: 9,
+    color: "#A9B6CA",
+    fontSize: 14,
     marginTop: 5,
+    flexShrink: 1,
   },
   fareBadge: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   fareBadgeValue: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: "600",
+    flexShrink: 1,
   },
   fareBadgeLabel: {
-    color: '#8FA0B8',
-    fontSize: 8,
+    color: "#8FA0B8",
+    fontSize: 12,
     marginTop: 2,
+    flexShrink: 1,
   },
   summaryBottom: {
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#263955',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderTopColor: "#263955",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   summaryMeta: {
-    color: '#A9B6CA',
-    fontSize: 9,
-    fontWeight: '700',
+    color: "#A9B6CA",
+    fontSize: 12,
+    fontWeight: "700",
+    flexShrink: 1,
   },
   warning: {
     marginTop: 12,
-    backgroundColor: '#FFFAEB',
+    backgroundColor: "#FFFAEB",
     borderWidth: 1,
-    borderColor: '#FEDF89',
+    borderColor: "#FEDF89",
     borderRadius: 12,
     padding: 11,
   },
   warningText: {
-    color: '#B54708',
-    fontSize: 10,
-    fontWeight: '800',
+    color: "#B54708",
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   error: {
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FFF8F7',
-    borderRadius: 12,
-    padding: 11,
+    borderColor: "#FECACA",
+    backgroundColor: "#FFF8F7",
+    borderRadius: Design.radius.card,
+    padding: 16,
   },
   errorText: {
-    color: '#B42318',
-    fontSize: 10,
-    lineHeight: 16,
+    color: "#B42318",
+    fontSize: 14,
+    lineHeight: 21,
+    flexShrink: 1,
   },
   primary: {
     marginTop: 18,
-    height: 50,
+    minHeight: 52,
     borderRadius: 12,
     backgroundColor: BLUE,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
   },
   primaryText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '900',
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   publishButton: {
     marginTop: 18,
-    height: 52,
+    minHeight: 52,
     borderRadius: 13,
     backgroundColor: BLUE,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
+    paddingVertical: 10,
   },
   publishButtonDisabled: {
-    backgroundColor: '#B7D5FA',
+    backgroundColor: "#B7D5FA",
   },
   publishPressed: {
     opacity: 0.86,
     transform: [{ scale: 0.995 }],
   },
   publishButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '900',
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   publishButtonArrow: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: "600",
+    flexShrink: 1,
   },
   footerText: {
     color: MUTED,
-    fontSize: 9,
-    lineHeight: 14,
-    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
     marginTop: 10,
     paddingHorizontal: 18,
+    flexShrink: 1,
   },
   modalBackdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(8, 15, 30, 0.38)',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(8, 15, 30, 0.38)",
   },
   sheet: {
     backgroundColor: SURFACE,
@@ -1034,50 +1197,54 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#D0D5DD',
-    alignSelf: 'center',
+    backgroundColor: "#D0D5DD",
+    alignSelf: "center",
     marginBottom: 14,
   },
   sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 12,
   },
   sheetEyebrow: {
     color: BLUE,
-    fontSize: 8,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: "600",
     letterSpacing: 1,
+    flexShrink: 1,
   },
   sheetTitle: {
     color: TEXT,
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: "600",
     marginTop: 3,
+    flexShrink: 1,
   },
   doneButton: {
     minWidth: 68,
-    height: 38,
+    minHeight: 52,
     borderRadius: 10,
     backgroundColor: BLUE,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
   },
   doneButtonText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '900',
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   nativePickerWrap: {
     marginTop: 14,
     minHeight: 250,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   nativePicker: {
-    width: '100%',
+    width: "100%",
     minHeight: 240,
   },
 });

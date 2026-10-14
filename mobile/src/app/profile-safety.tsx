@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { RetryButton } from "@/components/retry-button";
+import { Design } from "@/constants/design";
+import { useState, useCallback } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
   ActivityIndicator,
   Pressable,
@@ -8,55 +10,62 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   fetchPassengerTrips,
   PassengerTrip,
   submitPassengerSafetyReport,
-} from '@/lib/auth';
-import { usePassengerAuth } from '@/providers/passenger-auth-provider';
+} from "@/lib/auth";
+import { usePassengerAuth } from "@/providers/passenger-auth-provider";
 
-const BLUE = '#10B981';
-const BG = '#F6F8F7';
-const SURFACE = '#FFFFFF';
-const TEXT = '#101828';
-const MUTED = '#667085';
-const LINE = '#E4E7EC';
+const BLUE = Design.color.primary;
+const BG = Design.color.background;
+const SURFACE = "#FFFFFF";
+const TEXT = Design.color.text;
+const MUTED = Design.color.muted;
+const LINE = Design.color.border;
 
 export default function ProfileSafetyScreen() {
+  const [retryVersion, setRetryVersion] = useState(0);
   const router = useRouter();
   const { session } = usePassengerAuth();
   const [trips, setTrips] = useState<PassengerTrip[]>([]);
   const [tripId, setTripId] = useState<string | null>(null);
-  const [subject, setSubject] = useState('');
-  const [note, setNote] = useState('');
+  const [subject, setSubject] = useState("");
+  const [note, setNote] = useState("");
   const [loadingTrips, setLoadingTrips] = useState(Boolean(session));
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!session) return;
+  useFocusEffect(
+    useCallback(
+      () => {
+        if (!session) return;
 
-    let active = true;
+        let active = true;
 
-    fetchPassengerTrips(session)
-      .then((response) => {
-        if (active) setTrips(response.trips.slice(0, 6));
-      })
-      .catch(() => {
-        if (active) setTrips([]);
-      })
-      .finally(() => {
-        if (active) setLoadingTrips(false);
-      });
+        fetchPassengerTrips(session)
+          .then((response) => {
+            if (active) setTrips(response.trips.slice(0, 6));
+          })
+          .catch(() => {
+            if (active) setTrips([]);
+          })
+          .finally(() => {
+            if (active) setLoadingTrips(false);
+          });
 
-    return () => {
-      active = false;
-    };
-  }, [session]);
+        return () => {
+          active = false;
+        };
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- Retry and refresh counters intentionally reload this request.
+      [session, retryVersion],
+    ),
+  );
 
   const valid = subject.trim().length >= 3 && note.trim().length >= 10;
 
@@ -73,11 +82,15 @@ export default function ProfileSafetyScreen() {
         tripId,
       });
       setSubmittedId(response.safetyCase.id);
-      setSubject('');
-      setNote('');
+      setSubject("");
+      setNote("");
       setTripId(null);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Unable to submit safety report');
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to submit safety report",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -85,9 +98,17 @@ export default function ProfileSafetyScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.page}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.back}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => router.back()}
+            style={styles.back}
+          >
             <Text style={styles.backText}>‹</Text>
           </Pressable>
           <View>
@@ -97,36 +118,50 @@ export default function ProfileSafetyScreen() {
         </View>
 
         <View style={styles.alert}>
-          <Text style={styles.alertTitle}>For immediate danger, contact emergency services.</Text>
+          <Text style={styles.alertTitle}>
+            For immediate danger, contact emergency services.
+          </Text>
           <Text style={styles.alertText}>
-            This form creates a high-priority case for Vaya Operations. It is intended for trip safety, driver/passenger conduct, or serious travel concerns.
+            This form creates a high-priority case for Vaya Operations. It is
+            intended for trip safety, driver/passenger conduct, or serious
+            travel concerns.
           </Text>
         </View>
 
         <Text style={styles.sectionTitle}>Related trip</Text>
         <View style={styles.tripList}>
           <Pressable
+            accessibilityRole="button"
             onPress={() => setTripId(null)}
-            style={[styles.tripRow, tripId === null && styles.tripRowSelected]}>
+            style={[styles.tripRow, tripId === null && styles.tripRowSelected]}
+          >
             <Text style={styles.tripTitle}>Not linked to a specific trip</Text>
-            <Text style={styles.tripCheck}>{tripId === null ? '✓' : ''}</Text>
+            <Text style={styles.tripCheck}>{tripId === null ? "✓" : ""}</Text>
           </Pressable>
           {loadingTrips ? (
-            <View style={styles.loadingRow}><ActivityIndicator color={BLUE} /></View>
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color={BLUE} />
+            </View>
           ) : (
             trips.map((trip) => (
               <Pressable
+                accessibilityRole="button"
                 key={trip.id}
                 onPress={() => setTripId(trip.tripId)}
                 style={[
                   styles.tripRow,
                   tripId === trip.tripId && styles.tripRowSelected,
-                ]}>
+                ]}
+              >
                 <View style={{ flex: 1 }}>
                   <Text style={styles.tripTitle}>{trip.route}</Text>
-                  <Text style={styles.tripMeta}>{trip.id} · {trip.bookingStatus}</Text>
+                  <Text style={styles.tripMeta}>
+                    {trip.id} · {trip.bookingStatus}
+                  </Text>
                 </View>
-                <Text style={styles.tripCheck}>{tripId === trip.tripId ? '✓' : ''}</Text>
+                <Text style={styles.tripCheck}>
+                  {tripId === trip.tripId ? "✓" : ""}
+                </Text>
               </Pressable>
             ))
           )}
@@ -137,6 +172,7 @@ export default function ProfileSafetyScreen() {
           <View style={styles.field}>
             <Text style={styles.label}>Subject</Text>
             <TextInput
+              accessibilityLabel="What happened?"
               value={subject}
               onChangeText={setSubject}
               style={styles.input}
@@ -147,6 +183,7 @@ export default function ProfileSafetyScreen() {
           <View style={styles.field}>
             <Text style={styles.label}>Details</Text>
             <TextInput
+              accessibilityLabel="Tell Vaya Operations what happened, where, and what you need help with."
               value={note}
               onChangeText={setNote}
               style={[styles.input, styles.textarea]}
@@ -161,21 +198,33 @@ export default function ProfileSafetyScreen() {
         {submittedId ? (
           <View style={styles.success}>
             <Text style={styles.successTitle}>Report submitted</Text>
-            <Text style={styles.successText}>Reference {submittedId}. Vaya Operations can now see this case in the Admin CRM.</Text>
+            <Text style={styles.successText}>
+              Reference {submittedId}. Vaya Operations can now see this case in
+              the Admin CRM.
+            </Text>
           </View>
         ) : null}
 
         {error ? (
           <View style={styles.error}>
-            <Text style={styles.errorText}>{error}</Text>
+            <>
+              <Text style={styles.errorText}>{error}</Text>
+              <RetryButton onPress={() => setRetryVersion((v) => v + 1)} />
+            </>
           </View>
         ) : null}
 
         <Pressable
+          accessibilityRole="button"
           disabled={!valid || submitting}
           onPress={() => void submit()}
-          style={[styles.primary, (!valid || submitting) && styles.disabled]}>
-          {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryText}>Submit safety report</Text>}
+          style={[styles.primary, (!valid || submitting) && styles.disabled]}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.primaryText}>Submit safety report</Text>
+          )}
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -184,34 +233,173 @@ export default function ProfileSafetyScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-  page: { padding: 18, paddingBottom: 40 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  back: { width: 40, height: 40, borderRadius: 12, backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, alignItems: 'center', justifyContent: 'center' },
-  backText: { color: TEXT, fontSize: 30, lineHeight: 30, marginTop: -3 },
-  eyebrow: { color: BLUE, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
-  title: { color: TEXT, fontSize: 22, fontWeight: '900', marginTop: 3 },
-  alert: { marginTop: 20, borderRadius: 14, backgroundColor: '#FFF1F0', padding: 14 },
-  alertTitle: { color: '#B42318', fontSize: 11, fontWeight: '900' },
-  alertText: { color: '#7A271A', fontSize: 10, lineHeight: 16, marginTop: 4 },
-  sectionTitle: { color: TEXT, fontSize: 16, fontWeight: '900', marginTop: 22, marginBottom: 9 },
-  tripList: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, overflow: 'hidden' },
-  tripRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, borderBottomWidth: 1, borderBottomColor: LINE },
-  tripRowSelected: { backgroundColor: '#E9F9F3' },
-  tripTitle: { color: TEXT, fontSize: 11, fontWeight: '900' },
-  tripMeta: { color: MUTED, fontSize: 9, marginTop: 3 },
-  tripCheck: { width: 18, color: BLUE, fontSize: 13, fontWeight: '900', textAlign: 'center' },
-  loadingRow: { minHeight: 54, alignItems: 'center', justifyContent: 'center' },
-  card: { backgroundColor: SURFACE, borderWidth: 1, borderColor: LINE, borderRadius: 16, padding: 14, gap: 14 },
+  page: {
+    padding: 24,
+    paddingBottom: 40,
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
+    paddingHorizontal: 24,
+    paddingTop: 12,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 20,
+    minHeight: 48,
+  },
+  back: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: LINE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backText: {
+    color: TEXT,
+    fontSize: 30,
+    lineHeight: 44,
+    marginTop: -3,
+    flexShrink: 1,
+  },
+  eyebrow: {
+    color: BLUE,
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 1.1,
+    flexShrink: 1,
+  },
+  title: {
+    color: TEXT,
+    fontSize: 26,
+    fontWeight: "600",
+    marginTop: 3,
+    flexShrink: 1,
+  },
+  alert: {
+    marginTop: 20,
+    borderRadius: 14,
+    backgroundColor: "#FFF1F0",
+    padding: 14,
+  },
+  alertTitle: {
+    color: "#B42318",
+    fontSize: 18,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  alertText: {
+    color: "#7A271A",
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 4,
+    flexShrink: 1,
+  },
+  sectionTitle: {
+    color: TEXT,
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 22,
+    marginBottom: 9,
+    flexShrink: 1,
+  },
+  tripList: {
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: LINE,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  tripRow: {
+    minHeight: 54,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: LINE,
+    paddingVertical: 10,
+  },
+  tripRowSelected: { backgroundColor: Design.color.primarySoft },
+  tripTitle: { color: TEXT, fontSize: 18, fontWeight: "600", flexShrink: 1 },
+  tripMeta: { color: MUTED, fontSize: 12, marginTop: 3, flexShrink: 1 },
+  tripCheck: {
+    width: 18,
+    color: BLUE,
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+    flexShrink: 1,
+  },
+  loadingRow: { minHeight: 54, alignItems: "center", justifyContent: "center" },
+  card: {
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: LINE,
+    borderRadius: Design.radius.card,
+    padding: 16,
+    gap: 14,
+  },
   field: { gap: 6 },
-  label: { color: MUTED, fontSize: 9, fontWeight: '800' },
-  input: { minHeight: 44, borderWidth: 1, borderColor: LINE, borderRadius: 11, backgroundColor: '#F9FAFB', color: TEXT, paddingHorizontal: 12, fontSize: 12, fontWeight: '700' },
-  textarea: { minHeight: 120, paddingTop: 12 },
-  success: { marginTop: 14, borderRadius: 12, backgroundColor: '#ECFDF3', padding: 12 },
-  successTitle: { color: '#027A48', fontSize: 11, fontWeight: '900' },
-  successText: { color: '#05603A', fontSize: 10, lineHeight: 16, marginTop: 3 },
-  error: { marginTop: 14, borderRadius: 12, backgroundColor: '#FFF1F0', padding: 12 },
-  errorText: { color: '#B42318', fontSize: 10, lineHeight: 16 },
-  primary: { marginTop: 18, height: 50, borderRadius: 12, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
-  primaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  label: { color: MUTED, fontSize: 12, fontWeight: "600", flexShrink: 1 },
+  input: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderColor: LINE,
+    borderRadius: 11,
+    backgroundColor: "#F9FAFB",
+    color: TEXT,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    fontWeight: "700",
+    flexShrink: 1,
+    paddingVertical: 10,
+  },
+  textarea: { minHeight: 120, paddingTop: 12, paddingVertical: 10 },
+  success: {
+    marginTop: 14,
+    borderRadius: 12,
+    backgroundColor: "#ECFDF3",
+    padding: 12,
+  },
+  successTitle: {
+    color: "#027A48",
+    fontSize: 18,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  successText: {
+    color: "#05603A",
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 3,
+    flexShrink: 1,
+  },
+  error: {
+    marginTop: 14,
+    borderRadius: Design.radius.card,
+    backgroundColor: "#FFF1F0",
+    padding: 16,
+  },
+  errorText: { color: "#B42318", fontSize: 14, lineHeight: 21, flexShrink: 1 },
+  primary: {
+    marginTop: 18,
+    minHeight: 52,
+    borderRadius: 12,
+    backgroundColor: BLUE,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+  },
+  primaryText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
   disabled: { opacity: 0.45 },
 });

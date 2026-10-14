@@ -15,7 +15,10 @@ export async function POST(request: Request) {
   const auth = await getPassengerSession(getMobileSessionCookie(request));
 
   if (auth.status === "unconfigured") {
-    return Response.json({ error: "Passenger authentication is not configured" }, { status: 503 });
+    return Response.json(
+      { error: "Passenger authentication is not configured" },
+      { status: 503 },
+    );
   }
 
   if (auth.status !== "authenticated" || !auth.user.email) {
@@ -23,15 +26,23 @@ export async function POST(request: Request) {
   }
 
   if (!isDatabaseConfigured()) {
-    return Response.json({ error: "Database is not configured" }, { status: 503 });
+    return Response.json(
+      { error: "Database is not configured" },
+      { status: 503 },
+    );
   }
 
   const body = await request.json().catch(() => null);
   const tripId = typeof body?.tripId === "string" ? body.tripId.trim() : "";
   const seats = Number(body?.seats ?? 1);
+  const expectedFareCents = body?.expectedFareCents;
 
-  if (!tripId || !Number.isInteger(seats) || seats < 1 || seats > 8) {
-    return Response.json({ error: "Valid trip and seat count are required" }, { status: 400 });
+  if (!tripId || !Number.isInteger(seats) || seats < 1 || seats > 8 ||
+      (expectedFareCents !== undefined && (!Number.isInteger(expectedFareCents) || expectedFareCents < 1))) {
+    return Response.json(
+      { error: "Valid trip and seat count are required" },
+      { status: 400 },
+    );
   }
 
   const passenger = await getPassengerAccountByEmail(auth.user.email);
@@ -39,7 +50,7 @@ export async function POST(request: Request) {
   if (!passenger) {
     return Response.json(
       { error: "Complete your passenger profile before booking" },
-      { status: 409 }
+      { status: 409 },
     );
   }
 
@@ -47,6 +58,7 @@ export async function POST(request: Request) {
     const booking = await createPublicBooking({
       tripId,
       seats,
+      expectedFareCents,
       passenger: {
         name: passenger.name,
         email: passenger.email,
@@ -56,21 +68,33 @@ export async function POST(request: Request) {
 
     return Response.json({ booking }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "OWN_TRIP_BOOKING") {
+      return Response.json(
+        {
+          error:
+            "You cannot book your own ride. Open driver mode to manage it.",
+        },
+        { status: 403 },
+      );
+    }
     if (error instanceof Error && error.message === "TRIP_UNAVAILABLE") {
       return Response.json(
-        { error: "This trip no longer has enough seats available" },
-        { status: 409 }
+        { error: "This ride's seats, fare or departure have changed. Review the ride and try again." },
+        { status: 409 },
       );
     }
 
     if (error instanceof Error && error.message === "PASSENGER_BLOCKED") {
       return Response.json(
         { error: "This passenger account cannot create bookings" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     console.error("Authenticated booking creation failed", error);
-    return Response.json({ error: "Unable to create booking" }, { status: 500 });
+    return Response.json(
+      { error: "Unable to create booking" },
+      { status: 500 },
+    );
   }
 }

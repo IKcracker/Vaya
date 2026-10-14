@@ -7,14 +7,9 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
-    android: {
-      ...config.android,
-      config: {
-        ...(config.android?.config ?? {}),
-        googleMaps: {
-          apiKey: googleMapsApiKey,
-        },
-      },
-    },
+    plugins: [
+      ...(config.plugins ?? []),
+      ["react-native-maps", { androidGoogleMapsApiKey: googleMapsApiKey }],
+    ],
   };
 };
